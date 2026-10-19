@@ -2,13 +2,6 @@
 
 Repo mã nguồn dùng chung cho cả 3 milestone. Lịch sử commit được tích lũy xuyên suốt.
 
-> **Repo này chỉ chứa mã nguồn.** Dữ liệu crawl (`corpus/`), log (`logs/`) và archive
-> đều bị `.gitignore` chặn theo đúng yêu cầu của đề: *"The repository contains only
-> source files ... and excludes data files, compiled executables, and other
-> non-source materials."*
->
-> Báo cáo Jupyter Book nằm ở **repo khác**: `<link-repo-book>`
-
 ---
 
 ## 1. Yêu cầu môi trường
@@ -55,8 +48,8 @@ pip install -r src/requirements.txt
 Mở `src/config.py`, sửa 2 dòng đầu cho đúng nhóm mình:
 
 ```python
-GROUP_NAME    = "IntroDS-Group-XX"
-CONTACT_EMAIL = "mssv@student.university.edu.vn"
+GROUP_NAME    = "IntroDS-Group-04"
+CONTACT_EMAIL = "24120053@student.hcmus.edu.vn"
 ```
 
 Hai giá trị này ghép thành header `User-Agent`. arXiv yêu cầu User-Agent mô tả rõ
@@ -122,7 +115,7 @@ Tùy chọn:
 | 2. Tải source mọi version | `python src/downloader.py --ids ids/<mssv>.txt` | Minh Thư |
 | 3. Giải nén + dựng corpus | `python src/extractor.py` | Thanh Tú |
 | 4. Crawl reference | `python src/semantic_scholar.py --ids ids/<mssv>.txt` | Hữu Duy |
-| 5. Đo hiệu năng | `python src/benchmark.py` | Thành viên 5 |
+| 5. Đo hiệu năng | `python src/benchmark.py` | Anh Tuấn |
 | 6. Chạy cả pipeline | `python src/main.py --ids ids/<mssv>.txt` | Nhóm trưởng (tuần 2) |
 
 ## 6. Ước lượng thời gian chạy
@@ -188,4 +181,4 @@ Thư mục sinh ra lúc chạy (**không commit**): `corpus/`, `logs/`, `reports
 | 24120144 | Minh Thư | Full-text Source Download | A1 — Tối ưu hiệu năng |
 | 24120152 | Thanh Tú | Extract + Corpus Builder | A2 — Data Validation Suite |
 | 24120177 | Hữu Duy | Semantic Scholar References | C — Tiền xử lý bắc cầu M2/M3 |
-| | *(điền tên)* | Benchmark + Jupyter Book | B — Phân tích mở rộng |
+| 24120153 | Anh Tuấn | Benchmark + Jupyter Book | B — Phân tích mở rộng |
