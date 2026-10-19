@@ -1,0 +1,18 @@
+# Milestone 1 — Data Crawling
+# Python >= 3.10 (arxiv 4.x yêu cầu)
+
+# --- Entry Discovery (nhóm trưởng) ---
+arxiv>=4.0.0,<5.0.0
+
+# --- Tải source + gọi API (Minh Thư, Hữu Duy) ---
+requests>=2.31.0
+
+# --- Phân tích & báo cáo (Thành viên 5) ---
+pandas>=2.0.0
+plotly>=5.18.0
+
+# --- Đo hiệu năng ---
+psutil>=5.9.0
+
+# --- Phần nâng cao A3 (nhóm trưởng, tuần 2) ---
+# sickle>=0.7.0          # OAI-PMH, bỏ comment khi làm A3

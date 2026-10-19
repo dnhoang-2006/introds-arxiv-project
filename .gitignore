@@ -1,0 +1,65 @@
+# ============================================================
+#  Đồ án Nhập môn KHDL — arXiv Crawling
+#  Đề bài yêu cầu: repo CHỈ chứa source (.py/.ipynb),
+#  KHÔNG chứa data file, archive, file nén, binary.
+#  File này là lá chắn — đừng xoá dòng nào mà không hỏi nhóm.
+# ============================================================
+
+# --- Dữ liệu crawl (TUYỆT ĐỐI không commit) ---
+corpus/
+data/
+downloads/
+sources/
+raw/
+output/
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.zip
+*.tex
+*.bib
+*.bbl
+*.sty
+*.cls
+*.pdf
+
+# --- Log & báo cáo sinh ra lúc chạy ---
+logs/
+reports/
+*.log
+checkpoint*.json
+prescan.json
+paper_meta.json
+references.json
+
+# --- Ngoại lệ: các file mẫu PHẢI được commit ---
+# (đặt sau các rule trên nên sẽ thắng)
+!docs/**
+!examples/**
+!**/*.example.json
+!**/*.sample.csv
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.python-version
+
+# --- Notebook ---
+.ipynb_checkpoints/
+
+# --- Secrets (API key Semantic Scholar) ---
+.env
+.env.*
+secrets.json
+*_api_key*
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
