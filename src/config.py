@@ -20,8 +20,8 @@ from pathlib import Path
 # ----------------------------------------------------------------------
 # Nhận dạng nhóm — SỬA 2 DÒNG NÀY cho đúng nhóm mình
 # ----------------------------------------------------------------------
-GROUP_NAME = "IntroDS-Group-XX"
-CONTACT_EMAIL = "mssv@student.university.edu.vn"
+GROUP_NAME = "IntroDS-Group-04"
+CONTACT_EMAIL = "24120053@student.hcmus.edu.vn"
 
 USER_AGENT = f"{GROUP_NAME}/1.0 (academic course project; mailto:{CONTACT_EMAIL})"
 
