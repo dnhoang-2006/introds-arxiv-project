@@ -86,8 +86,7 @@ def read_existing_result(arxiv_id: str) -> dict[str, Any] | None:
         return None
     if not isinstance(result, dict):
         return None
-    # A 404 only means Semantic Scholar has not indexed the paper yet. It is
-    # not a completed crawl: allow a later run to retry it.
+    
     if result.get("status") != "ok" or result.get("arxiv_id") != arxiv_id:
         return None
 
