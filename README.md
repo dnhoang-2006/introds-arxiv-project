@@ -113,10 +113,21 @@ Tùy chọn:
 | Bước | Lệnh | Người phụ trách |
 |---|---|---|
 | 2. Tải source mọi version | `python src/downloader.py --ids ids/<mssv>.txt` | Minh Thư |
-| 3. Giải nén + dựng corpus | `python src/extractor.py` | Thanh Tú |
+| 3. Giải nén + dựng corpus | `python src/corpus_builder.py --ids ids/<mssv>.txt` | Thanh Tú |
 | 4. Crawl reference | `python src/semantic_scholar.py --ids ids/<mssv>.txt` | Hữu Duy |
 | 5. Đo hiệu năng | `python src/benchmark.py` | Anh Tuấn |
 | 6. Chạy cả pipeline | `python src/main.py --ids ids/<mssv>.txt` | Nhóm trưởng (tuần 2) |
+
+Corpus builder gọi extractor để tự tìm archive trong `raw/`, chỉ dựng các
+version chưa có output, và ghi kết quả vào `logs/extract.csv`.
+
+Có thể chạy thử một phần trước:
+
+```bash
+python src/corpus_builder.py --ids ids/<mssv>.txt --limit 5
+```
+
+Chạy lại lệnh không giải nén lại version đã dựng; dùng `--force` nếu cần dựng lại.
 
 ## 6. Ước lượng thời gian chạy
 

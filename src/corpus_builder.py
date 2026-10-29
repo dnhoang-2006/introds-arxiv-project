@@ -12,10 +12,13 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import os
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import config
 from config import pub_key  # hàm chung của nhóm (schema.md §1)
 from extractor import ExtractionResult, extract_archive
 
@@ -103,8 +106,8 @@ def validate_paper_meta(meta: dict) -> None:
         raise ValueError("authors phải là list[str]")
     if not isinstance(meta["revised_dates"], list) or not all(isinstance(d, str) for d in meta["revised_dates"]):
         raise ValueError("revised_dates phải là list[str]")
-    if not isinstance(meta["submission_date"], str):
-        raise ValueError("submission_date phải là chuỗi ISO 8601 (không được null)")
+    if meta["submission_date"] is not None and not isinstance(meta["submission_date"], str):
+        raise ValueError("submission_date phải là chuỗi ISO 8601 hoặc null")
     if meta["venue"] == "" or meta["venue"] == "None":
         raise ValueError('venue nullable: ghi null, không ghi "" hay "None"')
     if not isinstance(meta["n_versions"], int):
@@ -219,6 +222,96 @@ def write_anomaly_report(results: Dict[str, ExtractionResult], out_path: str | P
     return out_path
 
 
+# --------------------------------------------------------------------------- #
+# Dựng hàng loạt từ các archive đã tải
+# --------------------------------------------------------------------------- #
+RAW_ROOT = Path(os.environ.get("RAW_ROOT", config.PROJECT_ROOT / "raw"))
+
+
+def load_ids(source: str, limit: Optional[int] = None) -> List[str]:
+    """Đọc ID từ file (mỗi dòng một ID) hoặc chuỗi ID phân cách bằng dấu phẩy."""
+    path = Path(source)
+    if path.exists():
+        ids = [
+            line.strip()
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+    else:
+        ids = [item.strip() for item in source.split(",") if item.strip()]
+    return ids[:limit] if limit else ids
+
+
+def _archive_for_version(raw_root: Path, arxiv_id: str, version: int) -> Optional[Path]:
+    """Tìm archive hoàn chỉnh của một version, bất kể phần mở rộng."""
+    folder = raw_root / pub_key(arxiv_id)
+    candidates = sorted(folder.glob(f"v{version}.*")) if folder.is_dir() else []
+    for path in candidates:
+        if not path.name.endswith(".part") and path.is_file() and path.stat().st_size > 0:
+            return path
+    return None
+
+
+def _version_is_built(paper_dir: Path, version: int) -> bool:
+    """Không giải nén lại version đã có output hoặc marker rỗng."""
+    version_dir = paper_dir / f"v{version}"
+    if (version_dir / "_EMPTY.json").exists():
+        return True
+    return any(version_dir.rglob("*.tex")) or any(version_dir.rglob("*.bib"))
+
+
+def build_ids(
+    source: str,
+    limit: Optional[int] = None,
+    force: bool = False,
+    verbose: bool = True,
+) -> Counter:
+    """Dựng corpus cho các ID có metadata và archive trong raw/."""
+    ids = load_ids(source, limit)
+    if not ids:
+        raise ValueError("Không đọc được ID nào.")
+
+    config.ensure_dirs()
+    summary: Counter = Counter()
+    log_path = config.LOGS_ROOT / "extract.csv"
+    for raw_id in ids:
+        meta_path = config.pub_dir(raw_id) / "paper_meta.json"
+        if not meta_path.exists():
+            summary["missing_meta"] += 1
+            if verbose:
+                print(f"{raw_id}: bỏ qua, thiếu paper_meta.json")
+            continue
+
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        validate_paper_meta(meta)
+        arxiv_id = meta["arxiv_id"]
+        paper_dir = config.pub_dir(arxiv_id)
+        archives: Dict[int, Path] = {}
+        missing_archives = 0
+        for version in range(1, max(1, int(meta["n_versions"])) + 1):
+            if not force and _version_is_built(paper_dir, version):
+                continue
+            archive = _archive_for_version(RAW_ROOT, arxiv_id, version)
+            if archive is None:
+                missing_archives += 1
+            else:
+                archives[version] = archive
+
+        if not archives:
+            summary["pending_archive" if missing_archives else "already_built"] += 1
+            continue
+
+        results = build_paper(config.CORPUS_ROOT, meta, archives, log_path)
+        for result in results.values():
+            summary[result.status] += 1
+        if missing_archives:
+            summary["pending_archive"] += 1
+        if verbose:
+            print(f"{arxiv_id}: đã dựng {len(archives)} version")
+
+    return summary
+
+
 if __name__ == "__main__":
     import argparse
     import io
@@ -227,32 +320,44 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Dựng cây thư mục corpus và ghi paper_meta.json")
     parser.add_argument("--test", action="store_true", help="Chạy kiểm tra tự động (self-test)")
+    parser.add_argument("--ids", help="File ID hoặc danh sách ID ngăn bởi dấu phẩy")
+    parser.add_argument("--limit", type=int, default=None, help="Chỉ xử lý N bài đầu")
+    parser.add_argument("--force", action="store_true", help="Dựng lại version đã có output")
+    parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
 
-    print("Chạy kiểm tra tự động corpus_builder...")
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_path = Path(tmp)
-        tar_path = tmp_path / "v1.tar.gz"
-        with tarfile.open(tar_path, "w:gz") as tf:
-            tex = b"\\begin{figure}\\end{figure}"
-            ti = tarfile.TarInfo(name="main.tex")
-            ti.size = len(tex)
-            tf.addfile(ti, io.BytesIO(tex))
+    if args.test:
+        print("Chạy kiểm tra tự động corpus_builder...")
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            tar_path = tmp_path / "v1.tar.gz"
+            with tarfile.open(tar_path, "w:gz") as tf:
+                tex = b"\\begin{figure}\\end{figure}"
+                ti = tarfile.TarInfo(name="main.tex")
+                ti.size = len(tex)
+                tf.addfile(ti, io.BytesIO(tex))
 
-        meta = build_paper_meta(
-            arxiv_id="hep-th/9901001",
-            title="Old Style Paper",
-            authors=["Author One"],
-            submission_date="1999-01-01T00:00:00Z",
-            revised_dates=[],
-            venue=None,
-            n_versions=1,
-        )
-        validate_paper_meta(meta)
+            meta = build_paper_meta(
+                arxiv_id="hep-th/9901001",
+                title="Old Style Paper",
+                authors=["Author One"],
+                submission_date="1999-01-01T00:00:00Z",
+                revised_dates=[],
+                venue=None,
+                n_versions=1,
+            )
+            validate_paper_meta(meta)
 
-        res = build_paper(tmp_path / "corpus", meta, {1: tar_path}, tmp_path / "logs" / "extract.csv")
-        assert (tmp_path / "corpus" / "hep-th_9901001" / "paper_meta.json").exists()
-        assert (tmp_path / "corpus" / "hep-th_9901001" / "v1" / "main.tex").exists()
-        assert (tmp_path / "logs" / "extract.csv").exists()
-    print("✅ Self-test hoàn tất: Mọi kiểm tra cơ bản đều PASSED!")
+            res = build_paper(
+                tmp_path / "corpus", meta, {1: tar_path}, tmp_path / "logs" / "extract.csv"
+            )
+            assert (tmp_path / "corpus" / "hep-th_9901001" / "paper_meta.json").exists()
+            assert (tmp_path / "corpus" / "hep-th_9901001" / "v1" / "main.tex").exists()
+            assert (tmp_path / "logs" / "extract.csv").exists()
+        print("✅ Self-test hoàn tất: Mọi kiểm tra cơ bản đều PASSED!")
+    elif args.ids:
+        summary = build_ids(args.ids, args.limit, args.force, not args.quiet)
+        print(f"Kết quả dựng corpus: {dict(summary)}")
+    else:
+        parser.error("Cần truyền --test hoặc --ids")
 
