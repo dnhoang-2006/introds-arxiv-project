@@ -33,6 +33,7 @@ ARXIV_SRC_BASE = "https://export.arxiv.org/src/"
 
 # Semantic Scholar (Hữu Duy dùng)
 S2_PAPER_BASE = "https://api.semanticscholar.org/graph/v1/paper/arXiv:"
+S2_BATCH_URL = "https://api.semanticscholar.org/graph/v1/paper/batch"
 
 # OAI-PMH — endpoint MỚI từ tháng 3/2025 (địa chỉ cũ export.arxiv.org/oai2 đã khai tử)
 OAI_PMH_ENDPOINT = "https://oaipmh.arxiv.org/oai"

@@ -19,12 +19,14 @@ from typing import Any
 
 import config
 from semantic_scholar import (
-    PaperNotIndexedError,
+    BATCH_MAX_IDS,
+    ConnectionFailedError,
     RateLimitError,
-    get_references,
+    get_references_batch,
 )
 
 LOG_FIELDS = ["arxiv_id", "n_total", "n_with_arxiv", "seconds", "status", "error_type"]
+DEFAULT_BATCH_SIZE = 100  # ~20KB/bài -> ~2MB mỗi response, dưới giới hạn 10MB của API
 
 
 def load_ids(path: Path, limit: int | None = None) -> list[str]:
@@ -180,16 +182,33 @@ def log_row(
     log_file.flush()
 
 
-def run(ids_path: Path, limit: int | None = None, overwrite: bool = False) -> None:
-    config.ensure_dirs()
+def run(
+    ids_path: Path,
+    limit: int | None = None,
+    overwrite: bool = False,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+) -> None:
     arxiv_ids = load_ids(ids_path, limit=limit)
     if not arxiv_ids:
         print(f"Không có arXiv ID nào trong {ids_path}")
         return
+    run_ids(arxiv_ids, overwrite=overwrite, batch_size=batch_size)
+
+
+def run_ids(
+    arxiv_ids: list[str],
+    overwrite: bool = False,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+) -> dict[str, int]:
+    """Lấy references cho danh sách ID đã chuẩn hóa; trả số bài theo trạng thái."""
+    if not 1 <= batch_size <= BATCH_MAX_IDS:
+        raise ValueError(f"--batch-size phải nằm trong khoảng 1-{BATCH_MAX_IDS}")
+    config.ensure_dirs()
 
     log_path = config.LOGS_ROOT / "references.csv"
     write_header = not log_path.exists() or log_path.stat().st_size == 0
     counts = {"ok": 0, "not_indexed": 0, "failed": 0, "skipped": 0}
+    total = len(arxiv_ids)
 
     with log_path.open("a", encoding="utf-8", newline="") as log_file:
         writer = csv.DictWriter(log_file, fieldnames=LOG_FIELDS)
@@ -197,6 +216,69 @@ def run(ids_path: Path, limit: int | None = None, overwrite: bool = False) -> No
             writer.writeheader()
             log_file.flush()
 
+        def record_attempt(record: dict[str, Any]) -> None:
+            log_row(
+                writer, log_file,
+                arxiv_id=record["arxiv_id"],
+                n_total=record.get("n_total"),
+                n_with_arxiv=record.get("n_with_arxiv"),
+                seconds=record["seconds"],
+                status=record["status"],
+                error_type=record.get("error_type", ""),
+            )
+
+        def crawl(batch: list[tuple[int, str, dict[str, Any] | None]]) -> None:
+            """Lấy một lô; lỗi HTTP khác 429 (vd. response quá lớn) thì chia đôi lô rồi thử lại."""
+            print(f"[{batch[0][0]}-{batch[-1][0]}/{total}] Đang lấy references cho {len(batch)} bài")
+            started = time.monotonic()
+            try:
+                results = get_references_batch(
+                    [arxiv_id for _, arxiv_id, _ in batch], on_attempt=record_attempt,
+                )
+            except Exception as exc:
+                if len(batch) > 1 and not isinstance(exc, (RateLimitError, ConnectionFailedError)):
+                    print(f"  Lỗi lô ({exc}); chia đôi lô và thử lại", file=sys.stderr)
+                    middle = len(batch) // 2
+                    crawl(batch[:middle])
+                    crawl(batch[middle:])
+                    return
+                elapsed = (time.monotonic() - started) / len(batch)
+                error_type = getattr(exc, "error_type", type(exc).__name__.lower())
+                result_status = "rate_limited" if isinstance(exc, RateLimitError) else "error"
+                print(f"  Lỗi ({error_type}): {exc}", file=sys.stderr)
+                for _, arxiv_id, existing in batch:
+                    # Attempt của lô được log dưới nhãn lô; thêm một dòng mỗi bài
+                    # để vẫn lọc được bài cần chạy lại từ references.csv.
+                    log_row(
+                        writer, log_file,
+                        arxiv_id=arxiv_id,
+                        n_total=None,
+                        n_with_arxiv=None,
+                        seconds=elapsed,
+                        status="fail",
+                        error_type=error_type,
+                    )
+                    if existing is None:
+                        write_result(arxiv_id, result_status, [])
+                    counts["failed"] += 1
+                return
+
+            for index, arxiv_id, existing in batch:
+                references = results.get(arxiv_id)
+                if references is None:
+                    if existing is None:
+                        write_result(arxiv_id, "not_indexed", [])
+                    counts["not_indexed"] += 1
+                    if existing is None:
+                        print(f"  [{index}/{total}] {arxiv_id}: không có trên Semantic Scholar")
+                    else:
+                        print(f"  [{index}/{total}] {arxiv_id}: chưa được lập chỉ mục; giữ kết quả cũ")
+                    continue
+                n_total, n_with_arxiv = write_result(arxiv_id, "ok", references)
+                counts["ok"] += 1
+                print(f"  [{index}/{total}] {arxiv_id}: {n_total} references ({n_with_arxiv} có arXiv ID)")
+
+        pending: list[tuple[int, str, dict[str, Any] | None]] = []
         for index, arxiv_id in enumerate(arxiv_ids, start=1):
             existing = read_existing_result(arxiv_id)
             if not overwrite and existing is not None:
@@ -209,66 +291,20 @@ def run(ids_path: Path, limit: int | None = None, overwrite: bool = False) -> No
                     status="skipped",
                 )
                 counts["skipped"] += 1
-                print(f"[{index}/{len(arxiv_ids)}] {arxiv_id}: đã có kết quả, bỏ qua")
                 continue
+            pending.append((index, arxiv_id, existing))
 
-            attempts_logged = False
-
-            def record_attempt(record: dict[str, Any]) -> None:
-                nonlocal attempts_logged
-                attempts_logged = True
-                log_row(
-                    writer, log_file,
-                    arxiv_id=record["arxiv_id"],
-                    n_total=record.get("n_total"),
-                    n_with_arxiv=record.get("n_with_arxiv"),
-                    seconds=record["seconds"],
-                    status=record["status"],
-                    error_type=record.get("error_type", ""),
-                )
-
-            print(f"[{index}/{len(arxiv_ids)}] Đang lấy references: {arxiv_id}")
-            started = time.monotonic()
-            try:
-                references = get_references(arxiv_id, on_attempt=record_attempt)
-            except PaperNotIndexedError:
-                if existing is None:
-                    write_result(arxiv_id, "not_indexed", [])
-                counts["not_indexed"] += 1
-                if existing is None:
-                    print(f"  Không có trên Semantic Scholar; đã ghi trạng thái not_indexed")
-                else:
-                    print("  Lần tải lại chưa được lập chỉ mục; giữ nguyên kết quả tốt hiện có")
-            except Exception as exc:
-                elapsed = time.monotonic() - started
-                error_type = getattr(exc, "error_type", type(exc).__name__.lower())
-                if not attempts_logged:
-                    log_row(
-                        writer, log_file,
-                        arxiv_id=arxiv_id,
-                        n_total=None,
-                        n_with_arxiv=None,
-                        seconds=elapsed,
-                        status="fail",
-                        error_type=error_type,
-                    )
-                result_status = "rate_limited" if isinstance(exc, RateLimitError) else "error"
-                if existing is None:
-                    write_result(arxiv_id, result_status, [])
-                counts["failed"] += 1
-                print(f"  Lỗi ({error_type}): {exc}", file=sys.stderr)
-                if existing is not None:
-                    print("  Giữ nguyên kết quả tốt hiện có")
-            else:
-                n_total, n_with_arxiv = write_result(arxiv_id, "ok", references)
-                counts["ok"] += 1
-                print(f"  Đã lưu {n_total} references ({n_with_arxiv} có arXiv ID)")
+        print(f"Bỏ qua {counts['skipped']} bài đã có kết quả; còn {len(pending)} bài, "
+              f"lô {batch_size} -> {-(-len(pending) // batch_size)} request")
+        for start in range(0, len(pending), batch_size):
+            crawl(pending[start:start + batch_size])
     print(
         "Hoàn tất — "
         f"ok: {counts['ok']}, không được lập chỉ mục: {counts['not_indexed']}, "
         f"lỗi cần xem lại: {counts['failed']}, bỏ qua: {counts['skipped']}"
     )
     print(f"Log: {log_path}")
+    return counts
 
 
 def main() -> None:
@@ -295,9 +331,15 @@ def main() -> None:
         action="store_true",
         help="Ghi de references.json da co",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=DEFAULT_BATCH_SIZE,
+        help=f"So ID moi request POST /paper/batch (1-{BATCH_MAX_IDS})",
+    )
     args = parser.parse_args()
     try:
-        run(args.ids, limit=args.limit, overwrite=args.overwrite)
+        run(args.ids, limit=args.limit, overwrite=args.overwrite, batch_size=args.batch_size)
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
 
