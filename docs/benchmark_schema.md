@@ -42,12 +42,13 @@ Encoding: `UTF-8`, có dòng header.
 | `status` | `string` | Không | Enum chuỗi | `success` | Trạng thái hoàn thành: `success`, `failed`, `timeout`, `error`. |
 | `wall_time_seconds` | `float` | Không | Giây (`s`), 4 số thập phân | `3.3333` | Tổng thời gian wall-clock thực tế (tính bằng `time.perf_counter()`). |
 | `peak_ram_mb` | `float` | **Có** | Megabytes (`MB`), 2 số thập phân | `45.80` | Lượng RAM (Resident Set Size - RSS) cao nhất đo được trên toàn bộ cây tiến trình (process tree). |
+| `peak_ram_source` | `string` | Không | Enum chuỗi | `getrusage` | Nguồn thu thập đỉnh RAM: `getrusage` (kernel OS theo dõi liên tục trên Linux/Colab/macOS) hoặc `sampling` (lấy mẫu định kỳ qua psutil trên Windows). |
 | `average_ram_mb` | `float` | **Có** | Megabytes (`MB`), 2 số thập phân | `38.25` | Lượng RAM trung bình qua các chu kỳ lấy mẫu. |
-| `ram_sampling_interval_seconds` | `float` | Không | Giây (`s`) | `0.10` | Chu kỳ lấy mẫu RAM định kỳ của tiến trình giám sát. |
+| `ram_sampling_interval_seconds` | `float` | Không | Giây (`s`) | `0.05` | Chu kỳ lấy mẫu RAM định kỳ của tiến trình giám sát. |
 | `disk_usage_mb` | `float` | **Có** | Megabytes (`MB`), 4 số thập phân | `0.1843` | Độ biến thiên dung lượng đĩa (Delta = Sau - Trước) của phạm vi thư mục được cấu hình. |
 | `disk_scope` | `string` | Không | Chuỗi mô tả phạm vi | `delta:corpus` | Mô tả phạm vi đo đĩa: `delta:<thư_mục>` hoặc `none` nếu không bật theo dõi đĩa. |
 | `testbed` | `string` | Không | Chuỗi cấu hình hệ thống | `Windows-10-AMD64 (Python 3.11.0, RAM 16.0GB)` | Thông số môi trường phần cứng và hệ điều hành phục vụ khả năng tái lập thí nghiệm. |
-| `tool_version` | `string` | Không | SemVer | `1.0.0` | Phiên bản của công cụ `benchmark.py`. |
+| `tool_version` | `string` | Không | SemVer | `1.1.0` | Phiên bản của công cụ `benchmark.py`. |
 | `notes` | `string` | **Có** | Chuỗi văn bản tự do | `Run with limit=5 on Colab` | Ghi chú thêm về tham số, lỗi ngoại lệ hoặc điều kiện thử nghiệm. |
 
 ---

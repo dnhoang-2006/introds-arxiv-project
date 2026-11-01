@@ -31,6 +31,7 @@ def test_successful_command():
     assert result.exit_code == 0
     assert result.wall_time_seconds >= 0.08
     assert result.peak_ram_mb is not None and result.peak_ram_mb > 0
+    assert result.peak_ram_source in ("getrusage", "sampling")
     assert result.average_ram_mb is not None and result.average_ram_mb > 0
     assert result.started_at_utc.endswith("+00:00") or result.started_at_utc.endswith("Z")
     assert result.ended_at_utc.endswith("+00:00") or result.ended_at_utc.endswith("Z")
@@ -128,6 +129,7 @@ def test_csv_export_schema(tmp_path):
         assert row["exit_code"] == "0"
         assert float(row["wall_time_seconds"]) >= 0.0
         assert float(row["peak_ram_mb"]) > 0
+        assert row["peak_ram_source"] in ("getrusage", "sampling")
         assert row["notes"] == "sample test run"
 
     # Append a second result
@@ -174,3 +176,32 @@ def test_child_process_ram_sampling():
     assert result.peak_ram_mb is not None
     # 20MB buffer + python base runtime should yield peak RAM >= 15 MB
     assert result.peak_ram_mb >= 15.0
+
+
+def test_kernel_peak_rss_unit(monkeypatch):
+    """Verify get_kernel_peak_rss_mb converts kernel units accurately on POSIX platforms."""
+    from unittest.mock import MagicMock
+    import benchmark
+
+    # Mock Linux: ru_maxrss is in Kilobytes
+    monkeypatch.setattr(benchmark.sys, "platform", "linux")
+    mock_ru = MagicMock()
+    mock_ru.ru_maxrss = 102400  # 100 MB in KB
+    mock_resource = MagicMock()
+    mock_resource.RUSAGE_CHILDREN = 1
+    mock_resource.getrusage.return_value = mock_ru
+    monkeypatch.setitem(sys.modules, "resource", mock_resource)
+
+    linux_peak = benchmark.get_kernel_peak_rss_mb()
+    assert linux_peak == 100.0
+
+    # Mock Darwin/macOS: ru_maxrss is in Bytes
+    monkeypatch.setattr(benchmark.sys, "platform", "darwin")
+    mock_ru.ru_maxrss = 100 * 1024 * 1024  # 100 MB in Bytes
+    darwin_peak = benchmark.get_kernel_peak_rss_mb()
+    assert darwin_peak == 100.0
+
+    # Mock Windows: returns None
+    monkeypatch.setattr(benchmark.sys, "platform", "win32")
+    assert benchmark.get_kernel_peak_rss_mb() is None
+
