@@ -1,6 +1,6 @@
 # ĐỀ XUẤT HỢP ĐỒNG DỮ LIỆU: BENCHMARK LOG SCHEMA
 
-> **Người đề xuất:** Anh Tuấn (MSSV 24120153 — Phụ trách Benchmark & Jupyter Book)  
+> **Người đề xuất:** Nguyễn Lê Anh Tuấn (MSSV 24120153 — Phụ trách Benchmark & Jupyter Book)  
 > **Trạng thái:** Đề xuất mở (chờ Nhóm trưởng & thành viên duyệt trước khi gộp vào `docs/schema.md`)  
 > **Mục tiêu:** Định dạng log chuẩn hóa để ghi nhận, tổng hợp và trực quan hóa hiệu năng của các module crawling, download, extract, và reference matching.
 
@@ -9,10 +9,10 @@
 ## 1. Mối quan hệ với `docs/schema.md` hiện tại
 
 Hiện tại, `docs/schema.md` (Mục 5) định nghĩa 4 file log vi mô do từng thành viên tự ghi trong lúc chạy:
-- `logs/discovery.csv` (Nhóm trưởng): đo thời gian phân giải metadata bài báo.
-- `logs/download.csv` (Minh Thư): đo bytes và thời gian tải source archive.
-- `logs/extract.csv` (Thanh Tú): đo dung lượng `bytes_before` và `bytes_after` sau khi lọc figure.
-- `logs/references.csv` (Hữu Duy): đo số lượng reference và thời gian cào Semantic Scholar.
+- `logs/discovery.csv` (Đặng Ngọc Hoàng): đo thời gian phân giải metadata bài báo.
+- `logs/download.csv` (Dương Ngọc Minh Thư): đo bytes và thời gian tải source archive.
+- `logs/extract.csv` (Trần Ngọc Thanh Tú): đo dung lượng `bytes_before` và `bytes_after` sau khi lọc figure.
+- `logs/references.csv` (Cáp Hửu Duy): đo số lượng reference và thời gian cào Semantic Scholar.
 
 **Khác biệt & giá trị bổ sung của Benchmark Log:**
 1. Các log trên là **log vi mô nội bộ** của từng script (chủ yếu là thời gian I/O và số lượng đối tượng).
