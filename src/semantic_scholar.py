@@ -150,20 +150,28 @@ def _send(
 ) -> tuple[requests.Response, int, float]:
     """Gửi request có pacing; retry khi timeout, 429 hoặc 5xx.
 
-    Trả về (response, attempt, seconds) cho mọi mã khác 429/5xx để caller tự
-    xử lý. Phải gọi bên trong ``_request_lock``.
+    Chỉ khóa _request_lock quanh _wait_for_request_slot và HTTP request;
+    thả khóa trong lúc time.sleep retry để tránh chặn các luồng khác.
+    Trả về (response, attempt, seconds) cho mọi mã khác 429/5xx để caller tự xử lý.
     """
     headers, delay = _auth()
     for attempt in range(1, config.MAX_RETRIES + 2):
-        _wait_for_request_slot(delay)
-        started = time.monotonic()
-        try:
-            response = _session.request(
-                method, url, headers=headers, timeout=config.HTTP_TIMEOUT, **kwargs,
-            )
-        except (requests.Timeout, requests.ConnectionError) as exc:
+        with _request_lock:
+            _wait_for_request_slot(delay)
+            started = time.monotonic()
+            try:
+                response = _session.request(
+                    method, url, headers=headers, timeout=config.HTTP_TIMEOUT, **kwargs,
+                )
+            except (requests.Timeout, requests.ConnectionError) as exc:
+                connection_exc = exc
+                response = None
+            else:
+                connection_exc = None
             seconds = time.monotonic() - started
-            error_type = type(exc).__name__.lower()
+
+        if connection_exc is not None:
+            error_type = type(connection_exc).__name__.lower()
             _notify_attempt(
                 on_attempt, arxiv_id=label, attempt=attempt,
                 seconds=seconds, status="fail", error_type=error_type,
@@ -172,11 +180,11 @@ def _send(
                 raise ConnectionFailedError(
                     f"Không gọi được Semantic Scholar cho {label} "
                     f"sau {attempt} lần: {error_type}"
-                ) from exc
+                ) from connection_exc
             time.sleep(float(min(2 ** attempt, 60)))
             continue
 
-        seconds = time.monotonic() - started
+        assert response is not None
         code = response.status_code
         if code == 429 or 500 <= code < 600:
             error_type = "rate_limited" if code == 429 else f"http_{code}"
@@ -229,18 +237,15 @@ def get_references(
     *,
     on_attempt: Callable[[dict[str, Any]], None] | None = None,
 ) -> list[dict[str, Any]]:
-    """Lấy references cho một arXiv ID. """
+    """Lấy references cho một arXiv ID."""
     arxiv_id = _normalize_id(arxiv_id)
     # API_URL đã có tiền tố arXiv:. Encode slash ở ID cũ thành một segment.
     url = API_URL.format(quote(arxiv_id, safe=""))
 
-    # Khóa toàn bộ chu trình (pacing + request + retry), để cả các caller
-    # đồng thời trong cùng process cũng không tạo request chồng nhau.
-    with _request_lock:
-        response, attempt, seconds = _send(
-            "GET", url, label=arxiv_id, on_attempt=on_attempt,
-            params={"fields": FIELDS},
-        )
+    response, attempt, seconds = _send(
+        "GET", url, label=arxiv_id, on_attempt=on_attempt,
+        params={"fields": FIELDS},
+    )
 
     if response.status_code == 404:
         _notify_attempt(
@@ -279,11 +284,10 @@ def get_references_batch(
         raise ValueError(f"Một lô tối đa {BATCH_MAX_IDS} ID, nhận {len(ids)}")
     label = f"batch:{ids[0]}..{ids[-1]}"
 
-    with _request_lock:
-        response, attempt, seconds = _send(
-            "POST", BATCH_URL, label=label, on_attempt=on_attempt,
-            params={"fields": FIELDS}, json={"ids": [f"arXiv:{i}" for i in ids]},
-        )
+    response, attempt, seconds = _send(
+        "POST", BATCH_URL, label=label, on_attempt=on_attempt,
+        params={"fields": FIELDS}, json={"ids": [f"arXiv:{i}" for i in ids]},
+    )
 
     # Khi không ID nào trong lô có trên S2, API trả 400 thay vì list toàn null.
     if response.status_code == 400 and "No valid paper ids" in response.text:
