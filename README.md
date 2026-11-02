@@ -129,6 +129,38 @@ python src/corpus_builder.py --ids ids/<mssv>.txt --limit 5
 
 Chạy lại lệnh không giải nén lại version đã dựng; dùng `--force` nếu cần dựng lại.
 
+### Phần nâng cao A3 — so 3 nguồn metadata
+
+Cần chạy discovery trước, vì nguồn API lấy từ `corpus/<pub_key>/paper_meta.json`.
+
+```bash
+# 1. Tải Cornell snapshot một lần (khoảng 1,9 GB, không cần tài khoản Kaggle)
+mkdir -p data/kaggle_snapshot
+curl -L -o data/kaggle_snapshot/arxiv.zip \
+    https://www.kaggle.com/api/v1/datasets/download/Cornell-University/arxiv
+
+# 2. Lọc snapshot theo ID được giao
+python src/kaggle_loader.py --ids ids/<mssv>.txt
+
+# 3. OAI-PMH: mẫu ngẫu nhiên để so sánh (500 ID, khoảng 25 phút)
+python src/oai_harvester.py get --ids ids/<mssv>.txt --sample 500
+
+# 4. So 3 nguồn, kết quả nằm trong reports/a3_*
+python src/cross_validate.py --ids ids/<mssv>.txt --oai-sample 500 --recheck-api
+```
+
+Minh họa ListRecords và resumption token, phạm vi hẹp (tối đa 7 ngày, mặc định 5 trang):
+
+```bash
+python src/oai_harvester.py list --from 2008-11-26 --until 2008-11-26 \
+    --set physics:hep-lat --max-pages 1 --probe-token
+python src/oai_harvester.py list --from 2008-11-26 --until 2008-11-26 \
+    --set physics:hep-lat --resume
+python src/oai_harvester.py recheck-tokens   # chạy sau 00:00 UTC (07:00 giờ VN)
+```
+
+Kết quả và hành vi của endpoint: [`docs/a3_cross_validation.md`](docs/a3_cross_validation.md).
+
 ## 6. Ước lượng thời gian chạy
 
 arXiv yêu cầu chờ **≥ 3 giây** giữa 2 request và chỉ 1 connection tại một thời điểm.
@@ -157,7 +189,8 @@ Muốn đổi một trường → mở issue, cả nhóm duyệt, rồi mới s�
 ├── README.md                 # file này
 ├── .gitignore
 ├── docs/
-│   └── schema.md             # HỢP ĐỒNG DỮ LIỆU — đọc trước khi code
+│   ├── schema.md             # HỢP ĐỒNG DỮ LIỆU — đọc trước khi code
+│   └── a3_cross_validation.md  # A3: kết quả so 3 nguồn, hành vi OAI-PMH
 ├── ids/                      # danh sách ID của từng người (được commit)
 └── src/
     ├── requirements.txt
@@ -169,10 +202,13 @@ Muốn đổi một trường → mở issue, cả nhóm duyệt, rồi mới s�
     ├── semantic_scholar.py   # bước 4
     ├── reference_builder.py  # bước 4
     ├── benchmark.py          # đo hiệu năng
-    └── main.py               # orchestrator (tuần 2)
+    ├── main.py               # orchestrator (tuần 2)
+    ├── oai_harvester.py      # A3: OAI-PMH
+    ├── kaggle_loader.py      # A3: Cornell snapshot
+    └── cross_validate.py     # A3: so 3 nguồn
 ```
 
-Thư mục sinh ra lúc chạy (**không commit**): `corpus/`, `logs/`, `reports/`
+Thư mục sinh ra lúc chạy (**không commit**): `corpus/`, `logs/`, `reports/`, `data/`
 
 ## 9. Quy ước làm việc chung
 
