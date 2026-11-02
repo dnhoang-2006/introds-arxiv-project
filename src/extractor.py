@@ -22,9 +22,12 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Dict, List
 
-logger = logging.getLogger("extractor")
+try:  # import như package (from src.extractor import ...)
+    from .config import EMPTY_REASONS, KEEP_EXTENSIONS
+except ImportError:  # chạy trực tiếp: python src/extractor.py
+    from config import EMPTY_REASONS, KEEP_EXTENSIONS  # hằng số dùng chung (schema.md)
 
-KEEP_EXTENSIONS = {".tex", ".bib"}
+logger = logging.getLogger("extractor")
 
 # Đầu file PDF -> version chỉ có PDF, không có source
 PDF_MAGIC = b"%PDF"
@@ -70,13 +73,6 @@ class ExtractionResult:
         return "" if self.status == "ok" else (self.empty_reason or "other")
 
 
-# Giá trị `reason` hợp lệ theo schema.md §2 (dùng đúng chuỗi để thống kê được)
-EMPTY_REASONS = {
-    "pdf_only", "docx_only", "no_tex_in_archive",
-    "http_403", "http_404", "timeout", "corrupt_archive", "other",
-}
-
-
 def _set_empty(result: "ExtractionResult", reason: str, detail: str) -> None:
     assert reason in EMPTY_REASONS, reason
     result.empty_reason = reason
@@ -88,35 +84,40 @@ def _set_empty(result: "ExtractionResult", reason: str, detail: str) -> None:
 # --------------------------------------------------------------------------- #
 def _should_keep(member_name: str) -> bool:
     """Chỉ giữ .tex và .bib (không phân biệt hoa thường)."""
-    return PurePosixPath(member_name).suffix.lower() in KEEP_EXTENSIONS
+    return PurePosixPath(member_name.replace("\\", "/")).suffix.lower() in KEEP_EXTENSIONS
 
 
 def _is_safe_member(name: str) -> bool:
-    """Chặn path traversal (../, đường dẫn tuyệt đối, backslashes)."""
+    """Chặn path traversal (../, đường dẫn tuyệt đối, backslashes, ổ đĩa Windows)."""
     norm = name.replace("\\", "/")
+    if re.match(r"^[A-Za-z]:", norm):  # ổ đĩa kiểu C:/...
+        return False
     p = PurePosixPath(norm)
     return not p.is_absolute() and ".." not in p.parts
 
 
-def _unique_path(dest_dir: Path, rel_name: str, result: ExtractionResult, seen: set[Path]) -> Path:
-    """Tránh ghi đè khi cùng archive có 2 member trùng tên."""
+def _unique_path(dest_dir: Path, rel_name: str, result: ExtractionResult, seen: set[str]) -> Path:
+    """Tránh ghi đè khi cùng archive có 2 member trùng tên (không phân biệt hoa/thường,
+    vì macOS/Windows coi `Main.tex` và `main.tex` là một file)."""
     norm = rel_name.replace("\\", "/")
     target = dest_dir / norm
-    if target not in seen:
-        seen.add(target)
+    key = target.as_posix().lower()
+    if key not in seen:
+        seen.add(key)
         return target
     stem, suffix = target.stem, target.suffix
     i = 1
     while True:
         candidate = target.with_name(f"{stem}__dup{i}{suffix}")
-        if candidate not in seen:
-            seen.add(candidate)
+        ckey = candidate.as_posix().lower()
+        if ckey not in seen:
+            seen.add(ckey)
             result.anomalies.append(f"DUPLICATE_NAME: {rel_name} -> {candidate.name}")
             return candidate
         i += 1
 
 
-def _write_kept(dest_dir: Path, rel_name: str, data: bytes, result: ExtractionResult, seen: set[Path]) -> None:
+def _write_kept(dest_dir: Path, rel_name: str, data: bytes, result: ExtractionResult, seen: set[str]) -> None:
     target = _unique_path(dest_dir, rel_name, result, seen)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(data)  # ghi nguyên byte, không đụng nội dung
@@ -130,7 +131,7 @@ def _write_kept(dest_dir: Path, rel_name: str, data: bytes, result: ExtractionRe
 # --------------------------------------------------------------------------- #
 # Các định dạng archive
 # --------------------------------------------------------------------------- #
-def _extract_tar(path: Path, dest_dir: Path, result: ExtractionResult, seen: set[Path]) -> None:
+def _extract_tar(path: Path, dest_dir: Path, result: ExtractionResult, seen: set[str]) -> None:
     with tarfile.open(path, mode="r:*") as tf:  # r:* tự nhận gz/bz2/xz/không nén
         members = tf.getmembers()
         result.members_total = len(members)
@@ -151,7 +152,7 @@ def _extract_tar(path: Path, dest_dir: Path, result: ExtractionResult, seen: set
             _write_kept(dest_dir, m.name, fobj.read(), result, seen)
 
 
-def _extract_zip(path: Path, dest_dir: Path, result: ExtractionResult, seen: set[Path]) -> None:
+def _extract_zip(path: Path, dest_dir: Path, result: ExtractionResult, seen: set[str]) -> None:
     with zipfile.ZipFile(path) as zf:
         infos = [i for i in zf.infolist() if not i.is_dir()]
         result.members_total = len(infos)
@@ -166,27 +167,14 @@ def _extract_zip(path: Path, dest_dir: Path, result: ExtractionResult, seen: set
             _write_kept(dest_dir, info.filename, zf.read(info), result, seen)
 
 
-def _extract_gzip_single(path: Path, dest_dir: Path, result: ExtractionResult, seen: set[Path]) -> None:
-    """arXiv đôi khi trả về một file .tex đơn được gzip (không phải tar)."""
+def _extract_gzip_single(path: Path, dest_dir: Path, result: ExtractionResult, seen: set[str]) -> None:
+    """arXiv đôi khi trả về một file .tex đơn được gzip (không phải tar).
+
+    Trường hợp gzip chứa tar đã được `_detect_format` nhận là "tar.gz" và xử lý
+    ở `_extract_tar`, nên ở đây chỉ còn: gzip của PDF hoặc gzip của một file text.
+    """
     raw = gzip.decompress(path.read_bytes())
     result.members_total = 1
-
-    # Bên trong gzip có thể lại là tar (tar không nén phần mở rộng)
-    if tarfile.is_tarfile(io.BytesIO(raw)):
-        result.archive_format = "tar.gz"
-        with tarfile.open(fileobj=io.BytesIO(raw)) as tf:
-            members = tf.getmembers()
-            result.members_total = len(members)
-            for m in members:
-                if not m.isfile():
-                    continue
-                if not _is_safe_member(m.name) or not _should_keep(m.name):
-                    result.skipped_files.append(m.name)
-                    continue
-                fobj = tf.extractfile(m)
-                if fobj:
-                    _write_kept(dest_dir, m.name, fobj.read(), result, seen)
-        return
 
     if raw[:4] == PDF_MAGIC:
         _set_empty(result, "pdf_only", "Archive gzip chứa 1 file PDF, không có .tex")
@@ -229,7 +217,7 @@ def extract_archive(archive_path: str | os.PathLike, dest_dir: str | os.PathLike
 
     fmt = _detect_format(archive_path)
     result.archive_format = fmt
-    seen: set[Path] = set()
+    seen: set[str] = set()
 
     try:
         if fmt == "pdf":
@@ -249,7 +237,13 @@ def extract_archive(archive_path: str | os.PathLike, dest_dir: str | os.PathLike
             _set_empty(result, "corrupt_archive", "Định dạng archive không nhận dạng được")
     except (tarfile.TarError, zipfile.BadZipFile, gzip.BadGzipFile, EOFError, OSError) as exc:
         result.anomalies.append(f"EXTRACT_ERROR: {type(exc).__name__}: {exc}")
-        _set_empty(result, "corrupt_archive", f"Lỗi khi giải nén: {type(exc).__name__}: {exc}")
+        if result.is_empty:
+            _set_empty(result, "corrupt_archive", f"Lỗi khi giải nén: {type(exc).__name__}: {exc}")
+        else:
+            # Đã ghi được một phần file -> giữ lại, chỉ đánh dấu để rà soát sau
+            result.anomalies.append(
+                f"PARTIAL_EXTRACT: giữ {len(result.kept_files)} file trước khi lỗi"
+            )
 
     if result.is_empty and result.empty_reason is None:
         if any(s.lower().endswith((".docx", ".doc")) for s in result.skipped_files):
@@ -301,7 +295,10 @@ if __name__ == "__main__":
     print(f"\n--- Kết quả giải nén [{res.archive_path}] ---")
     print(f"Format      : {res.archive_format}")
     print(f"Size trước  : {res.size_before:,} bytes")
-    print(f"Size sau    : {res.size_after:,} bytes (tỉ lệ: {res.size_after / res.size_before:.2%})" if res.size_before else "")
+    if res.size_before:
+        print(f"Size sau    : {res.size_after:,} bytes (tỉ lệ: {res.size_after / res.size_before:.2%})")
+    else:
+        print(f"Size sau    : {res.size_after:,} bytes")
     print(f"File giữ lại: {len(res.kept_files)} (.tex: {res.n_tex}, .bib: {res.n_bib})")
     print(f"File bỏ qua : {len(res.skipped_files)}")
     print(f"Trạng thái  : {res.status}" + (f" ({res.empty_reason})" if res.empty_reason else ""))
@@ -309,4 +306,3 @@ if __name__ == "__main__":
         print(f"Bất thường  : {len(res.anomalies)}")
         for a in res.anomalies:
             print(f"  - {a}")
-
