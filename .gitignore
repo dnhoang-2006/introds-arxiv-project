@@ -1,8 +1,7 @@
 # ============================================================
 #  Đồ án Nhập môn KHDL — arXiv Crawling
-#  Đề bài yêu cầu: repo CHỈ chứa source (.py/.ipynb),
+#  Đề bài: repo CHỈ chứa source (.py/.ipynb),
 #  KHÔNG chứa data file, archive, file nén, binary.
-#  File này là lá chắn — đừng xoá dòng nào mà không hỏi nhóm.
 # ============================================================
 
 # --- Dữ liệu crawl (TUYỆT ĐỐI không commit) ---
