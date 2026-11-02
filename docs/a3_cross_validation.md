@@ -5,7 +5,7 @@ Chạy ngày 02/11/2026. Cách chạy lại nằm ở mục "Phần nâng cao A3
 
 | Nguồn | Lấy từ | Thời điểm | Số bài |
 |---|---|---|---|
-| **API** | `paper_meta.json` của `discovery.py` | 26–27/10/2026 | 5000 |
+| **API** | `paper_meta.json` của `discovery.py` | chạy lại 02/11/2026 (lần đầu 26–27/10) | 5000 |
 | **OAI** | `oaipmh.arxiv.org`, định dạng `arXivRaw`, `GetRecord` | 02/11/2026 | 500 (mẫu ngẫu nhiên, seed 42) |
 | **Kaggle** | Cornell snapshot | snapshot 01/11/2026 | 5000 |
 
@@ -18,9 +18,10 @@ Mẫu có 11% bài từ 3 version trở lên, so với 12% trên cả 5000 bài 
 2. **OAI và Kaggle khớp hoàn toàn** ở cả 6 trường trên 500 bài, kể cả chuỗi gốc của title và tác giả.
 3. **Ngày nộp v1 khớp 100%** giữa cả 3 nguồn.
 4. **Chỉ OAI và Kaggle cho biết ngày của từng version.** API chỉ có ngày v1 và ngày bản mới nhất,
-   nên 597 bài từ 3 version trở lên trong corpus thiếu ngày các version trung gian.
+   nên 600 bài từ 3 version trở lên trong corpus thiếu ngày các version trung gian.
 5. **API có lỗi dữ liệu thật ở 2 trường:** làm sai tên tác giả ở 17 bài và thiếu venue ở 3 bài.
-6. **Lệch version là do thời điểm lấy dữ liệu:** 6 bài có version mới sau khi chạy discovery.
+6. **Lệch version là do thời điểm lấy dữ liệu:** chạy lại discovery ngày 02/11 thì 7 bài có thêm
+   version mới; còn 1 bài (`2507.10961`) API mới hơn snapshot Kaggle.
 
 ## Bảng 1 — Khớp cả 3 nguồn (500 bài chung)
 
@@ -48,12 +49,12 @@ Mẫu có 11% bài từ 3 version trở lên, so với 12% trên cả 5000 bài 
 | | | ngày nộp v1 | 500 | 0 | 0 | 0 | 0 |
 | | | ngày mới nhất | 500 | 0 | 0 | 0 | 0 |
 | | | số version | 500 | 0 | 0 | 0 | 0 |
-| API – Kaggle | 5000 | title | 4893 | 107 | 0 | 0 | 0 |
+| API – Kaggle | 5000 | title | 4892 | 107 | 1 | 0 | 0 |
 | | | authors | 4850 | 132 | 18 | 0 | 0 |
-| | | venue | 725 | 1 | 0 | 5 | 4269 |
+| | | venue | 727 | 1 | 0 | 3 | 4269 |
 | | | ngày nộp v1 | 5000 | 0 | 0 | 0 | 0 |
-| | | ngày mới nhất | 4994 | 0 | 6 | 0 | 0 |
-| | | số version | 4994 | 0 | 6 | 0 | 0 |
+| | | ngày mới nhất | 4999 | 0 | 1 | 0 | 0 |
+| | | số version | 4999 | 0 | 1 | 0 | 0 |
 | OAI – Kaggle | 500 | title | 500 | 0 | 0 | 0 | 0 |
 | | | authors | 500 | 0 | 0 | 0 | 0 |
 | | | venue | 66 | 0 | 0 | 0 | 434 |
@@ -68,7 +69,7 @@ Mẫu có 11% bài từ 3 version trở lên, so với 12% trên cả 5000 bài 
 | Số version | Suy từ hậu tố `vN` của ID | Liệt kê từng version | Liệt kê từng version |
 | Ngày từng version | Chỉ v1 và bản mới nhất | Có | Có |
 | Dung lượng từng version | Không | Có | Không |
-| Bài ≥ 3 version có đủ ngày | 0/597 | 55/55 | 600/600 |
+| Bài ≥ 3 version có đủ ngày | 0/600 | 55/55 | 600/600 |
 | Tên tác giả | Danh sách Unicode, đã qua bộ tách của arXiv | Chuỗi gốc có LaTeX | Chuỗi gốc có LaTeX, kèm `authors_parsed` |
 | Title | Macro Hy Lạp và dấu đổi sang Unicode | Chuỗi gốc có LaTeX | Chuỗi gốc có LaTeX |
 | Độ mới | Theo lúc gọi | Theo lúc gọi | Theo ngày snapshot |
@@ -77,7 +78,8 @@ Mẫu có 11% bài từ 3 version trở lên, so với 12% trên cả 5000 bài 
 ## Vì sao các nguồn lệch nhau
 
 **Title (107 bài, API – Kaggle):** cùng nội dung, khác cách mã hóa. Ví dụ `$Ω^{-}(2012)$` và
-`$\Omega^{-}(2012)$`, `Grünbaum` và `Gr\"unbaum`. Sau chuẩn hóa không còn bài nào lệch.
+`$\Omega^{-}(2012)$`, `Grünbaum` và `Gr\"unbaum`. Sau chuẩn hóa chỉ còn `2507.10961` lệch vì bản
+v5 đổi "Policy" thành "Framework" trong tiêu đề, mà snapshot Kaggle chưa có bản này.
 
 **Tác giả (18 bài, API – Kaggle):**
 
@@ -90,15 +92,17 @@ Mẫu có 11% bài từ 3 version trở lên, so với 12% trên cả 5000 bài 
 `authors_parsed` của Kaggle cũng tách đôi tên như API (9 mục cho 8 người ở bài `2507.07149`),
 nên muốn đếm tác giả chính xác thì dùng chuỗi `authors`.
 
-**Số version và ngày mới nhất (6 bài):** gọi lại API ngày 02/11 thì cả 6 đều khớp Kaggle. Các bài
-này có version mới ngày 25–29/10/2026, trong khi discovery chạy ngày 26–27/10.
+**Số version và ngày mới nhất (1 bài):** `2507.10961` có v5 ngày 30/10/2026; API đã có bản này còn
+snapshot Kaggle vẫn dừng ở v4. Trước đó, discovery ngày 26–27/10 lệch 6 bài so với Kaggle. Chạy lại
+ngày 02/11 thì cả 6 đều khớp; tổng cộng 7 bài có thêm version mới, corpus tăng từ 7844 lên 7851 version.
 
-**Venue (5 bài):**
+**Venue (3 bài):**
 
-| Bài | API lúc discovery | API gọi lại 02/11 | OAI, Kaggle | Kết luận |
+| Bài | API lúc discovery | API chạy lại 02/11 | OAI, Kaggle | Kết luận |
 |---|---|---|---|---|
-| `2507.07164`, `2507.08578` | trống | có | có | Lệch thời điểm |
 | `2507.08633`, `2507.10190`, `2507.11208` | trống | trống | `A&A 701, ...` | API thiếu thật |
+
+Hai bài `2507.07164` và `2507.08578` từng lệch venue ở lần discovery đầu, nay API đã có và khớp Kaggle.
 
 Với 3 bài `A&A`, phản hồi Atom gốc của API không có `journal_ref` lẫn `doi`, nên lỗi không nằm ở
 thư viện `arxiv` hay `discovery.py`. Nguyên nhân phía arXiv thì chưa rõ.
