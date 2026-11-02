@@ -45,8 +45,8 @@ except ImportError:
     sys.exit("Error: 'psutil' is required for benchmark.py. Install via: pip install psutil")
 
 # Tool metadata
-TOOL_VERSION = "1.0.0"
-DEFAULT_SAMPLING_INTERVAL = 0.1  # seconds
+TOOL_VERSION = "1.1.0"
+DEFAULT_SAMPLING_INTERVAL = 0.05  # seconds
 BYTES_PER_MB = 1024 * 1024
 
 
@@ -64,6 +64,7 @@ class BenchmarkResult:
     status: str  # "success", "failed", "timeout", "error"
     wall_time_seconds: float
     peak_ram_mb: float | None
+    peak_ram_source: str  # "getrusage" or "sampling"
     average_ram_mb: float | None
     ram_sampling_interval_seconds: float
     disk_usage_mb: float | None
@@ -143,6 +144,29 @@ def get_tree_rss_bytes(root_pid: int) -> int:
         pass
 
     return total_rss
+
+
+def get_kernel_peak_rss_mb() -> float | None:
+    """True peak RSS of child processes recorded by the OS kernel (POSIX only).
+
+    On Linux, ru_maxrss is in Kilobytes.
+    On macOS (Darwin), ru_maxrss is in Bytes.
+    On Windows, the resource module does not exist, returns None.
+    """
+    if sys.platform == "win32":
+        return None
+    try:
+        import resource
+
+        ru = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+        if sys.platform.startswith("linux"):
+            return round(ru / 1024.0, 2)
+        elif sys.platform == "darwin":
+            return round(ru / (1024.0 * 1024.0), 2)
+        else:
+            return round(ru / 1024.0, 2)
+    except Exception:
+        return None
 
 
 def run_benchmark(
@@ -268,7 +292,16 @@ def run_benchmark(
     wall_time_seconds = round(max(0.0, t_end - t_start), 4)
 
     # Calculate RAM metrics
-    peak_ram_mb: float | None = max(ram_samples) if ram_samples else None
+    # POSIX (Colab, Linux, macOS) uses OS kernel getrusage for exact peak capture.
+    # Windows falls back to psutil periodic sampling.
+    kernel_peak = get_kernel_peak_rss_mb()
+    if kernel_peak is not None and kernel_peak > 0:
+        peak_ram_mb: float | None = kernel_peak
+        peak_ram_source: str = "getrusage"
+    else:
+        peak_ram_mb = max(ram_samples) if ram_samples else None
+        peak_ram_source = "sampling"
+
     average_ram_mb: float | None = (
         round(sum(ram_samples) / len(ram_samples), 2) if ram_samples else None
     )
@@ -292,6 +325,7 @@ def run_benchmark(
         status=status,
         wall_time_seconds=wall_time_seconds,
         peak_ram_mb=peak_ram_mb,
+        peak_ram_source=peak_ram_source,
         average_ram_mb=average_ram_mb,
         ram_sampling_interval_seconds=sampling_interval,
         disk_usage_mb=disk_usage_mb,
@@ -324,6 +358,7 @@ SCHEMA_COLUMNS: list[str] = [
     "status",
     "wall_time_seconds",
     "peak_ram_mb",
+    "peak_ram_source",
     "average_ram_mb",
     "ram_sampling_interval_seconds",
     "disk_usage_mb",
@@ -384,7 +419,7 @@ def print_summary(res: BenchmarkResult) -> None:
     print(f"Status           : {res.status.upper()} (Exit code: {res.exit_code})")
     print(f"Wall-clock Time  : {res.wall_time_seconds:.4f} s")
     print(
-        f"Peak RAM         : {f'{res.peak_ram_mb:.2f} MB' if res.peak_ram_mb is not None else 'N/A'}"
+        f"Peak RAM         : {f'{res.peak_ram_mb:.2f} MB ({res.peak_ram_source})' if res.peak_ram_mb is not None else 'N/A'}"
     )
     print(
         f"Average RAM      : {f'{res.average_ram_mb:.2f} MB' if res.average_ram_mb is not None else 'N/A'}"
