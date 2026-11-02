@@ -16,4 +16,4 @@ plotly>=5.18.0
 psutil>=5.9.0
 
 # --- Phần nâng cao A3 (nhóm trưởng, tuần 2) ---
-# sickle>=0.7.0          # OAI-PMH, bỏ comment khi làm A3
+sickle>=0.7.0
