@@ -63,6 +63,17 @@ export CORPUS_ROOT=/content/drive/MyDrive/introds/corpus
 export LOGS_ROOT=/content/drive/MyDrive/introds/logs
 ```
 
+Bước crawl reference chạy được khi không có key nhưng dễ bị giới hạn tốc độ (HTTP 429).
+Nên xin API key miễn phí của Semantic Scholar rồi đặt vào biến môi trường
+(chỉ đặt trong phiên làm việc, **không commit key vào repo**):
+
+```bash
+export SEMANTIC_SCHOLAR_API_KEY=<key-cua-ban>       # Linux, macOS, Git Bash
+$env:SEMANTIC_SCHOLAR_API_KEY = "<key-cua-ban>"     # Windows PowerShell
+```
+
+Trên Colab: `import os; os.environ["SEMANTIC_SCHOLAR_API_KEY"] = "<key-cua-ban>"`.
+
 ## 4. Chuẩn bị danh sách ID
 
 Mỗi thành viên có khoảng ID riêng (cột H–K trên sheet đăng ký). Đặt file của mình
@@ -161,6 +172,40 @@ python src/oai_harvester.py recheck-tokens   # chạy sau 00:00 UTC (07:00 giờ
 
 Kết quả và hành vi của endpoint: [`docs/a3_cross_validation.md`](docs/a3_cross_validation.md).
 
+### Kiểm tra corpus (A2)
+
+`src/validator.py` chạy 7 nhóm kiểm tra: đủ thư mục version, version có `.tex` hoặc
+`_EMPTY.json` hợp lệ, không có file lạ, lệnh figure còn nguyên, đúng cấu trúc
+`paper_meta.json` và `references.json`, ID không bị biến dạng.
+
+```bash
+python src/validator.py --ids-file ids/<mssv>.txt                 # kiểm tra cả bài còn thiếu
+python src/validator.py --ids-file ids/<mssv>.txt --no-reextract  # không so với archive trong raw/, nhanh hơn
+python src/validator.py --corpus corpus_a corpus_b --ids-dir ids  # gộp corpus của cả nhóm
+```
+
+Kết quả nằm trong `reports/validation.json`. Lệnh trả exit code 1 nếu có lỗi;
+thêm `--strict` để tính cả cảnh báo là lỗi.
+
+### Tiền xử lý TeX cho Milestone 2/3 (phần C)
+
+`src/tex_prescan.py` tìm file gốc của từng version, liệt kê `\input` / `\include`,
+đếm `\bibitem`, tỉ lệ version có `.bib` riêng và số reference có arXiv ID (matching pool M3).
+
+```bash
+python src/tex_prescan.py --ids ids/<mssv>.txt            # thêm --force để quét lại
+```
+
+Kết quả nằm trong `prescan.json` của từng bài và từng version, cùng bản tổng hợp
+`reports/prescan_summary.json`.
+
+### Chạy test
+
+```bash
+pip install pytest
+python -m pytest tests -q
+```
+
 ## 6. Ước lượng thời gian chạy
 
 arXiv yêu cầu chờ **≥ 3 giây** giữa 2 request và chỉ 1 connection tại một thời điểm.
@@ -192,9 +237,11 @@ Muốn đổi một trường → mở issue, cả nhóm duyệt, rồi mới s�
 │   ├── schema.md             # HỢP ĐỒNG DỮ LIỆU — đọc trước khi code
 │   └── a3_cross_validation.md  # A3: kết quả so 3 nguồn, hành vi OAI-PMH
 ├── ids/                      # danh sách ID của từng người (được commit)
+├── tests/                    # test tự động (pytest)
 └── src/
     ├── requirements.txt
     ├── config.py             # hằng số + tiện ích dùng chung
+    ├── http_utils.py         # tiện ích gọi HTTP dùng chung
     ├── discovery.py          # bước 1
     ├── downloader.py         # bước 2
     ├── extractor.py          # bước 3
@@ -203,6 +250,8 @@ Muốn đổi một trường → mở issue, cả nhóm duyệt, rồi mới s�
     ├── reference_builder.py  # bước 4
     ├── benchmark.py          # đo hiệu năng
     ├── main.py               # orchestrator (tuần 2)
+    ├── validator.py          # A2: kiểm tra corpus
+    ├── tex_prescan.py        # C: tiền xử lý TeX
     ├── oai_harvester.py      # A3: OAI-PMH
     ├── kaggle_loader.py      # A3: Cornell snapshot
     └── cross_validate.py     # A3: so 3 nguồn
