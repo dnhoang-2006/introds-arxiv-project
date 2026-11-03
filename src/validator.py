@@ -713,7 +713,7 @@ def main(argv: list[str] | None = None) -> int:
                     help="Một hoặc nhiều thư mục corpus (mặc định: corpus/)")
     ap.add_argument("--ids-file", type=Path, default=None,
                     help="File ids/<mssv>.txt của bạn: kiểm tra bài thiếu và gán người phụ trách")
-    ap.add_argument("--ids-dir", type=Path,
+    ap.add_argument("--ids-dir", "--ids", type=Path,
                     help="Đọc toàn bộ ids/*.txt thay cho --ids-file")
     ap.add_argument("--no-ids", action="store_true", help="Không đọc danh sách ID mong đợi")
     ap.add_argument("--raw-root", type=Path, default=default_raw_root(),
