@@ -195,7 +195,15 @@ def build_paper(
     results: Dict[str, ExtractionResult] = {}
     for v in sorted(version_archives):
         vdir = paper_dir / f"v{v}"                 # v1, v2, ... v10 (không zero-pad)
-        res = extract_archive(version_archives[v], vdir)
+        try:
+            res = extract_archive(version_archives[v], vdir)
+        except Exception as exc:  # noqa: BLE001 — archive hỏng không được sập cả mẻ
+            logger.error("[%s v%d] extract_archive bị lỗi, bỏ qua: %s: %s",
+                         arxiv_id, v, type(exc).__name__, exc)
+            res = ExtractionResult(archive_path=str(version_archives[v]))
+            res.archive_format = "error"
+            res.empty_reason = "corrupt_archive"
+            res.empty_detail = f"extract_archive exception: {type(exc).__name__}: {exc}"
         if res.is_empty:
             write_empty_marker(vdir, arxiv_id, v, result=res)
         append_extract_log(log_path, arxiv_id, v, res)
