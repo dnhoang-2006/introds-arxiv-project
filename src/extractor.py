@@ -215,11 +215,12 @@ def extract_archive(archive_path: str | os.PathLike, dest_dir: str | os.PathLike
     result = ExtractionResult(archive_path=str(archive_path))
     result.size_before = archive_path.stat().st_size  # <-- đo TRƯỚC khi lọc (bắt buộc)
 
-    fmt = _detect_format(archive_path)
-    result.archive_format = fmt
     seen: set[str] = set()
 
     try:
+        fmt = _detect_format(archive_path)
+        result.archive_format = fmt
+
         if fmt == "pdf":
             _set_empty(result, "pdf_only", "Archive chứa 1 file PDF, không có .tex")
             result.members_total = 1
