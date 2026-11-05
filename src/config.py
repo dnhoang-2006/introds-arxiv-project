@@ -33,6 +33,7 @@ ARXIV_SRC_BASE = "https://export.arxiv.org/src/"
 
 # Semantic Scholar (Hữu Duy dùng)
 S2_PAPER_BASE = "https://api.semanticscholar.org/graph/v1/paper/arXiv:"
+S2_BATCH_URL = "https://api.semanticscholar.org/graph/v1/paper/batch"
 
 # OAI-PMH — endpoint MỚI từ tháng 3/2025 (địa chỉ cũ export.arxiv.org/oai2 đã khai tử)
 OAI_PMH_ENDPOINT = "https://oaipmh.arxiv.org/oai"
@@ -54,6 +55,7 @@ CORPUS_ROOT = Path(os.environ.get("CORPUS_ROOT", PROJECT_ROOT / "corpus"))
 LOGS_ROOT = Path(os.environ.get("LOGS_ROOT", PROJECT_ROOT / "logs"))
 IDS_ROOT = Path(os.environ.get("IDS_ROOT", PROJECT_ROOT / "ids"))
 REPORTS_ROOT = Path(os.environ.get("REPORTS_ROOT", PROJECT_ROOT / "reports"))
+DATA_ROOT = Path(os.environ.get("DATA_ROOT", PROJECT_ROOT / "data"))  # A3: OAI + Kaggle
 
 # Múi giờ của nhóm, dùng cho các mốc thời gian ghi vào file
 LOCAL_TZ = timezone(timedelta(hours=7))  # Asia/Saigon

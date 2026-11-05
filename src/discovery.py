@@ -91,20 +91,13 @@ def _clean_title(raw: str) -> str:
 
 
 # ----------------------------------------------------------------------
-# Lõi: một ID -> PaperMeta
+# Lõi: một arxiv.Result -> PaperMeta
 # ----------------------------------------------------------------------
-def resolve_one(arxiv_id: str, client: arxiv.Client) -> PaperMeta:
-    """Giải một arXiv ID thành metadata đầy đủ.
+BATCH_SIZE = 100  # arXiv nhận nhiều ID trong một id_list; khớp page_size của client
 
-    Ném `StopIteration` nếu API không tìm thấy bài — caller bắt và ghi log `not_found`.
-    """
-    query_id = config.strip_version(arxiv_id)
 
-    # arxiv.py 4.x: CHỈ có client.results(search).
-    # search.results() và Result.download_source() đã bị xoá ở 4.0.0 (tháng 5/2026).
-    search = arxiv.Search(id_list=[query_id])
-    result = next(client.results(search))
-
+def meta_from_result(result: arxiv.Result) -> PaperMeta:
+    """Dựng PaperMeta từ một entry API trả về."""
     # entry_id dạng http://arxiv.org/abs/2310.12345v4
     #           hoặc http://arxiv.org/abs/hep-th/9901001v2  (ID cũ có dấu /)
     tail = result.entry_id.split("/abs/", 1)[-1]
@@ -142,6 +135,35 @@ def resolve_one(arxiv_id: str, client: arxiv.Client) -> PaperMeta:
     )
 
 
+def resolve_one(arxiv_id: str, client: arxiv.Client) -> PaperMeta:
+    """Giải một arXiv ID thành metadata đầy đủ.
+
+    Ném `StopIteration` nếu API không tìm thấy bài — caller bắt và ghi log `not_found`.
+    """
+    query_id = config.strip_version(arxiv_id)
+
+    # arxiv.py 4.x: CHỈ có client.results(search).
+    # search.results() và Result.download_source() đã bị xoá ở 4.0.0 (tháng 5/2026).
+    search = arxiv.Search(id_list=[query_id])
+    return meta_from_result(next(client.results(search)))
+
+
+def resolve_batch(batch: list[str], client: arxiv.Client) -> dict[str, PaperMeta]:
+    """Giải tối đa BATCH_SIZE ID trong MỘT request.
+
+    Trả dict {base_id: PaperMeta}. ID không tồn tại (vd. 9999.99999) KHÔNG gây
+    lỗi — API lặng lẽ bỏ nó khỏi kết quả, nên caller phải đối chiếu danh sách
+    gửi đi với dict này. ID sai định dạng thì cả lô bị HTTP 400 -> ném lỗi.
+    """
+    query = list(dict.fromkeys(config.strip_version(i) for i in batch))
+    search = arxiv.Search(id_list=query, max_results=len(query))
+    got: dict[str, PaperMeta] = {}
+    for result in client.results(search):
+        meta = meta_from_result(result)
+        got[meta.arxiv_id] = meta
+    return got
+
+
 # ----------------------------------------------------------------------
 # Chạy hàng loạt + ghi log
 # ----------------------------------------------------------------------
@@ -158,34 +180,52 @@ def run(ids: list[str], overwrite: bool = False, verbose: bool = True) -> list[P
         if new_file:
             writer.writerow(["arxiv_id", "n_versions", "status", "seconds", "error_type"])
 
-        for i, raw_id in enumerate(ids, 1):
-            started = time.perf_counter()
-            try:
-                meta = resolve_one(raw_id, client)
+        def record(i: int, raw_id: str, meta: PaperMeta | None,
+                   elapsed: float, error: str = "") -> None:
+            if meta is not None:
                 meta.write(overwrite=overwrite)
                 metas.append(meta)
-                elapsed = time.perf_counter() - started
                 writer.writerow([meta.arxiv_id, meta.n_versions, "ok", f"{elapsed:.2f}", ""])
                 if verbose:
                     flag = "" if meta.revised_dates_complete else "  [revised_dates thiếu]"
                     print(f"[{i}/{len(ids)}] {meta.arxiv_id}  "
                           f"{meta.n_versions} version  {elapsed:5.2f}s  "
                           f"{meta.title[:50]}{flag}")
-
-            except StopIteration:
-                elapsed = time.perf_counter() - started
+            else:
                 writer.writerow([config.strip_version(raw_id), 0, "fail",
-                                 f"{elapsed:.2f}", "not_found"])
+                                 f"{elapsed:.2f}", error])
                 if verbose:
-                    print(f"[{i}/{len(ids)}] {raw_id}  KHÔNG TÌM THẤY")
+                    msg = "KHÔNG TÌM THẤY" if error == "not_found" else f"LỖI: {error}"
+                    print(f"[{i}/{len(ids)}] {raw_id}  {msg}")
 
-            except Exception as exc:  # noqa: BLE001 — log mọi lỗi, không dừng cả mẻ
-                elapsed = time.perf_counter() - started
-                writer.writerow([config.strip_version(raw_id), 0, "fail",
-                                 f"{elapsed:.2f}", type(exc).__name__])
+        for start in range(0, len(ids), BATCH_SIZE):
+            batch = ids[start:start + BATCH_SIZE]
+            started = time.perf_counter()
+            try:
+                got = resolve_batch(batch, client)
+            except Exception as exc:  # noqa: BLE001
+                # Thường là HTTP 400 do một ID sai định dạng làm hỏng cả lô.
+                # Lùi về gọi từng ID để chỉ ID hỏng bị ghi fail.
                 if verbose:
-                    print(f"[{i}/{len(ids)}] {raw_id}  LỖI: {type(exc).__name__}: {exc}")
+                    print(f"Lô {start + 1}-{start + len(batch)} lỗi "
+                          f"({type(exc).__name__}) — thử lại từng ID")
+                for i, raw_id in enumerate(batch, start + 1):
+                    t0 = time.perf_counter()
+                    try:
+                        record(i, raw_id, resolve_one(raw_id, client), time.perf_counter() - t0)
+                    except StopIteration:
+                        record(i, raw_id, None, time.perf_counter() - t0, "not_found")
+                    except Exception as e:  # noqa: BLE001 — log mọi lỗi, không dừng cả mẻ
+                        record(i, raw_id, None, time.perf_counter() - t0, type(e).__name__)
+                    fh.flush()
+                continue
 
+            # Thời gian của lô chia đều cho từng bài để cột `seconds` vẫn là per-paper
+            elapsed = (time.perf_counter() - started) / len(batch)
+            # ID không tồn tại bị BỎ IM LẶNG khỏi kết quả -> đối chiếu để ghi not_found
+            for i, raw_id in enumerate(batch, start + 1):
+                meta = got.get(config.strip_version(raw_id))
+                record(i, raw_id, meta, elapsed, "" if meta else "not_found")
             fh.flush()  # ghi ngay, mất điện giữa chừng vẫn còn log
 
     return metas
@@ -216,8 +256,10 @@ def main() -> None:
     if not ids:
         sys.exit("Không đọc được ID nào.")
 
-    print(f"Giải {len(ids)} ID — pacing {config.REQUEST_DELAY}s/request, "
-          f"ước tính {len(ids) * config.REQUEST_DELAY / 60:.1f} phút\n")
+    n_batches = -(-len(ids) // BATCH_SIZE)
+    print(f"Giải {len(ids)} ID trong {n_batches} lô x {BATCH_SIZE} — pacing "
+          f"{config.REQUEST_DELAY}s/request, ước tính "
+          f"{n_batches * config.REQUEST_DELAY / 60:.1f} phút\n")
 
     metas = run(ids, overwrite=args.overwrite, verbose=not args.quiet)
 

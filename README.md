@@ -63,6 +63,17 @@ export CORPUS_ROOT=/content/drive/MyDrive/introds/corpus
 export LOGS_ROOT=/content/drive/MyDrive/introds/logs
 ```
 
+Bước crawl reference chạy được khi không có key nhưng dễ bị giới hạn tốc độ (HTTP 429).
+Nên xin API key miễn phí của Semantic Scholar rồi đặt vào biến môi trường
+(chỉ đặt trong phiên làm việc, **không commit key vào repo**):
+
+```bash
+export SEMANTIC_SCHOLAR_API_KEY=<key-cua-ban>       # Linux, macOS, Git Bash
+$env:SEMANTIC_SCHOLAR_API_KEY = "<key-cua-ban>"     # Windows PowerShell
+```
+
+Trên Colab: `import os; os.environ["SEMANTIC_SCHOLAR_API_KEY"] = "<key-cua-ban>"`.
+
 ## 4. Chuẩn bị danh sách ID
 
 Mỗi thành viên có khoảng ID riêng (cột H–K trên sheet đăng ký). Đặt file của mình
@@ -113,10 +124,87 @@ Tùy chọn:
 | Bước | Lệnh | Người phụ trách |
 |---|---|---|
 | 2. Tải source mọi version | `python src/downloader.py --ids ids/<mssv>.txt` | Minh Thư |
-| 3. Giải nén + dựng corpus | `python src/extractor.py` | Thanh Tú |
+| 3. Giải nén + dựng corpus | `python src/corpus_builder.py --ids ids/<mssv>.txt` | Thanh Tú |
 | 4. Crawl reference | `python src/semantic_scholar.py --ids ids/<mssv>.txt` | Hữu Duy |
 | 5. Đo hiệu năng | `python src/benchmark.py` | Anh Tuấn |
 | 6. Chạy cả pipeline | `python src/main.py --ids ids/<mssv>.txt` | Nhóm trưởng (tuần 2) |
+
+Corpus builder gọi extractor để tự tìm archive trong `raw/`, chỉ dựng các
+version chưa có output, và ghi kết quả vào `logs/extract.csv`.
+
+Có thể chạy thử một phần trước:
+
+```bash
+python src/corpus_builder.py --ids ids/<mssv>.txt --limit 5
+```
+
+Chạy lại lệnh không giải nén lại version đã dựng; dùng `--force` nếu cần dựng lại.
+
+### Phần nâng cao A3 — so 3 nguồn metadata
+
+Cần chạy discovery trước, vì nguồn API lấy từ `corpus/<pub_key>/paper_meta.json`.
+
+```bash
+# 1. Tải Cornell snapshot một lần (khoảng 1,9 GB, không cần tài khoản Kaggle)
+mkdir -p data/kaggle_snapshot
+curl -L -o data/kaggle_snapshot/arxiv.zip \
+    https://www.kaggle.com/api/v1/datasets/download/Cornell-University/arxiv
+
+# 2. Lọc snapshot theo ID được giao
+python src/kaggle_loader.py --ids ids/<mssv>.txt
+
+# 3. OAI-PMH: mẫu ngẫu nhiên để so sánh (500 ID, khoảng 25 phút)
+python src/oai_harvester.py get --ids ids/<mssv>.txt --sample 500
+
+# 4. So 3 nguồn, kết quả nằm trong reports/a3_*
+python src/cross_validate.py --ids ids/<mssv>.txt --oai-sample 500 --recheck-api
+```
+
+Minh họa ListRecords và resumption token, phạm vi hẹp (tối đa 7 ngày, mặc định 5 trang):
+
+```bash
+python src/oai_harvester.py list --from 2008-11-26 --until 2008-11-26 \
+    --set physics:hep-lat --max-pages 1 --probe-token
+python src/oai_harvester.py list --from 2008-11-26 --until 2008-11-26 \
+    --set physics:hep-lat --resume
+python src/oai_harvester.py recheck-tokens   # chạy sau 00:00 UTC (07:00 giờ VN)
+```
+
+Kết quả và hành vi của endpoint: [`docs/a3_cross_validation.md`](docs/a3_cross_validation.md).
+
+### Kiểm tra corpus (A2)
+
+`src/validator.py` chạy 7 nhóm kiểm tra: đủ thư mục version, version có `.tex` hoặc
+`_EMPTY.json` hợp lệ, không có file lạ, lệnh figure còn nguyên, đúng cấu trúc
+`paper_meta.json` và `references.json`, ID không bị biến dạng.
+
+```bash
+python src/validator.py --ids-file ids/<mssv>.txt                 # kiểm tra cả bài còn thiếu
+python src/validator.py --ids-file ids/<mssv>.txt --no-reextract  # không so với archive trong raw/, nhanh hơn
+python src/validator.py --corpus corpus_a corpus_b --ids-dir ids  # gộp corpus của cả nhóm
+```
+
+Kết quả nằm trong `reports/validation.json`. Lệnh trả exit code 1 nếu có lỗi;
+thêm `--strict` để tính cả cảnh báo là lỗi.
+
+### Tiền xử lý TeX cho Milestone 2/3 (phần C)
+
+`src/tex_prescan.py` tìm file gốc của từng version, liệt kê `\input` / `\include`,
+đếm `\bibitem`, tỉ lệ version có `.bib` riêng và số reference có arXiv ID (matching pool M3).
+
+```bash
+python src/tex_prescan.py --ids ids/<mssv>.txt            # thêm --force để quét lại
+```
+
+Kết quả nằm trong `prescan.json` của từng bài và từng version, cùng bản tổng hợp
+`reports/prescan_summary.json`.
+
+### Chạy test
+
+```bash
+pip install pytest
+python -m pytest tests -q
+```
 
 ## 6. Ước lượng thời gian chạy
 
@@ -146,11 +234,14 @@ Muốn đổi một trường → mở issue, cả nhóm duyệt, rồi mới s�
 ├── README.md                 # file này
 ├── .gitignore
 ├── docs/
-│   └── schema.md             # HỢP ĐỒNG DỮ LIỆU — đọc trước khi code
+│   ├── schema.md             # HỢP ĐỒNG DỮ LIỆU — đọc trước khi code
+│   └── a3_cross_validation.md  # A3: kết quả so 3 nguồn, hành vi OAI-PMH
 ├── ids/                      # danh sách ID của từng người (được commit)
+├── tests/                    # test tự động (pytest)
 └── src/
     ├── requirements.txt
     ├── config.py             # hằng số + tiện ích dùng chung
+    ├── http_utils.py         # tiện ích gọi HTTP dùng chung
     ├── discovery.py          # bước 1
     ├── downloader.py         # bước 2
     ├── extractor.py          # bước 3
@@ -158,10 +249,15 @@ Muốn đổi một trường → mở issue, cả nhóm duyệt, rồi mới s�
     ├── semantic_scholar.py   # bước 4
     ├── reference_builder.py  # bước 4
     ├── benchmark.py          # đo hiệu năng
-    └── main.py               # orchestrator (tuần 2)
+    ├── main.py               # orchestrator (tuần 2)
+    ├── validator.py          # A2: kiểm tra corpus
+    ├── tex_prescan.py        # C: tiền xử lý TeX
+    ├── oai_harvester.py      # A3: OAI-PMH
+    ├── kaggle_loader.py      # A3: Cornell snapshot
+    └── cross_validate.py     # A3: so 3 nguồn
 ```
 
-Thư mục sinh ra lúc chạy (**không commit**): `corpus/`, `logs/`, `reports/`
+Thư mục sinh ra lúc chạy (**không commit**): `corpus/`, `logs/`, `reports/`, `data/`
 
 ## 9. Quy ước làm việc chung
 
@@ -177,8 +273,8 @@ Thư mục sinh ra lúc chạy (**không commit**): `corpus/`, `logs/`, `reports
 
 | MSSV | Họ tên | Module lõi | Nhóm việc nâng cao |
 |---|---|---|---|
-| 24120053 | Ngọc Hoàng (nhóm trưởng) | Entry Discovery + Tích hợp | A3 — OAI-PMH + Kaggle Cross-Validation |
-| 24120144 | Minh Thư | Full-text Source Download | A1 — Tối ưu hiệu năng |
-| 24120152 | Thanh Tú | Extract + Corpus Builder | A2 — Data Validation Suite |
-| 24120177 | Hữu Duy | Semantic Scholar References | C — Tiền xử lý bắc cầu M2/M3 |
-| 24120153 | Anh Tuấn | Benchmark + Jupyter Book | B — Phân tích mở rộng |
+| 24120053 | Đặng Ngọc Hoàng (nhóm trưởng) | Entry Discovery + Tích hợp | A3 — OAI-PMH + Kaggle Cross-Validation |
+| 24120144 | Dương Ngọc Minh Thư | Full-text Source Download | A1 — Tối ưu hiệu năng |
+| 24120152 | Trần Ngọc Thanh Tú | Extract + Corpus Builder | A2 — Data Validation Suite |
+| 24120177 | Cáp Hửu Duy | Semantic Scholar References | C — Tiền xử lý bắc cầu M2/M3 |
+| 24120153 | Nguyễn Lê Anh Tuấn | Benchmark + Jupyter Book | B — Phân tích mở rộng |
