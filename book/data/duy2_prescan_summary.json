@@ -1,0 +1,47 @@
+{
+  "total_publications": 4999,
+  "total_versions": 8129,
+  "empty_versions": 658,
+  "tex_versions": 7471,
+  "root_detected_versions": 7469,
+  "root_detection_rate": 99.97,
+  "tex_files_per_version": {
+    "total_tex_files": 34361,
+    "mean": 4.6,
+    "distribution": {
+      "1 file": 4661,
+      "11-20 files": 651,
+      "2-5 files": 976,
+      "6-10 files": 861,
+      ">20 files": 322
+    }
+  },
+  "bib_styles": {
+    "bib_file_only": 4833,
+    "none": 1895,
+    "both": 124,
+    "inline_bibitem_only": 1277
+  },
+  "bibitem_per_version": {
+    "total_bibitems": 59648,
+    "mean": 7.98,
+    "distribution": {
+      "0 bibitem": 6070,
+      "1-20 bibitems": 348,
+      "21-50 bibitems": 647,
+      "51-100 bibitems": 333,
+      ">100 bibitems": 73
+    }
+  },
+  "matching_pool": {
+    "total_candidates": 106352,
+    "mean_per_paper": 21.27,
+    "distribution": {
+      "0 candidates": 649,
+      "1-10 candidates": 1538,
+      "11-25 candidates": 1335,
+      "26-50 candidates": 1024,
+      ">50 candidates": 453
+    }
+  }
+}

@@ -6,6 +6,7 @@
 
 # --- Dữ liệu crawl (TUYỆT ĐỐI không commit) ---
 corpus/
+parsed/
 data/
 downloads/
 sources/
@@ -62,3 +63,7 @@ secrets.json
 .idea/
 .DS_Store
 Thumbs.db
+
+# --- Ngoại lệ: source Jupyter Book (ô nộp thứ 2 trên Moodle yêu cầu) ---
+!book/
+!book/data/

@@ -1,0 +1,19 @@
+pair,field,n_compared,identical,normalized_equal,different,only_left,only_right,both_null
+API vs OAI,title,500,491,9,0,0,0,0
+API vs OAI,authors,500,482,15,3,0,0,0
+API vs OAI,venue,500,65,0,0,0,1,434
+API vs OAI,submission_date,500,500,0,0,0,0,0
+API vs OAI,latest_date,500,500,0,0,0,0,0
+API vs OAI,n_versions,500,500,0,0,0,0,0
+API vs Kaggle,title,5000,4892,107,1,0,0,0
+API vs Kaggle,authors,5000,4850,132,18,0,0,0
+API vs Kaggle,venue,5000,727,1,0,0,3,4269
+API vs Kaggle,submission_date,5000,5000,0,0,0,0,0
+API vs Kaggle,latest_date,5000,4999,0,1,0,0,0
+API vs Kaggle,n_versions,5000,4999,0,1,0,0,0
+OAI vs Kaggle,title,500,500,0,0,0,0,0
+OAI vs Kaggle,authors,500,500,0,0,0,0,0
+OAI vs Kaggle,venue,500,66,0,0,0,0,434
+OAI vs Kaggle,submission_date,500,500,0,0,0,0,0
+OAI vs Kaggle,latest_date,500,500,0,0,0,0,0
+OAI vs Kaggle,n_versions,500,500,0,0,0,0,0

@@ -1,0 +1,4 @@
+source,how_version_count_is_known,n_papers,n_with_version_count,n_with_3plus_versions,n_3plus_with_all_version_dates
+API,Suy từ hậu tố vN của entry_id; chỉ có ngày v1 và ngày bản mới nhất,5000,5000,600,0
+OAI,Liệt kê từng <version> trong arXivRaw: ngày và dung lượng,500,500,55,55
+Kaggle,"Liệt kê từng phần tử versions: ngày, không có dung lượng",5000,5000,600,600

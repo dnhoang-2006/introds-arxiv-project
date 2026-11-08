@@ -1,0 +1,16 @@
+Số bài trong khoảng ID        : 5000
+Tổng số version               : 8066
+  empty (có _EMPTY.json)      : 561
+  ok                          : 7505
+Version có kết quả            : 8066/8066 (100.0%)  <- DoD cần 100%
+Tỉ lệ version tải được source : 93.0%
+Tỉ lệ bài có ≥1 version source: 92.3%
+Tổng thời gian request (log)  : 15.91 giờ cho 8184 request
+Trung bình mỗi request        : 7.00 s (chưa gồm 3 s pacing; dùng benchmark.py để có wall-clock)
+Trung bình mỗi bài            : 11.45 s
+
+Bảng phân loại (version không có source):
+  Nhóm              Số lượng
+  PDF-only               538
+  không tồn tại           23
+Chi tiết mã lỗi: {'pdf_only': 538, 'http_404': 23}
