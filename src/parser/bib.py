@@ -16,11 +16,80 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import re
+import logging
+import bibtexparser
+from bibtexparser.bparser import BibTexParser
+
+logging.getLogger("bibtexparser").setLevel(logging.ERROR)
+
+YEAR_PAT = re.compile(r"\b(19|20)\d{2}\b")
+
+def _clean_bib_text(val:str|None)->str|None:
+    if not val:
+        return None
+    # Xóa ngoặc nhọn trước BibTex và chuẩn hóa khoảng trắng
+
+    cleaned = re.sub(r"[{}]","",val)
+    cleaned=re.sub(r"\s+"," ", cleaned).strip()
+    return cleaned or None
 
 
 def read_bib_file(path: Path) -> list[dict[str, Any]]:
     """Đọc file .bib có sẵn thành danh sách entry theo schema mục 1.3."""
-    raise NotImplementedError
+    path =Path(path)
+    if not path.is_file():
+        return []
+
+    with open(path,encoding='utf-8', errors="replace") as f:
+        # common_strings = True giúp giải quyết các macro tháng, tên tạp chí
+        parser = BibTexParser(common_strings=True)
+        db = bibtexparser.load(f, parser= parser)
+    entries: list[dict[str,Any]] = []
+    for e in db.entries:
+        key = e.get("ID")
+        if not key:
+            continue
+        # Title
+        title= _clean_bib_text(e.get("title"))
+
+        # Authors -> list[str]
+        raw_authors = e.get("author")
+        if raw_authors:
+            cleaned_author_str = _clean_bib_text(raw_authors) or ""
+            authors_list = [a.strip() for a in cleaned_author_str.split(" and ") if a.strip()]
+
+            authors = authors_list if authors_list else None
+        else:
+            authors = None
+
+        # Year -> int |None
+        raw_year= str(e.get("year",""))
+        m_year = YEAR_PAT.search(raw_year)
+        year = int (m_year.group(0)) if m_year else None
+
+        # DOI, Journal, URL
+        doi = _clean_bib_text(e.get("doi"))
+        journal = _clean_bib_text(e.get("journal") or e.get("booktitle"))
+        url = _clean_bib_text(e.get("url"))
+
+        entry_type = str(e.get("ENTRYTYPE", "misc")).lower().strip()
+
+        entries.append(
+            {
+                "citation_key": key.strip(),
+                "entry_type": entry_type,
+                "title": title,
+                "authors": authors,
+                "year": year,
+                "doi": doi,
+                "journal": journal,
+                "url": url
+            }
+        )
+    return entries
+
+        
 
 
 def split_bibitems(tex: str) -> list[tuple[str, str]]:
