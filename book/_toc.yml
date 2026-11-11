@@ -1,0 +1,16 @@
+format: jb-book
+root: intro
+
+parts:
+  - caption: "Giai đoạn 1 — Thu thập Dữ liệu"
+    chapters:
+      - file: milestone1/01-methodology
+      - file: milestone1/02-statistics
+      - file: milestone1/03-performance
+      - file: milestone1/04-deep-analysis
+
+  - caption: "Giai đoạn 2 — Bóc tách Dữ liệu"
+    chapters:
+      - file: milestone2/01-parsing
+      - file: milestone2/02-standardization
+      - file: milestone2/03-evaluation

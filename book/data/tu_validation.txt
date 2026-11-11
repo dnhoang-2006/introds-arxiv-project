@@ -1,0 +1,35 @@
+Dưới đây là toàn bộ số liệu đã được **tính toán lại chính xác tuyệt đối** từ `logs/extract.csv` và thư mục `corpus/` sau khi loại bỏ dòng của bài thử `1706.03762`:
+
+---
+
+### 1. Dung lượng trung bình mỗi bản ghi (tính trên 7,606 bản ghi)
+
+| | Bytes | MiB |
+| :--- | :---: | :---: |
+| **Trước khi bỏ figure** | **4,583,122** *(cũ: 4,582,667)* | **4.371** *(cũ: 4.370)* |
+| **Sau khi bỏ figure** | **250,551** *(cũ: 250,528)* | **0.239** *(cũ: 0.239)* |
+
+> Dung lượng trung bình giảm khoảng **94.53%** (xấp xỉ **94.5%**) sau khi bỏ figure.
+
+---
+
+### 2. Tổng dung lượng output cuối (tex + bib)
+
+* **1,905,693,962 bytes**, tương đương **1817.41 MiB** *(cũ: 1817.48 MiB)*, khoảng **1.775 GiB**.
+* Tổng dung lượng corpus hiện tại: **1889.15 MiB** *(giảm ~0.07 MiB của bài test; nếu tính theo dung lượng thực tế quét trên đĩa gồm cả `paper_meta` và `references` mới crawl là **1928.45 MiB**)*.
+
+---
+
+### 3. Tóm tắt validation
+
+| Validation | Kết quả | Ghi chú thay đổi |
+| :--- | :---: | :--- |
+| **Trùng (arxiv_id, version)** | **0** | Giữ nguyên |
+| **Đủ output cho version thành công** | **7,605 / 7,605** | Giảm 1 (cũ: 7,606 / 7,606) |
+| **Có `_EMPTY.json`** | **1 / 1** | Giữ nguyên |
+| **File `.tex`** | **29,516** | Giảm 8 file của bài test (cũ: 29,524) |
+| **File `.bib`** | **5,663** | Giữ nguyên (bài test có 0 file bib) |
+| **File ảnh trong output** | **0** | Giữ nguyên |
+| **Trạng thái** | **7,605 ok, 1 empty** | Giảm 1 ok (cũ: 7,606 ok, 1 empty) |
+
+> **Lưu ý:** `logs/extract.csv` có đúng 1 version không có TeX là `2504.16018 v1`, lý do `no_tex_in_archive`. Bản ghi này có status `empty` và đã có `_EMPTY.json` tương ứng hợp lệ.

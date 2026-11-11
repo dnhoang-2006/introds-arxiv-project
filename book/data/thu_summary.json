@@ -1,0 +1,13 @@
+{
+  "n_papers": 20,
+  "id_range": ["2505.00666", "2505.00685"],
+  "n_versions": 35,
+  "versions_by_status": {"ok": 33, "empty": 2},
+  "exclude_run_ids": ["run_20261031_113228_188a6306"],
+  "notes": {
+    "before": ["before download", "before extract"],
+    "after": ["after"]
+  },
+  "testbed": "Windows-11-AMD64 (Python 3.14.4, RAM 15.7GB)",
+  "n_repeats_per_side": 1
+}

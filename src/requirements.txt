@@ -17,3 +17,6 @@ psutil>=5.9.0
 
 # --- Phần nâng cao A3 (nhóm trưởng, tuần 2) ---
 sickle>=0.7.0
+
+# --- Milestone 2: Parsing ---
+bibtexparser>=1.4.0
