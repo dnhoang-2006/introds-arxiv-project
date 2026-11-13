@@ -297,6 +297,23 @@ def run_benchmark(
         exit_code = 127
         status = "error"
         notes = f"{notes}; Command not found: {fnf_err}" if notes else f"Command not found: {fnf_err}"
+    except KeyboardInterrupt:
+        # Gracefully handle user cancellation or Colab cell interrupt
+        proc = process_holder[0]
+        if proc is not None and proc.poll() is None:
+            try:
+                parent = psutil.Process(proc.pid)
+                for child in parent.children(recursive=True):
+                    try:
+                        child.kill()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+                parent.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                proc.kill()
+        exit_code = 130
+        status = "cancelled"
+        notes = f"{notes}; Interrupted by user (SIGINT/KeyboardInterrupt)" if notes else "Interrupted by user (SIGINT/KeyboardInterrupt)"
     except Exception as exc:
         exit_code = 1
         status = "error"
