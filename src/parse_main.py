@@ -115,6 +115,27 @@ def _log_row(arxiv_id: str, fields: dict[str, Any] | None = None, **kw: Any) -> 
     return row
 
 
+def _timed_call(
+    parse_fn: Callable[[str, Path], list[dict[str, Any]]],
+    arxiv_id: str,
+    out_root: Path,
+) -> tuple[Any, float, str | None, bool]:
+    """Chạy parse_fn trong TIẾN TRÌNH CON và bắt mọi lỗi tại chỗ.
+
+    Trả (kết quả, số giây, tên lớp lỗi hoặc None, có phải NotImplementedError không).
+    Không ném lỗi qua ranh giới tiến trình: một số lớp lỗi không pickle được, và
+    tiến trình chính chỉ cần TÊN lớp lỗi để ghi error_type.
+    """
+    t0 = time.perf_counter()
+    try:
+        result = parse_fn(arxiv_id, out_root)
+        return result, time.perf_counter() - t0, None, False
+    except NotImplementedError:
+        return None, time.perf_counter() - t0, "NotImplementedError", True
+    except Exception as exc:  # noqa: BLE001
+        return None, time.perf_counter() - t0, type(exc).__name__, False
+
+
 def run(
     ids: list[str],
     out_root: Path,
@@ -134,19 +155,18 @@ def run(
 
     parse_fn mặc định là parse_one; tham số này để test thay bằng hàm giả.
 
-    workers > 1 — CHỖ CẮM CHO MINH THƯ (điểm cộng tuần 2: so sánh --workers 1 vs 2).
-    Gợi ý để không phá cơ chế chạy lại:
-      - Lọc already_done() TRƯỚC khi đưa vào pool, như nhánh tuần tự bên dưới.
-      - Chỉ chạy parse_fn trong tiến trình con (ProcessPoolExecutor). Mỗi bài ghi vào
-        thư mục parsed/<pub_key>/ riêng nên các tiến trình không giẫm file nhau.
-      - Ghi parse.csv ở TIẾN TRÌNH CHÍNH, khi từng future xong — không cho nhiều tiến
-        trình cùng ghi một file CSV.
-      - Giữ nguyên quy tắc: lỗi một bài -> dòng `fail`, không dừng cả mẻ.
+    workers > 1 — parse song song bằng ProcessPoolExecutor:
+      - Lọc already_done() TRƯỚC khi đưa vào pool, nên cơ chế chạy lại giữ nguyên.
+      - Chỉ parse_fn chạy ở tiến trình con; mỗi bài ghi vào parsed/<pub_key>/ riêng
+        nên các tiến trình không giẫm file nhau.
+      - parse.csv chỉ do TIẾN TRÌNH CHÍNH ghi, khi từng bài xong (as_completed),
+        nên các dòng không bao giờ lẫn vào nhau. Thứ tự dòng là thứ tự XONG, không
+        phải thứ tự trong file ID — so sánh với workers=1 thì sort trước.
+      - parse_fn phải pickle được (hàm cấp module, không lambda/closure), vì tiến
+        trình con nhận nó qua pickle. Windows và Colab đều chạy được.
     """
     if workers < 1:
         raise ValueError("workers phải >= 1")
-    if workers > 1:
-        raise NotImplementedError("Parse song song: Minh Thư viết ở tuần 2")
     parse_fn = parse_fn or parse_one
     log_path = log_path or (config.LOGS_ROOT / "parse.csv")
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -154,47 +174,74 @@ def run(
 
     counts = {"ok": 0, "empty": 0, "fail": 0, "skipped": 0}
     new_file = not log_path.exists() or log_path.stat().st_size == 0
+    total = len(ids)
 
     with log_path.open("a", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=PARSE_LOG_FIELDS)
         if new_file:
             writer.writeheader()
 
+        def record(i: int, arxiv_id: str, result: Any, secs: float, err: str | None) -> None:
+            """Ghi log của MỘT bài — dùng chung cho cả tuần tự lẫn song song."""
+            if err is None:
+                try:
+                    # Dựng dòng log trong try: parse_fn trả sai dạng (None, thiếu
+                    # khoá...) chỉ làm fail bài này, không giết cả mẻ.
+                    rows = [_log_row(arxiv_id, r) for r in result]
+                except Exception as exc:  # noqa: BLE001
+                    err = type(exc).__name__
+            if err is not None:
+                writer.writerow(_log_row(arxiv_id, seconds=secs,
+                                         status="fail", error_type=err))
+                counts["fail"] += 1
+                if verbose:
+                    print(f"[{i}/{total}] {arxiv_id}  LỖI: {err}")
+            else:
+                for row in rows:
+                    writer.writerow(row)
+                    counts[row["status"]] = counts.get(row["status"], 0) + 1
+                if verbose:
+                    print(f"[{i}/{total}] {arxiv_id}  {len(rows)} version  {secs:5.2f}s")
+            fh.flush()
+
+        # 1. Lọc bài đã xong ở tiến trình chính, trước khi chia việc.
+        todo: list[str] = []
         for i, raw_id in enumerate(ids, 1):
             arxiv_id = config.strip_version(raw_id)
-            key = config.pub_key(arxiv_id)
-
-            if already_done(key, out_root) and not overwrite:
+            if already_done(config.pub_key(arxiv_id), out_root) and not overwrite:
                 writer.writerow(_log_row(arxiv_id, status="skipped"))
                 counts["skipped"] += 1
                 if verbose:
-                    print(f"[{i}/{len(ids)}] {arxiv_id}  bỏ qua (đã có {DONE_MARKER})")
+                    print(f"[{i}/{total}] {arxiv_id}  bỏ qua (đã có {DONE_MARKER})")
                 fh.flush()
-                continue
+            else:
+                todo.append(arxiv_id)
 
-            t0 = time.perf_counter()
-            try:
-                # Dựng dòng log NGAY TRONG try: parse_one trả về sai dạng (None, thiếu
-                # khoá, khoá thừa...) chỉ làm fail bài này, không giết cả mẻ.
-                rows = [_log_row(arxiv_id, r) for r in parse_fn(arxiv_id, out_root)]
-            except NotImplementedError:
-                raise
-            except Exception as exc:  # noqa: BLE001 — log mọi lỗi, không dừng cả mẻ
-                writer.writerow(_log_row(arxiv_id, seconds=time.perf_counter() - t0,
-                                         status="fail", error_type=type(exc).__name__))
-                counts["fail"] += 1
-                if verbose:
-                    print(f"[{i}/{len(ids)}] {arxiv_id}  LỖI: {type(exc).__name__}: {exc}")
-                fh.flush()
-                continue
+        # 2a. Tuần tự — mặc định, kết quả tất định.
+        if workers == 1:
+            for i, arxiv_id in enumerate(todo, 1):
+                result, secs, err, not_impl = _timed_call(parse_fn, arxiv_id, out_root)
+                if not_impl:
+                    raise NotImplementedError
+                record(i, arxiv_id, result, secs, err)
+            return counts
 
-            for row in rows:
-                writer.writerow(row)
-                counts[row["status"]] = counts.get(row["status"], 0) + 1
-            if verbose:
-                print(f"[{i}/{len(ids)}] {arxiv_id}  {len(rows)} version  "
-                      f"{time.perf_counter() - t0:5.2f}s")
-            fh.flush()
+        # 2b. Song song.
+        from concurrent.futures import ProcessPoolExecutor, as_completed
+
+        with ProcessPoolExecutor(max_workers=workers) as ex:
+            futures = {ex.submit(_timed_call, parse_fn, a, out_root): a for a in todo}
+            for i, fut in enumerate(as_completed(futures), 1):
+                arxiv_id = futures[fut]
+                try:
+                    result, secs, err, not_impl = fut.result()
+                except Exception as exc:  # noqa: BLE001 — lỗi pickle / tiến trình con chết
+                    result, secs, err, not_impl = None, 0.0, type(exc).__name__, False
+                if not_impl:
+                    for f in futures:
+                        f.cancel()
+                    raise NotImplementedError
+                record(i, arxiv_id, result, secs, err)
 
     return counts
 

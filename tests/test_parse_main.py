@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from parse_main import PARSE_LOG_FIELDS, already_done, run, write_outputs
+from src.parse_main import PARSE_LOG_FIELDS, already_done, run, write_outputs 
 
 
 def _fake_parse(calls):
@@ -157,12 +157,84 @@ def test_unknown_keys_in_rows_ignored(tmp_path):
     assert counts["ok"] == 1
 
 
-def test_workers_plug_point(tmp_path):
-    with pytest.raises(NotImplementedError):
-        run(["2310.12345"], tmp_path / "p", verbose=False,
-            log_path=tmp_path / "parse.csv", parse_fn=lambda a, o: [], workers=2)
+# --------------------------------------------------------------------------- #
+# --workers N (Minh Thư). Tiến trình con nhận parse_fn qua pickle nên hàm giả
+# phải ở cấp module, không dùng closure/lambda như các test tuần tự phía trên.
+# --------------------------------------------------------------------------- #
+def _fake_parse_mod(arxiv_id: str, out_root: Path):
+    key = arxiv_id.replace(".", "-")
+    write_outputs(key, out_root,
+                  elements=[{"element_id": f"{key}#doc_0", "arxiv_id": arxiv_id,
+                             "kind": "document", "content": f"{arxiv_id}v1"}],
+                  hierarchy=[], bibtex=[])
+    return [{"version": v, "n_elements": 1, "status": "ok"} for v in (1, 2)]
+
+
+def _flaky_mod(arxiv_id: str, out_root: Path):
+    if arxiv_id == "2310.12343":
+        raise ValueError("tex hỏng")
+    return _fake_parse_mod(arxiv_id, out_root)
+
+
+def _not_implemented_mod(arxiv_id: str, out_root: Path):
+    raise NotImplementedError
+
+
+def _sorted_rows(log: Path):
+    keep = ("arxiv_id", "version", "n_elements", "status", "error_type")
+    return sorted(tuple(r[k] for k in keep) for r in _read_log(log))
+
+
+IDS = [f"2310.1234{i}" for i in range(6)]
+
+
+def test_workers_invalid():
     with pytest.raises(ValueError):
-        run([], tmp_path / "p", log_path=tmp_path / "parse.csv", workers=0)
+        run([], Path("unused"), log_path=Path("unused.csv"), workers=0)
+
+
+def test_workers_2_same_result_as_workers_1(tmp_path):
+    """Song song phải ra ĐÚNG cùng kết quả với tuần tự (chỉ khác thứ tự dòng log)."""
+    c1 = run(IDS, tmp_path / "p1", verbose=False, log_path=tmp_path / "w1.csv",
+             parse_fn=_flaky_mod, workers=1)
+    c2 = run(IDS, tmp_path / "p2", verbose=False, log_path=tmp_path / "w2.csv",
+             parse_fn=_flaky_mod, workers=2)
+    assert c1 == c2 == {"ok": 10, "empty": 0, "fail": 1, "skipped": 0}
+    assert _sorted_rows(tmp_path / "w1.csv") == _sorted_rows(tmp_path / "w2.csv")
+    for i in IDS:
+        assert already_done(i.replace(".", "-"), tmp_path / "p2") == (i != "2310.12343")
+
+
+def test_workers_log_not_interleaved(tmp_path):
+    """Chỉ tiến trình chính ghi CSV: đủ dòng, header một lần, mọi dòng đủ cột."""
+    log = tmp_path / "parse.csv"
+    run(IDS, tmp_path / "p", verbose=False, log_path=log,
+        parse_fn=_fake_parse_mod, workers=3)
+    rows = _read_log(log)
+    assert len(rows) == 2 * len(IDS)
+    assert all(list(r.keys()) == list(PARSE_LOG_FIELDS) for r in rows)
+    assert all(None not in r.values() for r in rows)
+    assert log.read_text(encoding="utf-8").count("arxiv_id,version") == 1
+
+
+def test_workers_resume_skips_done(tmp_path):
+    out, log = tmp_path / "p", tmp_path / "parse.csv"
+    run(IDS[:3], out, verbose=False, log_path=log, parse_fn=_fake_parse_mod, workers=2)
+    c = run(IDS, out, verbose=False, log_path=log, parse_fn=_fake_parse_mod, workers=2)
+    assert c["skipped"] == 3 and c["ok"] == 6
+
+
+def test_workers_not_implemented_propagates(tmp_path):
+    with pytest.raises(NotImplementedError):
+        run(IDS[:2], tmp_path / "p", verbose=False, log_path=tmp_path / "parse.csv",
+            parse_fn=_not_implemented_mod, workers=2)
+
+
+def test_workers_unpicklable_parse_fn_logged_as_fail(tmp_path):
+    """Lambda không pickle được -> mỗi bài một dòng fail, không treo, không crash."""
+    c = run(IDS[:2], tmp_path / "p", verbose=False, log_path=tmp_path / "parse.csv",
+            parse_fn=lambda a, o: [], workers=2)
+    assert c["fail"] == 2
 
 
 def test_parse_main_does_not_need_arxiv_library():
