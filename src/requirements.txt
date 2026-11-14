@@ -19,4 +19,4 @@ psutil>=5.9.0
 sickle>=0.7.0
 
 # --- Milestone 2: Parsing ---
-bibtexparser>=1.4.0
+bibtexparser>=2.0,<3
