@@ -110,6 +110,27 @@ def strip_version(arxiv_id: str) -> str:
     return re.sub(r"v\d+$", "", arxiv_id.strip())
 
 
+def load_ids(source: str, limit: int | None = None) -> list[str]:
+    """Nhận đường dẫn file (một ID mỗi dòng) hoặc danh sách ID ngăn bởi dấu phẩy.
+
+    Bỏ dòng trống và dòng bắt đầu bằng #. Không bỏ version, không bỏ trùng —
+    việc đó tuỳ nơi gọi.
+
+    Đặt ở đây (không ở discovery.py) vì discovery.py sys.exit() lúc import nếu
+    thiếu thư viện `arxiv` — kéo theo cả thư viện crawl chỉ để đọc một file ID.
+
+    >>> load_ids("2310.12345, 1706.03762v2")
+    ['2310.12345', '1706.03762v2']
+    """
+    path = Path(source)
+    if path.exists():
+        lines = path.read_text(encoding="utf-8").splitlines()
+        ids = [ln.strip() for ln in lines if ln.strip() and not ln.lstrip().startswith("#")]
+    else:
+        ids = [s.strip() for s in source.split(",") if s.strip()]
+    return ids[:limit] if limit else ids
+
+
 def parse_version(versioned_id: str) -> int | None:
     """Đọc số version từ một ID có hậu tố.
 
