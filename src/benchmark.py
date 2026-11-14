@@ -180,6 +180,7 @@ def run_benchmark(
     notes: str | None = None,
     cwd: str | Path | None = None,
     capture_output: bool = False,
+    shell: bool = False,
 ) -> tuple[BenchmarkResult, subprocess.CompletedProcess | None]:
     """Execute a command, monitor resource consumption, and return structured metrics.
 
@@ -194,6 +195,7 @@ def run_benchmark(
         notes: Additional context or notes.
         cwd: Working directory for process execution.
         capture_output: Whether to capture stdout/stderr in memory.
+        shell: Whether to run command through the system shell.
 
     Returns:
         Tuple of (BenchmarkResult, CompletedProcess or None)
@@ -209,6 +211,11 @@ def run_benchmark(
     if disk_target is not None:
         disk_scope = f"delta:{disk_target.name}"
         initial_disk_bytes = calculate_dir_size_bytes(disk_target)
+
+    # Capture baseline kernel peak before execution (POSIX only)
+    # This prevents sequential benchmark calls within the same process from
+    # inheriting an earlier run's monotonically increasing ru_maxrss.
+    baseline_kernel_peak = get_kernel_peak_rss_mb()
 
     # Prepare RAM sampling data
     ram_samples: list[float] = []
@@ -238,9 +245,12 @@ def run_benchmark(
     stderr_data: str | None = None
 
     try:
-        use_shell = isinstance(command, str)
+        use_shell = shell or isinstance(command, str)
+        cmd_to_run = (
+            " ".join(command) if (shell and isinstance(command, (list, tuple))) else command
+        )
         proc = subprocess.Popen(
-            command,
+            cmd_to_run,
             shell=use_shell,
             cwd=cwd,
             stdout=subprocess.PIPE if capture_output else None,
@@ -263,7 +273,17 @@ def run_benchmark(
             exit_code = proc.returncode
             status = "success" if exit_code == 0 else "failed"
         except subprocess.TimeoutExpired:
-            proc.kill()
+            # Terminate the full process tree to prevent orphaned background processes
+            try:
+                parent = psutil.Process(proc.pid)
+                for child in parent.children(recursive=True):
+                    try:
+                        child.kill()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+                parent.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                proc.kill()
             out, err = proc.communicate()
             if capture_output:
                 stdout_data = out
@@ -277,6 +297,23 @@ def run_benchmark(
         exit_code = 127
         status = "error"
         notes = f"{notes}; Command not found: {fnf_err}" if notes else f"Command not found: {fnf_err}"
+    except KeyboardInterrupt:
+        # Gracefully handle user cancellation or Colab cell interrupt
+        proc = process_holder[0]
+        if proc is not None and proc.poll() is None:
+            try:
+                parent = psutil.Process(proc.pid)
+                for child in parent.children(recursive=True):
+                    try:
+                        child.kill()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+                parent.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                proc.kill()
+        exit_code = 130
+        status = "cancelled"
+        notes = f"{notes}; Interrupted by user (SIGINT/KeyboardInterrupt)" if notes else "Interrupted by user (SIGINT/KeyboardInterrupt)"
     except Exception as exc:
         exit_code = 1
         status = "error"
@@ -294,17 +331,43 @@ def run_benchmark(
     # Calculate RAM metrics
     # POSIX (Colab, Linux, macOS) uses OS kernel getrusage for exact peak capture.
     # Windows falls back to psutil periodic sampling.
+    sampling_peak = max(ram_samples) if ram_samples else None
     kernel_peak = get_kernel_peak_rss_mb()
+
+    # If getrusage is available, verify it is not a stale value inherited from
+    # earlier children in the same Python process.
+    valid_kernel_peak: float | None = None
     if kernel_peak is not None and kernel_peak > 0:
-        peak_ram_mb: float | None = kernel_peak
-        peak_ram_source: str = "getrusage"
+        if baseline_kernel_peak is None or kernel_peak > baseline_kernel_peak:
+            valid_kernel_peak = kernel_peak
+
+    # Combine kernel peak and sampling peak to select the true maximum:
+    # 1. Kernel getrusage captures instantaneous spikes between sampling ticks.
+    # 2. psutil sampling captures the concurrent sum of multi-process trees.
+    if valid_kernel_peak is not None and sampling_peak is not None:
+        if sampling_peak > valid_kernel_peak:
+            peak_ram_mb = sampling_peak
+            peak_ram_source = "sampling"
+        else:
+            peak_ram_mb = valid_kernel_peak
+            peak_ram_source = "getrusage"
+    elif valid_kernel_peak is not None:
+        peak_ram_mb = valid_kernel_peak
+        peak_ram_source = "getrusage"
+    elif sampling_peak is not None:
+        peak_ram_mb = sampling_peak
+        peak_ram_source = "sampling"
     else:
-        peak_ram_mb = max(ram_samples) if ram_samples else None
+        peak_ram_mb = None
         peak_ram_source = "sampling"
 
-    average_ram_mb: float | None = (
-        round(sum(ram_samples) / len(ram_samples), 2) if ram_samples else None
-    )
+    if ram_samples:
+        average_ram_mb: float | None = round(sum(ram_samples) / len(ram_samples), 2)
+    elif peak_ram_mb is not None:
+        # Fallback for ultra-fast commands where sampling thread had 0 ticks
+        average_ram_mb = peak_ram_mb
+    else:
+        average_ram_mb = None
 
     # Calculate Disk metrics
     disk_usage_mb: float | None = None
@@ -446,7 +509,7 @@ def build_parser() -> argparse.ArgumentParser:
   python src/benchmark.py -- python -c "import time; time.sleep(1)"
 
   # Benchmark discovery module on sample IDs, append to logs/benchmark_runs.csv:
-  python src/benchmark.py --stage discovery --ids ids/example.txt --csv logs/benchmark_runs.csv -- python src/discovery.py --ids ids/example.txt --limit 2
+  python src/benchmark.py --stage discovery --paper-id sample --csv logs/benchmark_runs.csv -- python src/discovery.py --ids ids/example.txt --limit 2
 
   # Track disk output on corpus folder:
   python src/benchmark.py --stage download --disk-path corpus --csv logs/benchmark_runs.csv -- python src/downloader.py --ids ids/example.txt
@@ -485,6 +548,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="Optional maximum execution time before process termination.",
+    )
+    parser.add_argument(
+        "--shell",
+        action="store_true",
+        help="Execute command through system shell (enables shell operators like && or pipes).",
     )
     parser.add_argument(
         "--csv",
@@ -540,6 +608,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         sampling_interval=args.interval,
         timeout=args.timeout,
         notes=args.notes,
+        shell=args.shell,
     )
 
     if args.csv:
