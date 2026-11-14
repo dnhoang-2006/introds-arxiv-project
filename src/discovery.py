@@ -231,15 +231,9 @@ def run(ids: list[str], overwrite: bool = False, verbose: bool = True) -> list[P
     return metas
 
 
-def load_ids(source: str, limit: int | None = None) -> list[str]:
-    """Nhận đường dẫn file (một ID mỗi dòng) hoặc danh sách ID ngăn bởi dấu phẩy."""
-    path = Path(source)
-    if path.exists():
-        lines = path.read_text(encoding="utf-8").splitlines()
-        ids = [ln.strip() for ln in lines if ln.strip() and not ln.lstrip().startswith("#")]
-    else:
-        ids = [s.strip() for s in source.split(",") if s.strip()]
-    return ids[:limit] if limit else ids
+# Đã chuyển sang config.py (để parse_main.py không phải kéo theo thư viện arxiv).
+# Giữ tên ở đây cho các module M1 đang `from discovery import load_ids`.
+load_ids = config.load_ids
 
 
 def main() -> None:
