@@ -192,6 +192,10 @@ def clean_latex(s: str) -> str:
     GIỮ NGUYÊN \includegraphics, môi trường figure, \ref, \cite — đề Milestone 1 đã yêu cầu,
     Milestone 2 không đổi. Xem "QUYẾT ĐỊNH THIẾT KẾ" ở đầu file.
 
+    ⚠️ PHẢI gọi strip_noncontent() ở trên để bỏ \\label, \\maketitle, \\vspace...
+    hierarchy.build_tree() cũng gọi đúng hàm đó. Cần bỏ thêm lệnh nào thì bổ sung vào
+    NONCONTENT_CMDS, KHÔNG viết danh sách riêng trong hàm này.
+
     Bất biến bắt buộc: clean_latex(clean_latex(x)) == clean_latex(x)
     (đạt bằng cách lặp tới khi chuỗi hết đổi).
     """
