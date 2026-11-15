@@ -92,6 +92,37 @@ _PARA_BREAK = re.compile(r"\n\s*\n")
 _AFTER_COMMAND = re.compile(r"(?:\\[A-Za-z]+\*?|[}\]])\s*$")
 
 
+# --------------------------------------------------------------------------- #
+# strip_noncontent — NGUỒN SỰ THẬT DUY NHẤT cho danh sách lệnh "không mang nội dung"
+# --------------------------------------------------------------------------- #
+# Cả clean_latex() lẫn hierarchy.build_tree() đều gọi hàm này. KHÔNG viết danh sách
+# thứ hai ở nơi khác: hai danh sách phân kỳ thì cùng một câu ở hai version sẽ chuẩn
+# hoá khác nhau -> dedup hỏng mà rất khó truy. Muốn bỏ thêm lệnh nào thì thêm VÀO ĐÂY.
+NONCONTENT_CMDS: tuple[str, ...] = (
+    "label",
+    "maketitle", "tableofcontents", "listoffigures", "listoftables", "appendix",
+    "clearpage", "cleardoublepage", "newpage", "pagebreak", "linebreak",
+    "noindent", "indent", "centering", "raggedright", "raggedleft", "FloatBarrier",
+    "thispagestyle", "pagestyle", "bigskip", "medskip", "smallskip", "par",
+    "vspace", "hspace",
+)
+
+_ARG = r"\{(?:[^{}]|\{[^{}]*\})*\}"
+_NONCONTENT = re.compile(
+    r"\\(?:" + "|".join(NONCONTENT_CMDS) + r")\*?(?![A-Za-z])"
+    r"(?:\s*\[[^\]]*\])?(?:\s*" + _ARG + r")?"
+)
+
+
+def strip_noncontent(s: str) -> str:
+    """Bỏ các lệnh trong NONCONTENT_CMDS (kèm đối số của chúng).
+
+    Thay bằng MỘT dấu cách chứ không phải chuỗi rỗng, để giữ tính idempotent.
+    Bất biến: strip_noncontent(strip_noncontent(x)) == strip_noncontent(x)
+    """
+    return _NONCONTENT.sub(" ", s)
+
+
 def _match_brace(s: str, open_idx: int) -> int | None:
     """Vị trí dấu `}` khớp với `{` ở open_idx. Bỏ qua \\{ và \\}. None nếu không khớp."""
     depth = 0
@@ -168,6 +199,7 @@ def _squash_whitespace(s: str) -> str:
 
 def _clean_once(s: str) -> str:
     s = _COMMENT.sub("", s)
+    s = strip_noncontent(s)
     s = _LABEL.sub(lambda m: m.group(1), s)
     s = _FLOAT_OPT.sub(lambda m: m.group(1) + "\\begin{" + m.group(2) + "}", s)
     s = _unwrap_styles(s)
