@@ -205,3 +205,25 @@ def test_kernel_peak_rss_unit(monkeypatch):
     monkeypatch.setattr(benchmark.sys, "platform", "win32")
     assert benchmark.get_kernel_peak_rss_mb() is None
 
+
+def test_shell_command_execution():
+    """Verify shell=True allows compound shell statements."""
+    cmd = [sys.executable, "-c", "print('step1')", "&&", sys.executable, "-c", "print('step2')"]
+    result, proc = run_benchmark(command=cmd, shell=True, stage="test_shell")
+    assert result.status == "success"
+    assert result.exit_code == 0
+
+
+def test_timeout_tree_cleanup():
+    """Verify timeout terminates child processes properly."""
+    script = (
+        "import subprocess, sys, time\n"
+        "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(10)'])\n"
+        "time.sleep(10)\n"
+    )
+    cmd = [sys.executable, "-c", script]
+    result, _ = run_benchmark(command=cmd, timeout=0.3, stage="test_timeout_tree")
+    assert result.status == "timeout"
+    assert result.exit_code == -1
+
+
