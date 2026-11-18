@@ -29,43 +29,48 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 # ----------------------------------------------------------------------
 # BẢNG TÊN FILE — 5 thành viên x 4 giai đoạn
-# Ô nào là file CHƯA CÓ thì thành viên đó phải gửi về đúng tên này.
+# Đã chuẩn hóa toàn bộ tên file với tiền tố mã định danh thành viên.
 # ----------------------------------------------------------------------
 MEMBERS = {
     "Anh Tuấn 24120153": {
         "id_range":   "2504.07523-2504.12522",
-        "discovery":  "discovery.csv",          # đã có
-        "download":   "download.csv",           # đã có
-        "extract":    "extract.csv",            # đã có
-        "references": "references.csv",         # đã có
+        "discovery":  "tuan_discovery.csv",
+        "download":   "tuan_download.csv",
+        "extract":    "tuan_extract.csv",
+        "references": "tuan_references.csv",
+        "benchmark":  "tuan_benchmark.csv",
     },
     "Ngọc Hoàng 24120053": {
         "id_range":   "2507.06659-2507.11658",
-        "discovery":  "hoang_discovery.csv",    # đã có
-        "download":   "hoang_download.csv",     # đã có
-        "extract":    "hoang_extract.csv",      # đã có
-        "references": "hoang_references.csv",   # đã có
+        "discovery":  "hoang_discovery.csv",
+        "download":   "hoang_download.csv",
+        "extract":    "hoang_extract.csv",
+        "references": "hoang_references.csv",
+        "benchmark":  "hoang_benchmark.csv",
     },
     "Minh Thư 24120144": {
         "id_range":   "2505.00666-2505.05665",
-        "discovery":  "thu_discovery.csv",      # <-- THIẾU
-        "download":   "thu_download.csv",       # đã có
-        "extract":    "thu_extract.csv",        # <-- THIẾU
-        "references": "thu_references.csv",     # <-- THIẾU
+        "discovery":  "thu_discovery.csv",
+        "download":   "thu_download.csv",
+        "extract":    "thu_extract.csv",
+        "references": "thu_references.csv",
+        "benchmark":  "thu_benchmark.csv",
     },
     "Thanh Tú 24120152": {
         "id_range":   "2504.12523-2504.17522",
-        "discovery":  "tu_discovery.csv",       # <-- THIẾU
-        "download":   "tu_download.csv",        # <-- THIẾU
-        "extract":    "tu_extract.csv",         # đã có
-        "references": "tu_references.csv",      # <-- THIẾU
+        "discovery":  "tu_discovery.csv",
+        "download":   "tu_download.csv",
+        "extract":    "tu_extract.csv",
+        "references": "tu_references.csv",
+        "benchmark":  "tu_benchmark.csv",
     },
     "Hửu Duy 24120177": {
         "id_range":   "2503.11914-2503.16913",
-        "discovery":  "duy2_discovery.csv",     # <-- THIẾU
-        "download":   "duy2_download.csv",      # <-- THIẾU
-        "extract":    "duy2_extract.csv",       # <-- THIẾU
-        "references": "duy2_references_clean.csv",  # đã có
+        "discovery":  "duy_discovery.csv",
+        "download":   "duy_download.csv",
+        "extract":    "duy_extract.csv",
+        "references": "duy_references.csv",
+        "benchmark":  "duy_benchmark.csv",
     },
 }
 
@@ -79,13 +84,18 @@ def load_group(data_dir="data", verbose=True):
     missing = []
 
     for member, cfg in MEMBERS.items():
+        start_id, end_id = cfg["id_range"].split("-")
         for stage in STAGE_KEYS:
             fname = cfg[stage]
             path = data_dir / fname
             if not path.exists():
                 missing.append((member, stage, fname))
                 continue
-            df = pd.read_csv(path, dtype={"arxiv_id": str}, low_memory=False)
+            df = pd.read_csv(path, dtype={"arxiv_id": str, "version": str}, low_memory=False)
+            if "arxiv_id" in df.columns:
+                df = df[df.arxiv_id.between(start_id, end_id)]
+            if stage == "download" and "version" in df.columns:
+                df = df[df.version.astype(str) != "0"]
             df["member"] = member
             df["id_range"] = cfg["id_range"]
             frames[stage].append(df)
@@ -192,6 +202,55 @@ def group_totals(g):
     }
 
 
+def per_member_benchmark_table(data_dir="data"):
+    """Bảng đối sánh hiệu năng đo đạc chuẩn hóa của cả 5 thành viên trên Google Colab CPU-only."""
+    data_dir = Path(data_dir)
+    modes = {
+        "Anh Tuấn 24120153": "Standard (Resumed 9 runs)",
+        "Ngọc Hoàng 24120053": "Standard (Continuous single run)",
+        "Minh Thư 24120144": "Streaming (--stream, Zero-disk)",
+        "Thanh Tú 24120152": "Standard (Resumed 3 runs)",
+        "Hửu Duy 24120177": "Standard (Segmented crawl)",
+    }
+    rows = []
+    for member, cfg in MEMBERS.items():
+        f = data_dir / cfg.get("benchmark", f"{member}_benchmark.csv")
+        if not f.exists():
+            continue
+        df = pd.read_csv(f)
+        r = {"Thành viên": member, "Dải ID Phân công": cfg["id_range"], "Phương thức Tải": modes.get(member, "Standard")}
+        
+        # Discovery
+        d = df[df.stage == "discovery"]
+        r["Discovery (s)"] = round(d.wall_time_seconds.sum(), 1) if len(d) else 0
+        r["RAM Disc (MB)"] = round(d.peak_ram_mb.max(), 1) if len(d) else 0
+        
+        # Download
+        dl = df[df.stage == "download"]
+        r["Download (h)"] = round(dl.wall_time_seconds.sum() / 3600, 2) if len(dl) else 0
+        r["RAM DL (MB)"] = round(dl.peak_ram_mb.max(), 1) if len(dl) else 0
+        r["Đĩa DL (GB)"] = round(dl.disk_usage_mb.sum() / 1024, 2) if len(dl) else 0
+        
+        # Corpus builder
+        cb = df[df.stage == "corpus_builder"]
+        if len(cb) > 0 and cb.wall_time_seconds.sum() > 0:
+            r["Corpus (h)"] = round(cb.wall_time_seconds.sum() / 3600, 2)
+            r["RAM Corpus (MB)"] = round(cb.peak_ram_mb.max(), 1)
+            r["Đĩa Corpus (GB)"] = round(cb.disk_usage_mb.sum() / 1024, 2)
+        else:
+            r["Corpus (h)"] = 0.0  # Streamed on-the-fly
+            r["RAM Corpus (MB)"] = 0.0
+            r["Đĩa Corpus (GB)"] = 0.0
+            
+        # Reference builder
+        rf = df[df.stage == "reference_builder"]
+        r["Ref (m)"] = round(rf.wall_time_seconds.sum() / 60, 1) if len(rf) else 0
+        r["RAM Ref (MB)"] = round(rf.peak_ram_mb.max(), 1) if len(rf) else 0
+        
+        rows.append(r)
+    return pd.DataFrame(rows)
+
+
 # ______________________________________________________________________________
 # PHẦN 2 — DỮ LIỆU NHÓM VIỆC NÂNG CAO
 # 19 file dưới đây đang nằm trong data/ mà KHÔNG notebook nào đọc.
@@ -227,10 +286,8 @@ ENHANCEMENTS = {
     },
 }
 
-# File KHÔNG ĐƯỢC dùng: bản crawl cũ còn lẫn 75 dòng ID 2502.* ngoài phạm vi.
-# Đã bị thay bằng duy2_references_clean.csv. Nên xoá khỏi data/ để không ai
-# đọc nhầm, và để người chấm không thấy hai file references của cùng một người.
-DO_NOT_USE = ["duy_references.csv"]
+# File không được dùng (trống vì toàn bộ 20/20 log đã được chuẩn hóa và kiểm định sạch sẽ)
+DO_NOT_USE = []
 
 
 def load_a1_before_after(data_dir="data"):
