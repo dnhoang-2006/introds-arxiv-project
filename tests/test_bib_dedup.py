@@ -20,11 +20,14 @@ try:
         _norm_doi,
         _norm_title,
         _norm_url,
+        _rename_cites_with_stats,
         _split_authors_str,
         cluster_entries,
         entry_keys,
         merge_group,
+        rename_cites,
         signature,
+        unify_publication,
     )
 except ImportError:
     from src.parser.bib_dedup import (  # type: ignore[no-redef]
@@ -36,11 +39,14 @@ except ImportError:
         _norm_doi,
         _norm_title,
         _norm_url,
+        _rename_cites_with_stats,
         _split_authors_str,
         cluster_entries,
         entry_keys,
         merge_group,
+        rename_cites,
         signature,
+        unify_publication,
     )
 
 
@@ -623,3 +629,184 @@ def test_cluster_entries_three_entries_same_title_disambiguated():
         john_grp = next(g for g in groups if any(e["citation_key"] == "j1" for e in g))
         assert len(john_grp) == 2
         assert {e["citation_key"] for e in john_grp} == {"j1", "j2"}
+
+
+# Test rename_cites & _rename_cites_with_stats
+
+def test_rename_cites_basic():
+    """Kiểm tra đổi 1 key cơ bản và nhiều lệnh trong văn bản."""
+    tex = r"We use Transformers \cite{vaswani2017} and BERT \cite{devlin2018bert}."
+    rename = {"vaswani2017": "canonical_vaswani", "devlin2018bert": "canonical_bert"}
+    out = rename_cites(tex, rename)
+    assert out == r"We use Transformers \cite{canonical_vaswani} and BERT \cite{canonical_bert}."
+
+
+def test_rename_cites_latex_variants_and_options():
+    r"""Bắt đủ các biến thể lệnh cite: \citep, \citet, \citeyear, \citealp, \citet*, có ngoặc vuông [...]."""
+    tex = (
+        r"\citep{k1} and \citet{k2} and \citeyear{k3} and \citealp{k4} and "
+        r"\citet*{k5} and \citenum{k6} and \cite[p. 15]{k7} and \citep[see][chap. 2]{k8}."
+    )
+    rename = {f"k{i}": f"canon{i}" for i in range(1, 9)}
+    out = rename_cites(tex, rename)
+    assert out == (
+        r"\citep{canon1} and \citet{canon2} and \citeyear{canon3} and \citealp{canon4} and "
+        r"\citet*{canon5} and \citenum{canon6} and \cite[p. 15]{canon7} and \citep[see][chap. 2]{canon8}."
+    )
+
+
+def test_rename_cites_merge_duplicates():
+    r"""Test bắt buộc của đề: \cite{a,b} khi a và b gộp làm một -> ra \cite{a}, không ra \cite{a,a}."""
+    tex = r"Prior work \cite{vaswani2017, vit_transformer} showed this."
+    # Cả hai key đều gộp về 'vaswani2017'
+    rename = {"vaswani2017": "vaswani2017", "vit_transformer": "vaswani2017"}
+    out = rename_cites(tex, rename)
+    assert out == r"Prior work \cite{vaswani2017} showed this."
+
+    # Lặp lại sẵn trong source: \cite{a, a}
+    tex_dup = r"Repeated cite \cite{old, old}."
+    assert rename_cites(tex_dup, {"old": "canon"}) == r"Repeated cite \cite{canon}."
+
+
+def test_rename_cites_deterministic_sort():
+    r"""Quy ước đã chốt: các key trong \cite{} nhiều key phải được sort chữ cái để băm ra cùng id."""
+    rename = {"b": "canon_b", "a": "canon_a", "c": "canon_c"}
+    tex1 = r"\cite{b, a, c}"
+    tex2 = r"\cite{c, b, a}"
+    tex3 = r"\cite{a, c, b}"
+
+    expected = r"\cite{canon_a,canon_b,canon_c}"
+    assert rename_cites(tex1, rename) == expected
+    assert rename_cites(tex2, rename) == expected
+    assert rename_cites(tex3, rename) == expected
+
+
+def test_rename_cites_dangling_preserved():
+    """Key không tồn tại trong rename_map (dangling): giữ nguyên, không xóa, không ném exception."""
+    tex = r"See \cite{dangling_key} and \cite{known_key, another_dangling}."
+    rename = {"known_key": "canon_key"}
+    out = rename_cites(tex, rename)
+    # dangling_key giữ nguyên, known_key đổi thành canon_key, được sort theo alphabet
+    assert out == r"See \cite{dangling_key} and \cite{another_dangling,canon_key}."
+
+
+def test_rename_cites_with_stats_counting():
+    """Kiểm tra đếm đúng n_renamed và n_dangling cho báo cáo."""
+    tex = r"Paper A \cite{old1, dangling}. Paper B \citep[p.10]{old2, canon3}."
+    # old1 đổi sang canon1 (1 đổi)
+    # dangling không có trong rename (1 dangling)
+    # old2 đổi sang canon2 (1 đổi)
+    # canon3 đã là key chuẩn (0 đổi, không dangling vì có trong rename)
+    rename = {"old1": "canon1", "old2": "canon2", "canon3": "canon3"}
+
+    new_tex, n_renamed, n_dangling = _rename_cites_with_stats(tex, rename)
+    assert new_tex == r"Paper A \cite{canon1,dangling}. Paper B \citep[p.10]{canon2,canon3}."
+    assert n_renamed == 2
+    assert n_dangling == 1
+
+
+def test_rename_cites_empty_or_whitespace():
+    """Edge case: văn bản không chứa lệnh cite hoặc cite rỗng."""
+    assert rename_cites("", {"a": "b"}) == ""
+    assert rename_cites("No citations here.", {"a": "b"}) == "No citations here."
+    assert rename_cites(r"\cite{}", {"a": "b"}) == r"\cite{}"
+    assert rename_cites(r"\cite{  }", {"a": "b"}) == r"\cite{  }"
+
+
+# Test unify_publication
+
+def test_unify_publication_spec_example():
+    r"""Test bắt buộc của đề bài (ví dụ 3 version):
+    v1: vaswani2017 (title, author, year)
+    v2: vit_transformer (title, author, doi)
+    v3: vit_transformer (title, author - mất year)
+    -> 1 entry duy nhất, key=vaswani2017, có cả year và doi, văn bản 3 version đều trỏ về vaswani2017.
+    """
+    v1_bib = [_e("vaswani2017", "Attention Is All You Need", ["A. Vaswani"], year=2017, version=1)]
+    v2_bib = [_e("vit_transformer", "Attention Is All You Need", ["A. Vaswani"], doi="10.5555/3295222", version=2)]
+    v3_bib = [_e("vit_transformer", "Attention Is All You Need", ["A. Vaswani"], version=3)]
+
+    bib_entries = {1: v1_bib, 2: v2_bib, 3: v3_bib}
+    norm_text = {
+        1: r"Model in \cite{vaswani2017}.",
+        2: r"Model in \cite{vit_transformer}.",
+        3: r"Model in \cite{vit_transformer}.",
+    }
+
+    renamed_text, bibtex_rows, rename_map = unify_publication(norm_text, bib_entries)
+
+    # 1. bibtex_rows: Đúng 1 entry
+    assert len(bibtex_rows) == 1
+    row = bibtex_rows[0]
+    assert row["citation_key"] == "vaswani2017"
+    assert row["year"] == 2017
+    assert row["doi"] == "10.5555/3295222"
+    assert row["title"] == "Attention Is All You Need"
+
+    # 2. renamed_text: Cả 3 version đều dùng \cite{vaswani2017}
+    expected_text = r"Model in \cite{vaswani2017}."
+    assert renamed_text[1] == expected_text
+    assert renamed_text[2] == expected_text
+    assert renamed_text[3] == expected_text
+
+    # 3. rename_map: Ánh xạ key cũ sang key chuẩn
+    assert rename_map.get("vit_transformer") == "vaswani2017"
+
+
+def test_unify_publication_key_collision_across_versions():
+    r"""Chốt thiết kế: Cùng citation_key ở 2 version nhưng trỏ 2 bài khác nhau -> ánh xạ đúng theo từng version."""
+    # v1 dùng key 'common' trỏ bài Vaswani
+    v1_bib = [_e("common", "Attention Is All You Need", ["A. Vaswani"], doi="10.1111/att", version=1)]
+    # v2 dùng lại key 'common' nhưng trỏ bài BERT
+    v2_bib = [_e("common", "BERT Pretraining", ["J. Devlin"], doi="10.2222/bert", version=2)]
+
+    bib_entries = {1: v1_bib, 2: v2_bib}
+    norm_text = {
+        1: r"We use \cite{common}.",
+        2: r"We use \cite{common}.",
+    }
+
+    renamed_text, bibtex_rows, _ = unify_publication(norm_text, bib_entries)
+
+    # 2 entry riêng biệt trong bibtex_rows
+    assert len(bibtex_rows) == 2
+    keys = {r["citation_key"] for r in bibtex_rows}
+    assert len(keys) == 2
+
+    # Văn bản v1 và v2 phải đổi sang 2 key khác nhau tương ứng với từng bài
+    assert renamed_text[1] != renamed_text[2]
+    assert r"\cite{" in renamed_text[1]
+    assert r"\cite{" in renamed_text[2]
+
+
+def test_unify_publication_deterministic():
+    """Kiểm tra tính tất định: chạy 2 lần liên tiếp ra kết quả giống hệt nhau."""
+    v1_bib = [
+        _e("ref_b", "Paper B", ["Author B"], version=1),
+        _e("ref_a", "Paper A", ["Author A"], version=1),
+    ]
+    v2_bib = [
+        _e("ref_b_alias", "Paper B", ["Author B"], version=2),
+    ]
+    bib_entries = {1: v1_bib, 2: v2_bib}
+    norm_text = {1: r"Read \cite{ref_b, ref_a}.", 2: r"Read \cite{ref_b_alias}."}
+
+    res1 = unify_publication(norm_text, bib_entries)
+    res2 = unify_publication(norm_text, bib_entries)
+
+    assert res1[0] == res2[0]  # renamed_text
+    assert res1[1] == res2[1]  # bibtex_rows
+    assert res1[2] == res2[2]  # rename_map
+
+
+def test_unify_publication_empty_and_missing_bib():
+    """Ca biên: version không có bib hoặc cả bài không có reference nào."""
+    assert unify_publication({}, {}) == ({}, [], {})
+
+    norm_text = {1: r"Intro without cites.", 2: r"Conclusion."}
+    renamed, rows, rmap = unify_publication(norm_text, {1: [], 2: []})
+    assert renamed == norm_text
+    assert rows == []
+    assert rmap == {}
+
+
