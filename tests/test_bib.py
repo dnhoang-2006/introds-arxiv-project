@@ -10,7 +10,7 @@ SRC_DIR = str(Path(__file__).resolve().parent.parent / "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from parser.bib import parse_bibitem, read_bib_file, split_bibitems
+from parser.bib import collect_bib, parse_bibitem, read_bib_file, split_bibitems
 
 
 SAMPLE_BIB = """
@@ -236,3 +236,119 @@ def test_parse_bibitem_preserves_multiline_raw():
     assert parsed["year"] == 2017
     assert parsed["doi"] == "10.5555/3295222"
     assert parsed["raw"] == raw_multiline
+
+
+# Test collect_bib
+
+def test_collect_bib_bib_only(tmp_path: Path):
+    """Kiểm tra collect_bib khi thư mục chỉ có file .bib."""
+    bib_file = tmp_path / "refs.bib"
+    bib_file.write_text(SAMPLE_BIB, encoding="utf-8")
+
+    entries = collect_bib(tmp_path)
+    assert len(entries) == 5
+    keys = {e["citation_key"] for e in entries}
+    assert "vaswani2017attention" in keys
+    assert "devlin2018bert" in keys
+
+
+def test_collect_bib_tex_only(tmp_path: Path):
+    """Kiểm tra collect_bib khi thư mục chỉ có file .tex chứa thebibliography."""
+    tex_file = tmp_path / "main.tex"
+    tex_file.write_text(SAMPLE_TEX, encoding="utf-8")
+
+    entries = collect_bib(tmp_path)
+    assert len(entries) == 4
+    keys = {e["citation_key"] for e in entries}
+    assert keys == {"vaswani2017", "goodfellow2016", "devlin2018bert", "maldacena1998"}
+
+
+def test_collect_bib_both_sources_with_overlap(tmp_path: Path):
+    """Kiểm tra ca trọng tâm: có cả .bib và thebibliography, trùng key -> .bib luôn thắng."""
+    # File .tex định nghĩa vaswani2017 dạng thô
+    tex_file = tmp_path / "paper.tex"
+    tex_file.write_text(
+        r"""
+        \begin{thebibliography}{1}
+        \bibitem{vaswani2017} A. Vaswani et al. ``Attention Is All You Need''. 2017.
+        \bibitem{tex_only_key} B. Author. ``Only In TeX''. 2021.
+        \end{thebibliography}
+        """,
+        encoding="utf-8",
+    )
+
+    # File .bib định nghĩa vaswani2017 dạng có cấu trúc và trường journal
+    bib_file = tmp_path / "paper.bib"
+    bib_file.write_text(
+        """
+        @article{vaswani2017,
+          title = {Attention Is All You Need},
+          author = {Ashish Vaswani and Noam Shazeer},
+          journal = {NeurIPS},
+          year = {2017},
+          doi = {10.5555/3295222}
+        }
+        @misc{bib_only_key,
+          title = {Only In Bib},
+          year = {2022}
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    entries = collect_bib(tmp_path)
+    # Tổng cộng 3 key duy nhất: vaswani2017 (trùng), tex_only_key, bib_only_key
+    assert len(entries) == 3
+    by_key = {e["citation_key"]: e for e in entries}
+
+    assert "tex_only_key" in by_key
+    assert "bib_only_key" in by_key
+    assert "vaswani2017" in by_key
+
+    # Bản vaswani2017 phải lấy từ file .bib (có journal, không có trường 'raw')
+    vaswani = by_key["vaswani2017"]
+    assert vaswani["journal"] == "NeurIPS"
+    assert vaswani["doi"] == "10.5555/3295222"
+    assert "raw" not in vaswani or vaswani.get("raw") is None
+
+
+def test_collect_bib_empty_and_nonexistent(tmp_path: Path):
+    """Kiểm tra thư mục rỗng, không tồn tại hoặc không chứa tham chiếu."""
+    assert collect_bib(tmp_path / "nonexistent") == []
+    assert collect_bib(tmp_path) == []
+
+    # File .tex không có thebibliography
+    (tmp_path / "empty.tex").write_text("Hello world without bibliography", encoding="utf-8")
+    assert collect_bib(tmp_path) == []
+
+
+def test_collect_bib_nested_subdirectories(tmp_path: Path):
+    """Kiểm tra quét đệ quy tìm .bib và .tex trong các thư mục con."""
+    sub_tex = tmp_path / "sections" / "appendix"
+    sub_tex.mkdir(parents=True)
+    (sub_tex / "app.tex").write_text(
+        r"""
+        \begin{thebibliography}{1}
+        \bibitem{nested_tex_ref} Nested Author. ``Nested Title''. 2023.
+        \end{thebibliography}
+        """,
+        encoding="utf-8",
+    )
+
+    sub_bib = tmp_path / "assets" / "bib"
+    sub_bib.mkdir(parents=True)
+    (sub_bib / "extra.bib").write_text(
+        """
+        @article{nested_bib_ref,
+          title = {Nested Bib Title},
+          year = {2024}
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    entries = collect_bib(tmp_path)
+    assert len(entries) == 2
+    keys = {e["citation_key"] for e in entries}
+    assert keys == {"nested_tex_ref", "nested_bib_ref"}
+

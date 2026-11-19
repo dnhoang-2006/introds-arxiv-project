@@ -304,6 +304,44 @@ def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
     }
 
 
-def collect_bib(vdir: Path) -> list[dict[str, Any]]:
-    """Gom toàn bộ reference của MỘT version từ cả hai nguồn (.bib và \\bibitem)."""
-    raise NotImplementedError
+def collect_bib(vdir: Path | str) -> list[dict[str, Any]]:
+    """Gom toàn bộ reference của MỘT version từ cả hai nguồn (.bib và \\bibitem).
+
+    Quy tắc ưu tiên: khi cùng citation_key ở cả hai nguồn, bản từ .bib ghi đè
+    bản từ \\bibitem vì .bib có cấu trúc chuẩn và trường chính xác hơn.
+    """
+    vdir = Path(vdir)
+    if not vdir.is_dir():
+        return []
+
+    collected: dict[str, dict[str, Any]] = {}
+
+    # 1. Bóc từ \bibitem trong các file .tex (đưa vào trước)
+    tex_files = sorted(
+        p for p in vdir.rglob("*.tex")
+        if p.is_file() and not p.name.startswith(".")
+    )
+    for p in tex_files:
+        try:
+            tex = p.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if r"\begin{thebibliography}" not in tex:
+            continue
+        for key, raw in split_bibitems(tex):
+            if key not in collected:
+                collected[key] = parse_bibitem(key, raw)
+
+    # 2. Đọc từ các file .bib (đưa vào sau để ghi đè khi trùng key)
+    bib_files = sorted(
+        p for p in vdir.rglob("*.bib")
+        if p.is_file() and not p.name.startswith(".")
+    )
+    for p in bib_files:
+        for entry in read_bib_file(p):
+            key = entry.get("citation_key")
+            if key:
+                collected[key] = entry
+
+    return list(collected.values())
+
