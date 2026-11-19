@@ -71,15 +71,29 @@ def _find_arxiv(e: Any) -> str | None:
     return None
 
 
-def read_bib_file(path: Path | str) -> list[dict[str, Any]]:
-    """Đọc file .bib có sẵn thành danh sách entry theo schema mục 1.3."""
+def read_bib_file(
+    path: Path | str,
+    lenient: bool = False,
+    failed_blocks_out: list[Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Đọc file .bib có sẵn thành danh sách entry theo schema mục 1.3.
+
+    Args:
+        path: Đường dẫn file .bib
+        lenient: Nếu True, vẫn trích xuất các entry hợp lệ khi có block lỗi cú pháp;
+                 nếu False (mặc định), ném ValueError khi có bất kỳ block lỗi nào.
+        failed_blocks_out: Nếu truyền list, các block lỗi cú pháp (nếu có) sẽ được nạp vào đây.
+    """
     path = Path(path)
     if not path.is_file():
         return []
 
     lib = bibtexparser.parse_file(str(path))
     if lib.failed_blocks:
-        raise ValueError(f"File BibTeX chứa {len(lib.failed_blocks)} block lỗi cú pháp: {path}")
+        if failed_blocks_out is not None:
+            failed_blocks_out.extend(lib.failed_blocks)
+        if not lenient:
+            raise ValueError(f"File BibTeX chứa {len(lib.failed_blocks)} block lỗi cú pháp: {path}")
 
     entries: list[dict[str, Any]] = []
     for e in lib.entries:
@@ -338,7 +352,12 @@ def collect_bib(vdir: Path | str) -> list[dict[str, Any]]:
         if p.is_file() and not p.name.startswith(".")
     )
     for p in bib_files:
-        for entry in read_bib_file(p):
+        try:
+            # Dùng lenient=True để vớt các entries hợp lệ ngay cả khi có block lỗi cú pháp
+            entries = read_bib_file(p, lenient=True)
+        except Exception:
+            continue
+        for entry in entries:
             key = entry.get("citation_key")
             if key:
                 collected[key] = entry

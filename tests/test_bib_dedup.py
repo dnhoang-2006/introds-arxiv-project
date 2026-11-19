@@ -500,7 +500,7 @@ def test_entry_keys_links_rich_metadata_with_key_only_entry():
 
 
 def test_signature_same_title_same_surname_collision_doc():
-    """Ghi nhận giới hạn thiết kế: signature() cố ý dùng tiêu đề + họ tác giả đầu khi thiếu DOI/arXiv."""
+    """Ghi nhận giới hạn: signature() cố ý dùng tiêu đề + họ tác giả đầu khi thiếu DOI/arXiv."""
     p_john = _e("j1", "Advanced Quantum Computing", ["John Smith"])
     p_jane = _e("j2", "Advanced Quantum Computing", ["Jane Smith"])
     assert signature(p_john) == signature(p_jane) == "title:advanced quantum computing/smith"
@@ -754,7 +754,7 @@ def test_unify_publication_spec_example():
 
 
 def test_unify_publication_key_collision_across_versions():
-    r"""Chốt thiết kế: Cùng citation_key ở 2 version nhưng trỏ 2 bài khác nhau -> ánh xạ đúng theo từng version."""
+    r"""Cùng citation_key ở 2 version nhưng trỏ 2 bài khác nhau -> ánh xạ đúng theo từng version."""
     # v1 dùng key 'common' trỏ bài Vaswani
     v1_bib = [_e("common", "Attention Is All You Need", ["A. Vaswani"], doi="10.1111/att", version=1)]
     # v2 dùng lại key 'common' nhưng trỏ bài BERT
@@ -780,7 +780,7 @@ def test_unify_publication_key_collision_across_versions():
 
 
 def test_unify_publication_deterministic():
-    """Kiểm tra tính tất định: chạy 2 lần liên tiếp ra kết quả giống hệt nhau."""
+    """Kiểm tra tính tất định: chạy 2 lần liên tiếp ra kết quả giống nhau."""
     v1_bib = [
         _e("ref_b", "Paper B", ["Author B"], version=1),
         _e("ref_a", "Paper A", ["Author A"], version=1),

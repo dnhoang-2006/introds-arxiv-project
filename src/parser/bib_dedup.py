@@ -1268,26 +1268,18 @@ def rename_cites(tex: str, rename: dict[str, str]) -> str:
     return renamed_tex
 
 
-def unify_publication(
+def unify_publication_with_stats(
     norm_text: dict[int, str],
     bib_entries: dict[int, list[dict[str, Any]]],
-) -> tuple[dict[int, str], list[dict[str, Any]], dict[str, str]]:
-    """HÀM DUY NHẤT MÀ NHÓM TRƯỞNG GỌI. Chạy hai lượt.
-
-    Lượt 1: đọc bib của TẤT CẢ version -> gom nhóm -> dựng rename_map
-    Lượt 2: áp rename_cites() lên văn bản đã chuẩn hoá của từng version
-
-    Phải hai lượt vì rename_map chỉ dựng được khi đã thấy hết mọi version.
-
-    Args:
-        norm_text:   {version: toàn văn đã chuẩn hoá (bước 2 của pipeline)}
-        bib_entries: {version: entry từ .bib và \\bibitem}
+) -> tuple[dict[int, str], list[dict[str, Any]], dict[str, str], dict[str, Any]]:
+    """Chạy hai lượt unify_publication và thu thập thống kê đổi tên citation chuẩn xác.
 
     Returns:
-        (renamed_text, bibtex_rows, rename_map)
+        (renamed_text, bibtex_rows, global_rename_map, stats)
+        - stats: {"n_cite_renamed": int, "n_dangling": int, "version_rename_maps": dict}
     """
     if not norm_text and not bib_entries:
-        return {}, [], {}
+        return {}, [], {}, {"n_cite_renamed": 0, "n_dangling": 0, "version_rename_maps": {}}
 
     # Lượt 1: Thu thập tất cả entries từ các version, đảm bảo có trường "version"
     all_entries: list[dict[str, Any]] = []
@@ -1345,11 +1337,43 @@ def unify_publication(
     bibtex_rows.sort(key=lambda r: str(r.get("citation_key") or ""))
 
     # Lượt 2: Đổi tên các lệnh cite trong văn bản của từng version
-    # Ưu tiên map riêng của version đó để chống xung đột key, fallback về global_rename_map
+    # Đếm n_renamed và n_dangling trực tiếp bằng version_map tương ứng
     renamed_text: dict[int, str] = {}
+    total_renamed = 0
+    total_dangling = 0
     for v in sorted(norm_text):
         v_map = {**global_rename_map, **version_rename_maps.get(v, {})}
-        renamed_text[v] = rename_cites(norm_text[v], v_map)
+        r_txt, n_ren, n_dang = _rename_cites_with_stats(norm_text[v], v_map)
+        renamed_text[v] = r_txt
+        total_renamed += n_ren
+        total_dangling += n_dang
 
+    stats = {
+        "n_cite_renamed": total_renamed,
+        "n_dangling": total_dangling,
+        "version_rename_maps": version_rename_maps,
+    }
+    return renamed_text, bibtex_rows, global_rename_map, stats
+
+
+def unify_publication(
+    norm_text: dict[int, str],
+    bib_entries: dict[int, list[dict[str, Any]]],
+) -> tuple[dict[int, str], list[dict[str, Any]], dict[str, str]]:
+    """HÀM DUY NHẤT MÀ NHÓM TRƯỞNG GỌI. Chạy hai lượt.
+
+    Lượt 1: đọc bib của TẤT CẢ version -> gom nhóm -> dựng rename_map
+    Lượt 2: áp rename_cites() lên văn bản đã chuẩn hoá của từng version
+
+    Phải hai lượt vì rename_map chỉ dựng được khi đã thấy hết mọi version.
+
+    Args:
+        norm_text:   {version: toàn văn đã chuẩn hoá (bước 2 của pipeline)}
+        bib_entries: {version: entry từ .bib và \\bibitem}
+
+    Returns:
+        (renamed_text, bibtex_rows, rename_map)
+    """
+    renamed_text, bibtex_rows, global_rename_map, _ = unify_publication_with_stats(norm_text, bib_entries)
     return renamed_text, bibtex_rows, global_rename_map
 
