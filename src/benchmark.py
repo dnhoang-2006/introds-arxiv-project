@@ -29,6 +29,7 @@ import csv
 import json
 import os
 import platform
+import shlex
 import subprocess
 import sys
 import threading
@@ -169,6 +170,25 @@ def get_kernel_peak_rss_mb() -> float | None:
         return None
 
 
+def _format_shell_command(command: Sequence[str]) -> str:
+    """Format a sequence of command arguments into a shell command string.
+
+    Preserves shell control operators (&&, ||, ;, |, etc.) while quoting
+    arguments to avoid subshell parsing errors on POSIX /bin/sh.
+    """
+    shell_operators = {"&&", "||", ";", "|", "&", ">", ">>", "<", "1>", "2>", "2>&1"}
+    parts: list[str] = []
+    for token in command:
+        token_str = str(token)
+        if token_str in shell_operators:
+            parts.append(token_str)
+        elif sys.platform != "win32":
+            parts.append(shlex.quote(token_str))
+        else:
+            parts.append(subprocess.list2cmdline([token_str]))
+    return " ".join(parts)
+
+
 def run_benchmark(
     command: Sequence[str] | str,
     stage: str = "pipeline",
@@ -247,7 +267,9 @@ def run_benchmark(
     try:
         use_shell = shell or isinstance(command, str)
         cmd_to_run = (
-            " ".join(command) if (shell and isinstance(command, (list, tuple))) else command
+            _format_shell_command(command)
+            if (shell and isinstance(command, (list, tuple)))
+            else command
         )
         proc = subprocess.Popen(
             cmd_to_run,

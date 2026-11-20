@@ -13,4 +13,4 @@ parts:
     chapters:
       - file: milestone2/01-parsing
       - file: milestone2/02-standardization
-      - file: milestone2/03-evaluation
+      - file: milestone2/03-parser-performance

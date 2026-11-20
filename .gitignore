@@ -67,3 +67,13 @@ Thumbs.db
 # --- Ngoại lệ: source Jupyter Book (ô nộp thứ 2 trên Moodle yêu cầu) ---
 !book/
 !book/data/
+
+# --- Local scratch and temporary folders ---
+scratch/
+Duy*/
+Hoang*/
+Thu*/
+Tu*/
+benchmark_runs.csv
+PROJECT_BRIEF.md
+
