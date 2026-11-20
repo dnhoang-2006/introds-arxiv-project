@@ -11,7 +11,8 @@ Sáu phép kiểm
     V4 edges_kinds     kind hợp lệ; cạnh không trùng; lá không làm cha; `document` chỉ là gốc;
                        node không phải lá chỉ có MỘT cha trong một version
     V5 elements        file đọc được; element_id duy nhất, đúng tiền tố `pub_key#`;
-                       arxiv_id là bản gốc; không có hai hàng cùng (kind, content)
+                       arxiv_id là bản gốc; không có hai hàng cùng (kind, content);
+                       dedup hiệu quả giữa các version
     V6 version_cover   mọi version 1..n_versions có cây, hoặc là bản ghi rỗng đúng mục 6
 
 Một element LÁ (sentence, formula, figure) được phép dùng lại dưới nhiều cha trong cùng một
@@ -19,7 +20,7 @@ version: cùng một câu xuất hiện hai lần thì cùng element_id (dedup t
 chỉ bị báo là cảnh báo.
 
 Chạy:
-    python src/validator_m2.py --parsed parsed/ --corpus corpus/ --ids-file ids/24120152.txt
+    python src/validator_m2.py --ids ids/24120152.txt --limit 20
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ import argparse
 import json
 import os
 import re
+import statistics
 import sys
 import time
 from collections import Counter, defaultdict
@@ -108,6 +110,7 @@ class ValidatorM2:
         self.issues: list[Issue] = []
         self.checked: dict[str, set] = {c: set() for c in CHECKS}
         self.stats: Counter = Counter()
+        self.dedup_ratios: list[float] = []
 
     # ---- ghi nhận ------------------------------------------------------- #
     def _add(self, sev: str, check: str, arxiv_id: str, version: int | None,
@@ -202,6 +205,17 @@ class ValidatorM2:
             elif row.get("arxiv_id") != arxiv_id:
                 err("V5", v, f"cạnh có arxiv_id {row.get('arxiv_id')!r}, phải là '{arxiv_id}' (bản gốc)")
             by_version[v].append((child, parent))
+
+        # ---------------- V5: dedup hiệu quả giữa các version --------------- #
+        if len(by_version) > 1:
+            all_children = [child for edges in by_version.values() for child, _ in edges]
+            n_nodes = len(all_children)
+            n_unique = len(set(all_children))
+            ratio = 1.0 - (n_unique / n_nodes) if n_nodes > 0 else 0.0
+            self.dedup_ratios.append(ratio)
+            if ratio <= 0.0 and n_nodes > 0:
+                warn("V5", None, f"bài có {len(by_version)} version nhưng dedup_ratio = 0.0 "
+                                 f"(không có element nào dùng lại giữa các version)")
 
         # ---------------- V6: phủ version ---------------------------------- #
         touch("V6")
@@ -385,7 +399,33 @@ class ValidatorM2:
         for o in by_owner.values():
             o["papers_with_errors"] = len(o.pop("_papers"))
         n_err = sum(1 for i in issues if i.severity == "error")
+
+        if self.dedup_ratios:
+            dedup_stats = {
+                "mean": round(float(statistics.mean(self.dedup_ratios)), 4),
+                "median": round(float(statistics.median(self.dedup_ratios)), 4),
+                "max": round(float(max(self.dedup_ratios)), 4),
+                "min": round(float(min(self.dedup_ratios)), 4),
+            }
+        else:
+            dedup_stats = {"mean": 0.0, "median": 0.0, "max": 0.0, "min": 0.0}
+
+        named_checks = {
+            "single_root": "pass" if checks["V1"]["status"] == "pass" else "fail",
+            "no_orphan": "pass" if checks["V2"]["status"] == "pass" else "fail",
+            "no_cycle": "pass" if checks["V3"]["status"] == "pass" else "fail",
+            "unique_element_id": "pass" if (checks["V4"]["status"] == "pass" and checks["V5"]["status"] == "pass") else "fail",
+            "dedup_effective": "pass" if not any(i.check == "V5" and "dedup" in i.message for i in issues if i.severity == "error") else "fail",
+            "version_coverage": "pass" if checks["V6"]["status"] == "pass" else "fail",
+        }
+
         return {
+            "n_publications": n_papers,
+            "n_versions": self.stats["versions"],
+            "checks": named_checks,
+            "detailed_checks": checks,
+            "dedup_ratio": dedup_stats,
+            "failures": [asdict(i) for i in issues if i.severity == "error"],
             "validator_version": VALIDATOR_M2_VERSION,
             "generated_at": config.now_iso(),
             "parsed_root": str(parsed_root) if parsed_root else None,
@@ -394,7 +434,6 @@ class ValidatorM2:
                 "n_versions": self.stats["versions"], "n_errors": n_err,
                 "n_warnings": len(issues) - n_err, "elapsed_seconds": round(elapsed, 2),
             },
-            "checks": checks,
             "stats": {k: self.stats[k] for k in ("versions", "empty_versions", "elements", "edges", "missing_papers")},
             "by_owner": dict(sorted(by_owner.items())),
             "errors": [asdict(i) for i in issues],
@@ -411,6 +450,11 @@ def validate_publication(elements: list[dict], hierarchy: list[dict], arxiv_id: 
 # CLI
 # --------------------------------------------------------------------------- #
 def read_ids(path: Path) -> list[str]:
+    if path.is_dir():
+        all_ids: list[str] = []
+        for f in sorted(path.glob("*.txt")):
+            all_ids.extend(read_ids(f))
+        return sorted(set(all_ids))
     lines = path.read_text(encoding="utf-8-sig").splitlines()
     ids = [config.strip_version(s.strip()) for s in lines]
     return [i for i in ids if i and not i.startswith("#")]
@@ -431,13 +475,21 @@ def print_summary(report: dict, out: Path, max_lines: int) -> None:
     print(f"\n{bar}\nM2 VALIDATION  -  {'PASS' if s['passed'] else 'FAIL'}\n{bar}")
     print(f"Bài: {s['n_papers']}   Version: {s['n_versions']}   "
           f"Lỗi: {s['n_errors']}   Cảnh báo: {s['n_warnings']}   ({s['elapsed_seconds']}s)")
-    for cid, c in report["checks"].items():
-        mark = "PASS" if c["status"] == "pass" else "FAIL"
-        print(f"  {cid} {mark}  {c['name']:<14} kiểm {c['n_checked']:>5}  lỗi {c['n_errors']:>4}  cảnh báo {c['n_warnings']:>4}")
-    errors = [e for e in report["errors"] if e["severity"] == "error"]
+    if "dedup_ratio" in report:
+        dr = report["dedup_ratio"]
+        print(f"Dedup ratio: mean={dr['mean']:.4f}, median={dr['median']:.4f}, max={dr['max']:.4f}")
+    detailed = report.get("detailed_checks", report.get("checks", {}))
+    for cid, c in detailed.items():
+        if isinstance(c, dict):
+            mark = "PASS" if c.get("status") == "pass" else "FAIL"
+            print(f"  {cid} {mark}  {c.get('name', cid):<14} kiểm {c.get('n_checked', 0):>5}  lỗi {c.get('n_errors', 0):>4}  cảnh báo {c.get('n_warnings', 0):>4}")
+        else:
+            mark = "PASS" if c == "pass" else "FAIL"
+            print(f"  {cid:<20} {mark}")
+    errors = [e for e in report.get("failures", [e for e in report.get("errors", []) if e.get("severity") == "error"])]
     for e in errors[:max_lines]:
-        ver = f"v{e['version']}" if e["version"] is not None else "-"
-        print(f"  {e['check']} {e['arxiv_id']} {ver}: {e['message']}")
+        ver = f"v{e['version']}" if e.get("version") is not None else "-"
+        print(f"  {e.get('check', '')} {e.get('arxiv_id', '')} {ver}: {e.get('message', '')}")
     if len(errors) > max_lines:
         print(f"  ... còn {len(errors) - max_lines} lỗi, xem đầy đủ trong file báo cáo")
     print(f"Báo cáo: {out}")
@@ -454,25 +506,28 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--parsed", type=Path, default=default_parsed_root(), help="Thư mục parsed/ (mặc định: parsed/)")
     ap.add_argument("--corpus", type=Path, default=config.CORPUS_ROOT,
                     help="corpus/ của M1, đọc n_versions trong paper_meta.json (không có thì suy từ dữ liệu)")
-    ap.add_argument("--ids-file", type=Path, default=None,
-                    help="ids/<mssv>.txt: chỉ kiểm các bài này, báo bài thiếu và gán người phụ trách")
+    ap.add_argument("--ids", "--ids-file", dest="ids_file", type=Path, default=None,
+                    help="ids/<mssv>.txt (hoặc thư mục ids/): chỉ kiểm các bài này, báo bài thiếu và gán người phụ trách")
+    ap.add_argument("--limit", type=int, default=None, help="Giới hạn số bài kiểm tra (vd: --limit 20)")
     ap.add_argument("--out", type=Path, default=config.REPORTS_ROOT / "validation_m2.json")
     ap.add_argument("--strict", action="store_true", help="Coi cảnh báo như lỗi khi tính exit code")
     ap.add_argument("--max-print", type=int, default=40, help="Số lỗi in ra console")
     args = ap.parse_args(argv)
 
     if not args.parsed.is_dir():
-        ap.error(f"không thấy thư mục parsed: {args.parsed}")
-    if args.ids_file is not None and not args.ids_file.is_file():
-        ap.error(f"không thấy file ID: {args.ids_file}")
+        args.parsed.mkdir(parents=True, exist_ok=True)
+    if args.ids_file is not None and not args.ids_file.exists():
+        ap.error(f"không thấy file hoặc thư mục ID: {args.ids_file}")
 
     started = time.perf_counter()
     v = ValidatorM2()
-    owner = args.ids_file.stem if args.ids_file else ""
+    owner = args.ids_file.stem if (args.ids_file and args.ids_file.is_file()) else ""
     if args.ids_file:
         folders = [config.pub_key(i) for i in read_ids(args.ids_file)]
     else:
         folders = sorted(d.name for d in args.parsed.iterdir() if d.is_dir())
+    if args.limit and args.limit > 0:
+        folders = folders[:args.limit]
     for n, folder in enumerate(folders, 1):
         pub_dir = args.parsed / folder
         if not pub_dir.is_dir():
