@@ -35,12 +35,43 @@ ARXIV_PAT = re.compile(r"arXiv[:\s]*(\d{4}\.\d{4,5}|[a-z-]+/\d{7})(?:v\d+)?", re
 ARXIV_REF_PAT = re.compile(r"(?:arXiv[:.]|abs/)\s*(\d{4}\.\d{4,5}|[a-z-]+/\d{7})(?:v\d+)?", re.IGNORECASE)
 URL_PAT = re.compile(r"https?://[^\s,}]+")
 
-# Ưu tiên ngoặc kép ``...'' và "..." trước vì \emph{} thường dùng cho tên hội nghị/tạp chí
+# Các regex trích xuất tiêu đề fallback theo ngoặc kép ``...'' và "...",
+# cuối cùng là \emph/\textit/\textbf vì \emph{} thường dùng cho tên hội nghị/tạp chí
 TITLE_PATS = [
     re.compile(r"``(.+?)''"),
     re.compile(r'"([^"]+)"'),
     re.compile(r"\\(?:emph|textit|textbf)\{([^}]+)\}"),
 ]
+
+
+def _extract_bibinfo_title_span(raw: str) -> tuple[str, int, int] | None:
+    """Trích xuất tiêu đề từ \\bibinfo{title}{...} bằng cách cân bằng ngoặc nhọn (arbitrary nesting).
+
+    Hỗ trợ độ lồng ngoặc không giới hạn (như {\\textendash}, {\\ensuremath{\\alpha}}, v.v.),
+    tránh giới hạn của regex tĩnh khi gặp macro lồng sâu bên trong tiêu đề.
+    Trả về (nội dung tiêu đề thô, vị trí bắt đầu, vị trí kết thúc) hoặc None.
+    """
+    m = re.search(r"\\bibinfo\s*\{title\}\s*\{", raw, re.IGNORECASE)
+    if not m:
+        return None
+    start_content = m.end()
+    depth = 1
+    i = start_content
+    n = len(raw)
+    while i < n and depth > 0:
+        c = raw[i]
+        if c == "\\":
+            i += 2
+            continue
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                content = raw[start_content:i]
+                return content, m.start(), i
+        i += 1
+    return None
 
 
 def _clean_bib_text(val: str | None) -> str | None:
@@ -71,15 +102,29 @@ def _find_arxiv(e: Any) -> str | None:
     return None
 
 
-def read_bib_file(path: Path | str) -> list[dict[str, Any]]:
-    """Đọc file .bib có sẵn thành danh sách entry theo schema mục 1.3."""
+def read_bib_file(
+    path: Path | str,
+    lenient: bool = False,
+    failed_blocks_out: list[Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Đọc file .bib có sẵn thành danh sách entry theo schema mục 1.3.
+
+    Args:
+        path: Đường dẫn file .bib
+        lenient: Nếu True, vẫn trích xuất các entry hợp lệ khi có block lỗi cú pháp;
+                 nếu False (mặc định), ném ValueError khi có bất kỳ block lỗi nào.
+        failed_blocks_out: Nếu truyền list, các block lỗi cú pháp (nếu có) sẽ được nạp vào đây.
+    """
     path = Path(path)
     if not path.is_file():
         return []
 
     lib = bibtexparser.parse_file(str(path))
     if lib.failed_blocks:
-        raise ValueError(f"File BibTeX chứa {len(lib.failed_blocks)} block lỗi cú pháp: {path}")
+        if failed_blocks_out is not None:
+            failed_blocks_out.extend(lib.failed_blocks)
+        if not lenient:
+            raise ValueError(f"File BibTeX chứa {len(lib.failed_blocks)} block lỗi cú pháp: {path}")
 
     entries: list[dict[str, Any]] = []
     for e in lib.entries:
@@ -231,6 +276,10 @@ def _extract_authors(clean_raw: str, title_match: re.Match | None) -> list[str] 
     if not prefix:
         return None
 
+    # Làm sạch các macro LaTeX thường gặp trong \\bibitem như \\bibinfo{author}, \\newblock
+    prefix = re.sub(r"\\newblock\s*", " ", prefix)
+    prefix = re.sub(r"\\bibinfo\s*\{author\}\s*", " ", prefix)
+
     # Tách theo 'and' hoặc '&' (kể cả dạng LaTeX '\&') trước nếu có
     if re.search(r"\band\b|\\?&", prefix, re.IGNORECASE):
         chunks = [c.strip() for c in re.split(r",?\s*(?:\band\b|\\?&)\s*", prefix, flags=re.IGNORECASE) if c.strip()]
@@ -260,16 +309,38 @@ def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
     Giữ nguyên ID cũ dạng hep-th/9901001, không ép về dạng số.
     """
     clean_raw = re.sub(r"\s+", " ", raw).strip()
+    clean_raw = re.sub(r"^\\bibitem\s*(?:\[[^\]]*\])?\s*\{[^}]*\}\s*", "", clean_raw)
 
     # Title
     title = None
     title_match = None
-    for pat in TITLE_PATS:
-        m = pat.search(clean_raw)
-        if m:
-            title = _clean_bib_text(m.group(1))
-            title_match = m
-            break
+
+    # 1. Ưu tiên bóc tách cân bằng ngoặc cho \bibinfo{title}{...} (REVTeX/APS), hỗ trợ lồng ngoặc sâu
+    res_bibinfo = _extract_bibinfo_title_span(clean_raw)
+    if res_bibinfo:
+        raw_title, t_start, _ = res_bibinfo
+        title = _clean_bib_text(raw_title)
+        if title:
+            title = title.rstrip(" ,.")
+
+        class _SpanMatch:
+            def __init__(self, start_pos: int):
+                self._start = start_pos
+
+            def start(self) -> int:
+                return self._start
+
+        title_match = _SpanMatch(t_start)  # type: ignore[assignment]
+    else:
+        # 2. Thử các pattern regex fallback
+        for pat in TITLE_PATS:
+            m = pat.search(clean_raw)
+            if m:
+                title = _clean_bib_text(m.group(1))
+                if title:
+                    title = title.rstrip(" ,.")
+                title_match = m
+                break
 
     # Year
     m_year = YEAR_PAT.search(clean_raw)
@@ -304,6 +375,74 @@ def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
     }
 
 
-def collect_bib(vdir: Path) -> list[dict[str, Any]]:
-    """Gom toàn bộ reference của MỘT version từ cả hai nguồn (.bib và \\bibitem)."""
-    raise NotImplementedError
+def collect_bib(
+    vdir: Path | str,
+    failed_blocks_out: list[Any] | None = None,
+    errors_out: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Gom toàn bộ reference của MỘT version từ cả hai nguồn (.bib và \\bibitem).
+
+    Quy tắc ưu tiên: khi cùng citation_key ở cả hai nguồn, bản từ .bib ghi đè
+    bản từ \\bibitem vì .bib có cấu trúc chuẩn và trường chính xác hơn.
+
+    Args:
+        vdir: Thư mục version (ví dụ corpus/2503-12000/v1)
+        failed_blocks_out: Nếu truyền list, các block lỗi cú pháp .bib sẽ được thêm vào đây.
+        errors_out: Nếu truyền list, thông báo ngoại lệ khi đọc file .bib sẽ được thêm vào đây.
+    """
+    vdir = Path(vdir)
+    if not vdir.is_dir():
+        return []
+
+    collected: dict[str, dict[str, Any]] = {}
+    logger = logging.getLogger("parser.bib")
+
+    # 1. Bóc từ \bibitem trong các file .tex (đưa vào trước)
+    tex_files = sorted(
+        p for p in vdir.rglob("*.tex")
+        if p.is_file() and not p.name.startswith(".")
+    )
+    for p in tex_files:
+        try:
+            tex = p.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if r"\begin{thebibliography}" not in tex:
+            continue
+        for key, raw in split_bibitems(tex):
+            if key not in collected:
+                collected[key] = parse_bibitem(key, raw)
+
+    # 2. Đọc từ các file .bib (đưa vào sau để ghi đè khi trùng key)
+    bib_files = sorted(
+        p for p in vdir.rglob("*.bib")
+        if p.is_file() and not p.name.startswith(".")
+    )
+    for p in bib_files:
+        cur_failed: list[tuple[str, str]] = []
+        try:
+            # Dùng lenient=True để vớt các entries hợp lệ, ghi nhận failed_blocks
+            entries = read_bib_file(p, lenient=True, failed_blocks_out=cur_failed)
+        except Exception as exc:
+            msg = f"Lỗi đọc file BibTeX {p}: {type(exc).__name__}: {exc}"
+            logger.warning(msg)
+            if errors_out is not None:
+                errors_out.append(msg)
+            continue
+
+        if cur_failed:
+            logger.warning(
+                "File BibTeX %s chứa %d block lỗi cú pháp bị bỏ qua (lenient mode)",
+                p,
+                len(cur_failed),
+            )
+            if failed_blocks_out is not None:
+                failed_blocks_out.extend(cur_failed)
+
+        for entry in entries:
+            key = entry.get("citation_key")
+            if key:
+                collected[key] = entry
+
+    return list(collected.values())
+

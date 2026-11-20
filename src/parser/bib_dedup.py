@@ -1206,15 +1206,154 @@ def merge_group(entries: list[dict[str, Any]]) -> tuple[dict[str, Any], dict[str
     return merged, rename_map
 
 
+CITE_PAT = re.compile(
+    r"(\\(?:cite|citep|citet|citeyear|citeyearpar|citealp|citealt|citeauthor|citenum|citeonline|nocite)"
+    r"\*?(?:\[[^\]]*\])*\s*)\{([^}]+)\}"
+)
+
+
+def _rename_cites_with_stats(tex: str, rename: dict[str, str]) -> tuple[str, int, int]:
+    """Đổi tên citation key trong văn bản LaTeX và thu thập thống kê.
+
+    Returns:
+        (renamed_tex, n_renamed, n_dangling)
+        - renamed_tex: văn bản sau khi đổi tên, bỏ trùng và sort key
+        - n_renamed: tổng số lần key cũ được đổi sang key chuẩn khác nó
+        - n_dangling: tổng số lần bắt gặp key không nằm trong rename_map
+    """
+    if not tex:
+        return "", 0, 0
+
+    n_renamed = 0
+    n_dangling = 0
+
+    def _replace_cite(m: re.Match) -> str:
+        nonlocal n_renamed, n_dangling
+        prefix = m.group(1)
+        raw_keys = m.group(2).split(",")
+
+        mapped_keys: set[str] = set()
+        for raw_k in raw_keys:
+            k = raw_k.strip()
+            if not k:
+                continue
+            if k in rename:
+                target_k = rename[k]
+                if target_k != k:
+                    n_renamed += 1
+                mapped_keys.add(target_k)
+            else:
+                n_dangling += 1
+                mapped_keys.add(k)
+
+        if not mapped_keys:
+            return m.group(0)
+
+        sorted_keys = sorted(mapped_keys)
+        return prefix + "{" + ",".join(sorted_keys) + "}"
+
+    renamed_tex = CITE_PAT.sub(_replace_cite, tex)
+    return renamed_tex, n_renamed, n_dangling
+
+
 def rename_cites(tex: str, rename: dict[str, str]) -> str:
     """Đổi tên citation key trong chính văn bản.
 
     Bắt \\cite, \\citep, \\citet, \\citeyear, \\citealp, có cả dạng \\cite[tr.5]{key}.
     Nhiều key trong một lệnh: đổi tên xong thì SORT và bỏ trùng
     -> \\cite{b,a} và \\cite{a,b} ra cùng kết quả, nếu không thì băm ra hai id khác nhau.
-    Key không tồn tại (dangling): giữ nguyên, đếm lại để báo cáo.
+    Key không tồn tại (dangling): giữ nguyên, không báo lỗi.
     """
-    raise NotImplementedError
+    renamed_tex, _, _ = _rename_cites_with_stats(tex, rename)
+    return renamed_tex
+
+
+def unify_publication_with_stats(
+    norm_text: dict[int, str],
+    bib_entries: dict[int, list[dict[str, Any]]],
+) -> tuple[dict[int, str], list[dict[str, Any]], dict[str, str], dict[str, Any]]:
+    """Chạy hai lượt unify_publication và thu thập thống kê đổi tên citation chuẩn xác.
+
+    Returns:
+        (renamed_text, bibtex_rows, global_rename_map, stats)
+        - stats: {"n_cite_renamed": int, "n_dangling": int, "version_rename_maps": dict}
+    """
+    if not norm_text and not bib_entries:
+        return {}, [], {}, {"n_cite_renamed": 0, "n_dangling": 0, "version_rename_maps": {}}
+
+    # Lượt 1: Thu thập tất cả entries từ các version, đảm bảo có trường "version"
+    all_entries: list[dict[str, Any]] = []
+    for ver, entries in sorted(bib_entries.items()):
+        for e in entries:
+            entry_copy = dict(e)
+            if "version" not in entry_copy:
+                entry_copy["version"] = ver
+            all_entries.append(entry_copy)
+
+    # Gom cụm các entry trỏ về cùng một tài liệu gốc
+    clusters = cluster_entries(all_entries)
+
+    bibtex_rows: list[dict[str, Any]] = []
+    global_rename_map: dict[str, str] = {}
+    version_rename_maps: dict[int, dict[str, str]] = {v: {} for v in norm_text}
+    used_keys: set[str] = set()
+
+    for cluster in clusters:
+        merged_entry, _ = merge_group(cluster)
+        canon_key = merged_entry["citation_key"]
+
+        # Đảm bảo mỗi tài liệu trong publication có một citation_key duy nhất
+        if canon_key in used_keys:
+            alt_key = next(
+                (str(e["citation_key"]) for e in cluster if e.get("citation_key") and str(e["citation_key"]) not in used_keys),
+                None,
+            )
+            if alt_key:
+                canon_key = alt_key
+            else:
+                ver = cluster[0].get("version", 1)
+                candidate = f"{canon_key}_v{ver}"
+                suffix = 2
+                while candidate in used_keys:
+                    candidate = f"{canon_key}_v{ver}_{suffix}"
+                    suffix += 1
+                canon_key = candidate
+            merged_entry["citation_key"] = canon_key
+
+        used_keys.add(canon_key)
+        bibtex_rows.append(merged_entry)
+
+        for e in cluster:
+            k = e.get("citation_key")
+            if not k:
+                continue
+            k_str = str(k)
+            global_rename_map[k_str] = canon_key
+            v = e.get("version")
+            if v is not None and v in version_rename_maps:
+                version_rename_maps[v][k_str] = canon_key
+
+    # Sắp xếp bibtex_rows theo citation_key để bảo đảm tính tất định
+    bibtex_rows.sort(key=lambda r: str(r.get("citation_key") or ""))
+
+    # Lượt 2: Đổi tên các lệnh cite trong văn bản của từng version
+    # Đếm n_renamed và n_dangling trực tiếp bằng version_map tương ứng
+    renamed_text: dict[int, str] = {}
+    total_renamed = 0
+    total_dangling = 0
+    for v in sorted(norm_text):
+        v_map = version_rename_maps.get(v, {})
+        r_txt, n_ren, n_dang = _rename_cites_with_stats(norm_text[v], v_map)
+        renamed_text[v] = r_txt
+        total_renamed += n_ren
+        total_dangling += n_dang
+
+    stats = {
+        "n_cite_renamed": total_renamed,
+        "n_dangling": total_dangling,
+        "version_rename_maps": version_rename_maps,
+    }
+    return renamed_text, bibtex_rows, global_rename_map, stats
 
 
 def unify_publication(
@@ -1234,7 +1373,7 @@ def unify_publication(
 
     Returns:
         (renamed_text, bibtex_rows, rename_map)
-
-    HẠN GIAO CHO NHÓM TRƯỞNG: 17/11.
     """
-    raise NotImplementedError
+    renamed_text, bibtex_rows, global_rename_map, _ = unify_publication_with_stats(norm_text, bib_entries)
+    return renamed_text, bibtex_rows, global_rename_map
+

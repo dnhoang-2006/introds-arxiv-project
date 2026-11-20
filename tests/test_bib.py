@@ -10,7 +10,7 @@ SRC_DIR = str(Path(__file__).resolve().parent.parent / "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from parser.bib import parse_bibitem, read_bib_file, split_bibitems
+from parser.bib import collect_bib, parse_bibitem, read_bib_file, split_bibitems
 
 
 SAMPLE_BIB = """
@@ -236,3 +236,198 @@ def test_parse_bibitem_preserves_multiline_raw():
     assert parsed["year"] == 2017
     assert parsed["doi"] == "10.5555/3295222"
     assert parsed["raw"] == raw_multiline
+
+
+# Test collect_bib
+
+def test_collect_bib_bib_only(tmp_path: Path):
+    """Kiểm tra collect_bib khi thư mục chỉ có file .bib."""
+    bib_file = tmp_path / "refs.bib"
+    bib_file.write_text(SAMPLE_BIB, encoding="utf-8")
+
+    entries = collect_bib(tmp_path)
+    assert len(entries) == 5
+    keys = {e["citation_key"] for e in entries}
+    assert "vaswani2017attention" in keys
+    assert "devlin2018bert" in keys
+
+
+def test_collect_bib_tex_only(tmp_path: Path):
+    """Kiểm tra collect_bib khi thư mục chỉ có file .tex chứa thebibliography."""
+    tex_file = tmp_path / "main.tex"
+    tex_file.write_text(SAMPLE_TEX, encoding="utf-8")
+
+    entries = collect_bib(tmp_path)
+    assert len(entries) == 4
+    keys = {e["citation_key"] for e in entries}
+    assert keys == {"vaswani2017", "goodfellow2016", "devlin2018bert", "maldacena1998"}
+
+
+def test_collect_bib_both_sources_with_overlap(tmp_path: Path):
+    """Kiểm tra ca trọng tâm: có cả .bib và thebibliography, trùng key -> .bib luôn thắng."""
+    # File .tex định nghĩa vaswani2017 dạng thô
+    tex_file = tmp_path / "paper.tex"
+    tex_file.write_text(
+        r"""
+        \begin{thebibliography}{1}
+        \bibitem{vaswani2017} A. Vaswani et al. ``Attention Is All You Need''. 2017.
+        \bibitem{tex_only_key} B. Author. ``Only In TeX''. 2021.
+        \end{thebibliography}
+        """,
+        encoding="utf-8",
+    )
+
+    # File .bib định nghĩa vaswani2017 dạng có cấu trúc và trường journal
+    bib_file = tmp_path / "paper.bib"
+    bib_file.write_text(
+        """
+        @article{vaswani2017,
+          title = {Attention Is All You Need},
+          author = {Ashish Vaswani and Noam Shazeer},
+          journal = {NeurIPS},
+          year = {2017},
+          doi = {10.5555/3295222}
+        }
+        @misc{bib_only_key,
+          title = {Only In Bib},
+          year = {2022}
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    entries = collect_bib(tmp_path)
+    # Tổng cộng 3 key duy nhất: vaswani2017 (trùng), tex_only_key, bib_only_key
+    assert len(entries) == 3
+    by_key = {e["citation_key"]: e for e in entries}
+
+    assert "tex_only_key" in by_key
+    assert "bib_only_key" in by_key
+    assert "vaswani2017" in by_key
+
+    # Bản vaswani2017 phải lấy từ file .bib (có journal, không có trường 'raw')
+    vaswani = by_key["vaswani2017"]
+    assert vaswani["journal"] == "NeurIPS"
+    assert vaswani["doi"] == "10.5555/3295222"
+    assert "raw" not in vaswani or vaswani.get("raw") is None
+
+
+def test_collect_bib_empty_and_nonexistent(tmp_path: Path):
+    """Kiểm tra thư mục rỗng, không tồn tại hoặc không chứa tham chiếu."""
+    assert collect_bib(tmp_path / "nonexistent") == []
+    assert collect_bib(tmp_path) == []
+
+    # File .tex không có thebibliography
+    (tmp_path / "empty.tex").write_text("Hello world without bibliography", encoding="utf-8")
+    assert collect_bib(tmp_path) == []
+
+
+def test_collect_bib_nested_subdirectories(tmp_path: Path):
+    """Kiểm tra quét đệ quy tìm .bib và .tex trong các thư mục con."""
+    sub_tex = tmp_path / "sections" / "appendix"
+    sub_tex.mkdir(parents=True)
+    (sub_tex / "app.tex").write_text(
+        r"""
+        \begin{thebibliography}{1}
+        \bibitem{nested_tex_ref} Nested Author. ``Nested Title''. 2023.
+        \end{thebibliography}
+        """,
+        encoding="utf-8",
+    )
+
+    sub_bib = tmp_path / "assets" / "bib"
+    sub_bib.mkdir(parents=True)
+    (sub_bib / "extra.bib").write_text(
+        """
+        @article{nested_bib_ref,
+          title = {Nested Bib Title},
+          year = {2024}
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    entries = collect_bib(tmp_path)
+    assert len(entries) == 2
+    keys = {e["citation_key"] for e in entries}
+    assert keys == {"nested_tex_ref", "nested_bib_ref"}
+
+
+def test_collect_bib_failed_blocks_tracking(tmp_path: Path):
+    """Kiểm tra collect_bib thu thập failed_blocks và ghi nhận lỗi khi có block lỗi cú pháp."""
+    (tmp_path / "broken.bib").write_text(
+        """
+        @article{ok_key,
+          title = {OK Title},
+          year = {2024}
+        }
+        @article{broken_key,
+          title = {Broken Title
+        """,
+        encoding="utf-8",
+    )
+    failed: list[Any] = []
+    errors: list[str] = []
+    entries = collect_bib(tmp_path, failed_blocks_out=failed, errors_out=errors)
+    assert len(entries) == 1
+    assert entries[0]["citation_key"] == "ok_key"
+    assert len(failed) == 1
+
+
+def test_collect_bib_emits_warning_even_without_failed_blocks_arg(tmp_path: Path, caplog: pytest.LogCaptureFixture):
+    """Kiểm tra collect_bib luôn phát cảnh báo warning kể cả khi caller không truyền failed_blocks_out."""
+    import logging
+
+    (tmp_path / "broken.bib").write_text(
+        """
+        @article{ok_key2,
+          title = {OK Title 2},
+          year = {2024}
+        }
+        @article{broken_key2,
+          title = {Broken Title 2
+        """,
+        encoding="utf-8",
+    )
+    with caplog.at_level(logging.WARNING):
+        entries = collect_bib(tmp_path)
+    assert len(entries) == 1
+    assert entries[0]["citation_key"] == "ok_key2"
+    assert any("chứa 1 block lỗi cú pháp bị bỏ qua" in r.message for r in caplog.records)
+
+
+def test_parse_bibitem_revtex_bibinfo():
+    """Kiểm tra parse_bibitem trích xuất tiêu đề và tác giả từ định dạng REVTeX có \bibinfo."""
+    raw = (
+        r"\bibitem{zhang2021} "
+        r"\bibinfo{author}{{Zhang}, W.-L.} \emph{et~al.} "
+        r"\newblock \bibinfo{title}{{Two Periodic Activity Epochs in FRB 20201124A: Coincident with Critical RM}} "
+        r"\newblock \emph{\bibinfo{journal}{Astrophys. J.}} \textbf{\bibinfo{volume}{920}}, "
+        r"\bibinfo{pages}{153} (\bibinfo{year}{2021})."
+    )
+    item = parse_bibitem("zhang2021", raw)
+    assert item["citation_key"] == "zhang2021"
+    assert item["title"] == "Two Periodic Activity Epochs in FRB 20201124A: Coincident with Critical RM"
+    assert item["year"] == 2021
+    assert item["authors"] is not None
+    assert "Zhang, W.-L." in item["authors"][0]
+
+
+def test_parse_bibitem_nested_braces_baptista():
+    """Kiểm tra parse_bibitem trích xuất tiêu đề có độ lồng ngoặc sâu nhiều cấp như Baptista2024."""
+    raw = (
+        r"\bibitem[{J. {Baptista} {et~al.}(2024){Baptista}}]{Baptista2024}"
+        r"{Baptista}, J., {Prochaska}, J.~X., {Mannings}, A.~G., {et~al.} 2024, "
+        r"\bibinfo{title}{{Measuring the Variance of the Macquart Relation in Redshift{\textendash}Extragalactic Dispersion Measure Modeling},} "
+        r"\apj, 965, 57, \dodoi{10.3847/1538-4357/ad2705}"
+    )
+    item = parse_bibitem("Baptista2024", raw)
+    assert item["citation_key"] == "Baptista2024"
+    assert item["title"] is not None
+    assert "Measuring the Variance" in item["title"]
+    assert "Extragalactic Dispersion Measure Modeling" in item["title"]
+    assert item["year"] == 2024
+    assert item["doi"] == "10.3847/1538-4357/ad2705"
+
+
+
