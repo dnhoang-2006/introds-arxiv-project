@@ -389,19 +389,42 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
     cov_note = f"Đạt 100% ({v_eval}/{tot_surveyed})" if cov_pct >= 99.999 else f"Đạt {cov_pct:.1f}% ({v_eval}/{tot_surveyed})"
 
     bib_log_rows = stats.get("bib_log_rows", [])
-    have_both_rows = [
+    bib_and_compile_bibitem_rows = [
         r for r in bib_log_rows
         if int(r.get("n_bibitem", 0)) > 0 and int(r.get("n_bibfile_entries", 0)) > 0
     ]
-    actual_both_versions = len(have_both_rows) if have_both_rows else v_eval
-    actual_both_bib = sum(int(r.get("n_bibfile_entries", 0)) for r in have_both_rows) if have_both_rows else tot_bib
-    actual_both_bibitem = sum(int(r.get("n_bibitem", 0)) for r in have_both_rows) if have_both_rows else tot_bibitem
-    only_bib_rows = [
+    n_bib_and_compile_bibitem_versions = len(bib_and_compile_bibitem_rows) if bib_log_rows else v_eval
+    bib_and_compile_bibitem_entries = (
+        sum(int(r.get("n_bibfile_entries", 0)) for r in bib_and_compile_bibitem_rows)
+        if bib_log_rows else tot_bib
+    )
+    bib_and_compile_bibitem_items = (
+        sum(int(r.get("n_bibitem", 0)) for r in bib_and_compile_bibitem_rows)
+        if bib_log_rows else tot_bibitem
+    )
+    avg_bib_and_compile_bibitem = (
+        bib_and_compile_bibitem_entries / n_bib_and_compile_bibitem_versions
+        if n_bib_and_compile_bibitem_versions else 0.0
+    )
+    avg_bibitem_and_compile_bibitem = (
+        bib_and_compile_bibitem_items / n_bib_and_compile_bibitem_versions
+        if n_bib_and_compile_bibitem_versions else 0.0
+    )
+    bib_entries_without_compile_bibitem_rows = [
         r for r in bib_log_rows
         if int(r.get("n_bibitem", 0)) == 0 and int(r.get("n_bibfile_entries", 0)) > 0
     ]
-    n_only_bib = len(only_bib_rows)
-    bib_in_only_bib = sum(int(r.get("n_bibfile_entries", 0)) for r in only_bib_rows)
+    n_bib_entries_without_compile_bibitem = len(bib_entries_without_compile_bibitem_rows)
+    bib_entries_without_compile_bibitem = sum(
+        int(r.get("n_bibfile_entries", 0)) for r in bib_entries_without_compile_bibitem_rows
+    )
+    no_parsed_bib_rows = [
+        r for r in bib_log_rows if int(r.get("n_bibfile_entries", 0)) == 0
+    ]
+    n_versions_without_parsed_bib_entries = len(no_parsed_bib_rows)
+    bibitems_without_parsed_bib_entries = sum(
+        int(r.get("n_bibitem", 0)) for r in no_parsed_bib_rows
+    )
 
     syntax_error_versions = sum(
         "bib_syntax_error:" in str(row.get("error_type", ""))
@@ -420,10 +443,12 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
     sens_unref_files = stats.get("sensitivity_unreferenced_files", 0)
 
     scope_extra_rows = ""
-    if bib_log_rows and actual_both_versions < v_eval:
-        scope_extra_rows = f"""| Version khảo sát có cả 2 nguồn (.bib trên đĩa và \\bibitem trong compile path) | {actual_both_versions} | {n_only_bib} version còn lại có entry `.bib` trên đĩa nhưng không có `\\bibitem` trong compile path, {v_eval - actual_both_versions - n_only_bib} version `.bib` rỗng |
-| Entry thô từ file `.bib` (trong {actual_both_versions} version đối chứng) | {actual_both_bib:,} | Trung bình ~{(actual_both_bib / actual_both_versions):.1f} entry thô/version (ngoài ra có {bib_in_only_bib:,} entry thô thuộc {n_only_bib} version không có `\\bibitem` trong compile path) |
-| Entry từ `\\bibitem` (trong {actual_both_versions} version đối chứng) | {actual_both_bibitem:,} | Trung bình ~{(actual_both_bibitem / actual_both_versions):.1f} entry/version (tổng cộng 124 version là {tot_bibitem:,}) |
+    if bib_log_rows and n_bib_and_compile_bibitem_versions < v_eval:
+        scope_extra_rows = f"""| Version có entry `.bib` parse được và có `\\bibitem` trong compile path | {n_bib_and_compile_bibitem_versions} | Entry `.bib` được thu từ mọi file trong thư mục version, không chỉ file được gọi trực tiếp |
+| Version có entry `.bib` parse được nhưng không có `\\bibitem` được nhận diện trong compile path | {n_bib_entries_without_compile_bibitem} | Prescan vẫn gắn nhãn `both`; các entry `.bib` có thể đến từ file không được gọi trực tiếp |
+| Version không có entry `.bib` parse được | {n_versions_without_parsed_bib_entries} | Có {bibitems_without_parsed_bib_entries} entry `\\bibitem` được nhận diện trong compile path; không kết luận file `.bib` vật lý rỗng |
+| Entry thô từ file `.bib` (trong {n_bib_and_compile_bibitem_versions} version có cả hai kết quả parse) | {bib_and_compile_bibitem_entries:,} | Trung bình ~{avg_bib_and_compile_bibitem:.1f} entry thô/version (ngoài ra có {bib_entries_without_compile_bibitem:,} entry thô thuộc {n_bib_entries_without_compile_bibitem} version không có `\\bibitem` được nhận diện trong compile path) |
+| Entry từ `\\bibitem` (trong {n_bib_and_compile_bibitem_versions} version có cả hai kết quả parse) | {bib_and_compile_bibitem_items:,} | Trung bình ~{avg_bibitem_and_compile_bibitem:.1f} entry/version (tổng cộng 124 version là {tot_bibitem:,}) |
 """
 
     no_title_count = max(n_pairs - t_both, 0)
