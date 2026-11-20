@@ -128,8 +128,13 @@ class ValidatorM2:
         n_versions: int | None = None,
         owner: str = "",
         path: str = "",
+        discovery_versions: set[int] | None = None,
     ) -> list[Issue]:
-        """Kiểm một publication; trả về các vấn đề của riêng publication này."""
+        """Kiểm một publication; trả về các vấn đề của riêng publication này.
+
+        discovery_versions: tập version của bài này theo discovery.csv của M1 (nếu có, dùng làm
+        chuẩn cho V6 thay vì n_versions trong paper_meta.json).
+        """
         start = len(self.issues)
         pub_key = pub_key or config.pub_key(arxiv_id)
 
@@ -219,7 +224,6 @@ class ValidatorM2:
 
         # ---------------- V6: phủ version ---------------------------------- #
         touch("V6")
-        root_text = {v: f"{arxiv_id}v{v}" for v in range(1, (n_versions or 0) + 1)}
         doc_versions: set[int] = set()
         for row in elem.values():
             if row.get("kind") == "document" and isinstance(row.get("content"), str):
@@ -228,17 +232,25 @@ class ValidatorM2:
                     doc_versions.add(int(m.group(1)))
         with_tree = set(by_version)
         empty_versions = doc_versions - with_tree
-        if n_versions is None:
+        if n_versions is None and not discovery_versions:
             expected = with_tree | doc_versions
             if not expected:
                 err("V6", None, "không có version nào (không cây, không bản ghi rỗng)")
         else:
-            expected = set(range(1, n_versions + 1))
+            if discovery_versions:
+                expected = set(discovery_versions)
+                origin = "discovery.csv"
+                if n_versions is not None and expected != set(range(1, n_versions + 1)):
+                    warn("V6", None, f"discovery.csv có version {sorted(expected)} nhưng paper_meta.json "
+                                     f"ghi n_versions={n_versions}")
+            else:
+                expected = set(range(1, n_versions + 1))
+                origin = f"paper_meta.json (n_versions={n_versions})"
             for v in sorted(with_tree - expected):
-                err("V6", v, f"version {v} không tồn tại (bài chỉ có {n_versions} version)")
+                err("V6", v, f"version {v} không có trong {origin}")
             for v in sorted(expected - with_tree - empty_versions):
-                err("V6", v, f"version {v} không có cây và cũng không có bản ghi rỗng "
-                             f"(document với content '{root_text[v]}')")
+                err("V6", v, f"version {v} (theo {origin}) không có cây và cũng không có bản ghi rỗng "
+                             f"(document với content '{arxiv_id}v{v}')")
         self.stats["versions"] += len(expected)
         self.stats["empty_versions"] += len(empty_versions & expected)
         self.stats["elements"] += len(elem)
@@ -272,7 +284,7 @@ class ValidatorM2:
                 r = elem.get(root)
                 if r is not None and r.get("kind") != "document":
                     err("V1", v, f"gốc {root} có kind {r.get('kind')!r}, phải là 'document'")
-                if r is not None and r.get("content") != root_text.get(v, f"{arxiv_id}v{v}"):
+                if r is not None and r.get("content") != f"{arxiv_id}v{v}":
                     warn("V6", v, f"content của gốc nên là '{arxiv_id}v{v}' (schema_m2 mục 2), "
                                   f"đang là {r.get('content')!r}")
 
@@ -344,7 +356,8 @@ class ValidatorM2:
         return self.issues[start:]
 
     # ---- đọc từ đĩa ------------------------------------------------------- #
-    def validate_dir(self, pub_dir: Path, n_versions: int | None = None, owner: str = "") -> list[Issue]:
+    def validate_dir(self, pub_dir: Path, n_versions: int | None = None, owner: str = "",
+                     discovery: dict[str, set[int]] | None = None) -> list[Issue]:
         folder = pub_dir.name
         elements, hierarchy, problems = [], [], []
         for name, sink in (("elements.jsonl", elements), ("hierarchy.jsonl", hierarchy)):
@@ -367,7 +380,8 @@ class ValidatorM2:
             self._add("error", "V5", arxiv_id, None,
                       f"tên thư mục '{folder}' không khớp pub_key của arxiv_id '{arxiv_id}'", owner, str(pub_dir))
         self.validate(elements, hierarchy, arxiv_id, pub_key=folder, n_versions=n_versions,
-                      owner=owner, path=str(pub_dir))
+                      owner=owner, path=str(pub_dir),
+                      discovery_versions=(discovery or {}).get(arxiv_id))
         return self.issues[start:]
 
     def missing_publication(self, folder: str, owner: str, path: str) -> None:
@@ -441,9 +455,11 @@ class ValidatorM2:
 
 
 def validate_publication(elements: list[dict], hierarchy: list[dict], arxiv_id: str,
-                         pub_key: str | None = None, n_versions: int | None = None) -> list[Issue]:
+                         pub_key: str | None = None, n_versions: int | None = None,
+                         discovery_versions: set[int] | None = None) -> list[Issue]:
     """Tiện ích cho test: kiểm một publication, trả về danh sách vấn đề."""
-    return ValidatorM2().validate(elements, hierarchy, arxiv_id, pub_key, n_versions)
+    return ValidatorM2().validate(elements, hierarchy, arxiv_id, pub_key, n_versions,
+                                  discovery_versions=discovery_versions)
 
 
 # --------------------------------------------------------------------------- #
@@ -458,6 +474,38 @@ def read_ids(path: Path) -> list[str]:
     lines = path.read_text(encoding="utf-8-sig").splitlines()
     ids = [config.strip_version(s.strip()) for s in lines]
     return [i for i in ids if i and not i.startswith("#")]
+
+
+def read_discovery(path: Path) -> dict[str, set[int]]:
+    """Đọc discovery.csv của M1 thành {arxiv_id: {các version}}.
+
+    Chấp nhận hai dạng: mỗi dòng một (arxiv_id, version), hoặc mỗi dòng một bài có cột n_versions.
+    Tên cột được dò theo các tên thường gặp; đổi các tuple dưới đây nếu discovery.csv dùng tên khác.
+    """
+    import csv
+
+    id_cols, ver_cols, nver_cols = ("arxiv_id", "id"), ("version", "v"), ("n_versions", "num_versions")
+    out: dict[str, set[int]] = defaultdict(set)
+    with open(path, encoding="utf-8-sig", newline="") as fh:
+        reader = csv.DictReader(fh)
+        cols = reader.fieldnames or []
+        idc = next((c for c in id_cols if c in cols), None)
+        verc = next((c for c in ver_cols if c in cols), None)
+        nverc = next((c for c in nver_cols if c in cols), None)
+        if idc is None or (verc is None and nverc is None):
+            raise ValueError(f"{path}: cần cột arxiv_id và version (hoặc n_versions), đang có {cols}")
+        for row in reader:
+            aid = config.strip_version((row.get(idc) or "").strip())
+            if not aid:
+                continue
+            try:
+                if verc is not None:
+                    out[aid].add(int(row[verc]))
+                else:
+                    out[aid].update(range(1, int(row[nverc]) + 1))
+            except (TypeError, ValueError):
+                continue
+    return dict(out)
 
 
 def n_versions_from_corpus(corpus_root: Path, folder: str) -> int | None:
@@ -508,6 +556,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="corpus/ của M1, đọc n_versions trong paper_meta.json (không có thì suy từ dữ liệu)")
     ap.add_argument("--ids", "--ids-file", dest="ids_file", type=Path, default=None,
                     help="ids/<mssv>.txt (hoặc thư mục ids/): chỉ kiểm các bài này, báo bài thiếu và gán người phụ trách")
+    ap.add_argument("--discovery", type=Path, default=getattr(config, "DISCOVERY_CSV", None),
+                    help="discovery.csv của M1: đối chiếu V6, mỗi (arxiv_id, version) trong đó phải có cây "
+                         "hoặc bản ghi rỗng ở parsed/")
     ap.add_argument("--limit", type=int, default=None, help="Giới hạn số bài kiểm tra (vd: --limit 20)")
     ap.add_argument("--out", type=Path, default=config.REPORTS_ROOT / "validation_m2.json")
     ap.add_argument("--strict", action="store_true", help="Coi cảnh báo như lỗi khi tính exit code")
@@ -519,13 +570,23 @@ def main(argv: list[str] | None = None) -> int:
     if args.ids_file is not None and not args.ids_file.exists():
         ap.error(f"không thấy file hoặc thư mục ID: {args.ids_file}")
 
+    discovery = None
+    if args.discovery is not None:
+        if not args.discovery.is_file():
+            ap.error(f"không thấy discovery.csv: {args.discovery}")
+        try:
+            discovery = read_discovery(args.discovery)
+        except ValueError as exc:
+            ap.error(str(exc))
+
     started = time.perf_counter()
     v = ValidatorM2()
     owner = args.ids_file.stem if (args.ids_file and args.ids_file.is_file()) else ""
     if args.ids_file:
         folders = [config.pub_key(i) for i in read_ids(args.ids_file)]
     else:
-        folders = sorted(d.name for d in args.parsed.iterdir() if d.is_dir())
+        folders = sorted({d.name for d in args.parsed.iterdir() if d.is_dir()}
+                         | {config.pub_key(a) for a in (discovery or {})})
     if args.limit and args.limit > 0:
         folders = folders[:args.limit]
     for n, folder in enumerate(folders, 1):
@@ -533,7 +594,7 @@ def main(argv: list[str] | None = None) -> int:
         if not pub_dir.is_dir():
             v.missing_publication(folder, owner, str(pub_dir))
             continue
-        v.validate_dir(pub_dir, n_versions_from_corpus(args.corpus, folder), owner)
+        v.validate_dir(pub_dir, n_versions_from_corpus(args.corpus, folder), owner, discovery)
         if n % 500 == 0:
             print(f"  [{n}/{len(folders)}] {len(v.issues)} vấn đề tới giờ", flush=True)
 

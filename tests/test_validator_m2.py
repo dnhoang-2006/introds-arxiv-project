@@ -4,10 +4,10 @@
 # bash
 # python -m pytest tests/test_validator_m2.py -q
 # Nếu muốn xem từng test: thêm -v. 
-# Nếu chỉ chạy một ca: -k cycle (tên ca sai nằm trong BAD_CASES của fixtures_m2.py). Kết quả đúng là 23 passed.
+# Nếu chỉ chạy một ca: -k cycle (tên ca sai nằm trong BAD_CASES của fixtures_m2.py). Kết quả đúng là 34 passed.
 
 ## Khi có dữ liệu parse thật, chạy validator trên parsed/:
-# python src/validator_m2.py --parsed parsed/ --corpus corpus/ --ids-file ids/mssv.txt
+# python src/validator_m2.py --parsed parsed/ --corpus corpus/ --ids ids/mssv.txt
 
 """Test validator_m2: cây đúng không báo lỗi; mỗi cây sai bị đúng phép kiểm dự kiến bắt."""
 import copy
@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 import fixtures_m2 as fx  # noqa: E402
-from validator_m2 import ValidatorM2, main, validate_publication  # noqa: E402
+from validator_m2 import ValidatorM2, main, read_discovery, validate_publication  # noqa: E402
 
 
 def run(d):
@@ -99,3 +99,37 @@ def test_cli_ids_alias_and_limit(tmp_path):
     assert data["checks"]["dedup_effective"] == "pass"
     assert data["checks"]["version_coverage"] == "pass"
     assert len(data["failures"]) == 0
+
+
+# ---- V6 đối chiếu discovery.csv của M1 ------------------------------------------------------- #
+def test_discovery_versions_match_is_ok():
+    d = fx.GOOD
+    issues = validate_publication(d["elements"], d["hierarchy"], d["arxiv_id"], discovery_versions={1, 2})
+    assert error_checks(issues) == set(), [i.message for i in issues]
+
+
+def test_discovery_version_missing_in_parsed_is_v6():
+    # discovery.csv có v3 nhưng parsed chỉ có v1, v2 và không có bản ghi rỗng cho v3
+    d = fx.GOOD
+    issues = validate_publication(d["elements"], d["hierarchy"], d["arxiv_id"], discovery_versions={1, 2, 3})
+    assert error_checks(issues) == {"V6"}
+
+
+def test_cli_discovery_csv(tmp_path):
+    parsed = tmp_path / "parsed"
+    pub = parsed / fx.PK
+    pub.mkdir(parents=True)
+    d = fx.GOOD_REAL
+    (pub / "elements.jsonl").write_text("\n".join(json.dumps(r) for r in d["elements"]), encoding="utf-8")
+    (pub / "hierarchy.jsonl").write_text("\n".join(json.dumps(r) for r in d["hierarchy"]), encoding="utf-8")
+    disc = tmp_path / "discovery.csv"
+    disc.write_text(f"arxiv_id,version\n{fx.AID},1\n{fx.AID},2\n", encoding="utf-8")
+    assert read_discovery(disc) == {fx.AID: {1, 2}}
+    out = tmp_path / "r.json"
+    args = ["--parsed", str(parsed), "--corpus", str(tmp_path / "nocorpus"), "--out", str(out)]
+    assert main(args + ["--discovery", str(disc)]) == 0
+    # discovery.csv thêm v3 mà parsed không có -> V6 fail, exit 1
+    disc.write_text(f"arxiv_id,version\n{fx.AID},1\n{fx.AID},2\n{fx.AID},3\n", encoding="utf-8")
+    assert main(args + ["--discovery", str(disc)]) == 1
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["checks"]["version_coverage"] == "fail"
