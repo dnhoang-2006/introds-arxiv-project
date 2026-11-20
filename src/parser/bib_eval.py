@@ -287,13 +287,17 @@ def evaluate_concordance(
 
 
 def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -> str:
-    """Tạo báo cáo Markdown phân tích độ đồng thuận để bàn giao cho thành viên viết book."""
+    """Sinh báo cáo Markdown về mức độ khớp giữa hai nguồn reference."""
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     n_pairs = stats.get("overlap_keys_count", 0)
     t_exact_pct = (stats["title_exact_matches"] / n_pairs * 100) if n_pairs else 0.0
     t_soft_pct = (stats["title_soft_matches"] / n_pairs * 100) if n_pairs else 0.0
+    soft_only = max(
+        stats.get("title_soft_matches", 0) - stats.get("title_exact_matches", 0),
+        0,
+    )
     a_pct = (stats["author_matches"] / n_pairs * 100) if n_pairs else 0.0
 
     y_both = stats.get("year_both_present", 0)
@@ -313,63 +317,55 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
     tot_bibitem = stats.get("total_bibitem_entries", 0)
     cov_pct = (v_eval / tot_surveyed * 100) if tot_surveyed else 0.0
     cov_note = f"Đạt 100% ({v_eval}/{tot_surveyed})" if cov_pct >= 99.999 else f"Đạt {cov_pct:.1f}% ({v_eval}/{tot_surveyed})"
+    bib_log_rows = stats.get("bib_log_rows", [])
+    syntax_error_versions = sum(
+        "bib_syntax_error:" in str(row.get("error_type", ""))
+        for row in bib_log_rows
+    )
+    failed_bib_blocks = stats.get("total_failed_bib_blocks", 0)
 
-    md = f"""# Báo cáo Đánh giá Đối chứng: .bib và \\bibitem (Milestone 2)
+    md = f"""# Đối chiếu reference từ `.bib` và `\\bibitem`
 
-**Tập dữ liệu**: {tot_surveyed} version có đồng thời cả 2 nguồn (`bib_style == "both"`) trong dải 2503
-**Mục đích**: Đo mức độ đồng thuận (Inter-source Concordance) giữa việc bóc tách regex từ `\\bibitem` tự do và file `.bib` có cấu trúc chuẩn; làm cơ sở thực nghiệm cho quyết định ưu tiên nguồn và thuật toán deduplication.
-**Phạm vi thống kê**: Các tỷ lệ phần trăm được đo lường **trên đúng {n_pairs:,} cặp có cùng `citation_key`** xuất hiện đồng thời ở cả hai nguồn, không tính trên toàn bộ tập tham chiếu độc lập.
+Bộ dữ liệu gồm {tot_surveyed} version được prescan với `bib_style == "both"` trong dải 2503. Báo cáo ghép entry theo `citation_key`; các tỷ lệ bên dưới dùng mẫu số ghi trong bảng.
 
 ---
 
-## 1. Thống kê quy mô tập đối chứng
+## 1. Phạm vi dữ liệu
 
-| Chỉ số | Giá trị | Ghi chú |
+| Chỉ số | Số lượng | Ghi chú |
 | :--- | :--- | :--- |
-| **Số version khảo sát** | {tot_surveyed} | Từ `prescan_versions.csv` (`bib_style == "both"`) |
-| **Số version có dữ liệu trên đĩa** | {v_eval} | {cov_note} |
-| **Tổng số references từ `.bib`** | {tot_bib:,} | Trung bình ~{avg_bib:.1f} entry/version |
-| **Tổng số references từ `\\bibitem`** | {tot_bibitem:,} | Trung bình ~{avg_bibitem:.1f} entry/version |
-| **Số cặp trùng `citation_key`** | {n_pairs:,} | Cặp đối ứng trực tiếp giữa 2 nguồn dùng để đối chứng |
+| Version được khảo sát | {tot_surveyed} | `prescan_versions.csv`, nhãn `both` |
+| Version có thư mục trên đĩa | {v_eval} | {cov_note} |
+| Entry từ file `.bib` | {tot_bib:,} | Trung bình {avg_bib:.1f} entry/version đã đánh giá |
+| Entry từ `\\bibitem` | {tot_bibitem:,} | Trung bình {avg_bibitem:.1f} entry/version đã đánh giá |
+| Cặp entry cùng `citation_key` | {n_pairs:,} | Dùng để tính mức độ khớp |
 
 ---
 
-## 2. Mức độ đồng thuận theo từng trường dữ liệu
+## 2. Mức độ khớp theo trường
 
-Đánh giá trên **{n_pairs:,} cặp** có cùng `citation_key`:
+Mỗi cặp gồm hai entry có cùng `citation_key`. `exact` yêu cầu tiêu đề sau chuẩn hóa trùng nhau. `soft` tính thêm trường hợp một tiêu đề sau chuẩn hóa chứa tiêu đề còn lại. Với DOI, arXiv ID và năm, mẫu số chỉ gồm các cặp có giá trị ở cả hai nguồn. Với họ tác giả và tiêu đề, mẫu số là toàn bộ cặp cùng key.
 
-| Trường dữ liệu | Số lượng khớp | Mẫu số đánh giá | Tỷ lệ đồng thuận (%) | Nhận xét & Đánh giá kỹ thuật |
-| :--- | :--- | :--- | :--- | :--- |
-| **Mã định danh DOI (`doi`)** | {stats.get('doi_matches', 0):,} | {d_both:,} (cả 2 đều có DOI) | **{d_pct:.2f}%** | Rất cao. {stats.get('doi_matches', 0):,}/{d_both:,} cặp khớp chính xác mã DOI sau chuẩn hoá. |
-| **Mã định danh arXiv (`arxiv_id`)** | {stats.get('arxiv_matches', 0):,} | {ar_both:,} (cả 2 đều có arXiv ID) | **{ar_pct:.2f}%** | Rất cao. {stats.get('arxiv_matches', 0):,}/{ar_both:,} cặp khớp chính xác mã arXiv sau chuẩn hoá. |
-| **Năm xuất bản (`year`)** | {stats.get('year_matches', 0):,} | {y_both:,} (cả 2 đều có năm) | **{y_pct:.2f}%** | Rất cao. Mẫu số `(19|20)\\d{{2}}` trong regex `\\bibitem` hoạt động tin cậy ({stats.get('year_matches', 0):,}/{y_both:,}). |
-| **Họ tác giả đầu (`first author`)** | {stats.get('author_matches', 0):,} | {n_pairs:,} | **{a_pct:.2f}%** | Rất cao. Chuẩn hoá NFKD bỏ dấu và trích xuất họ xử lý tốt phần lớn biến thể tên. |
-| **Tiêu đề (`title` - Soft Match)** | {stats.get('title_soft_matches', 0):,} | {n_pairs:,} | **{t_soft_pct:.2f}%** | Khớp tuyệt đối hoặc một bên chứa chuỗi tiêu đề bên kia. |
-| **Tiêu đề (`title` - Exact Match)** | {stats.get('title_exact_matches', 0):,} | {n_pairs:,} | **{t_exact_pct:.2f}%** | Rất thấp. Giới hạn tự nhiên của regex trên văn bản LaTeX tự do. |
+| Trường | Số cặp khớp | Mẫu số | Tỷ lệ |
+| :--- | :--- | :--- | :--- |
+| DOI (`doi`) | {stats.get('doi_matches', 0):,} | {d_both:,} | {d_pct:.2f}% |
+| arXiv ID (`arxiv_id`) | {stats.get('arxiv_matches', 0):,} | {ar_both:,} | {ar_pct:.2f}% |
+| Năm (`year`) | {stats.get('year_matches', 0):,} | {y_both:,} | {y_pct:.2f}% |
+| Họ tác giả đầu | {stats.get('author_matches', 0):,} | {n_pairs:,} | {a_pct:.2f}% |
+| Tiêu đề exact | {stats.get('title_exact_matches', 0):,} | {n_pairs:,} | {t_exact_pct:.2f}% |
+| Tiêu đề soft | {stats.get('title_soft_matches', 0):,} | {n_pairs:,} | {t_soft_pct:.2f}% |
 
 ---
 
-## 3. Phân tích Kỹ thuật và Quyết định Thiết kế
+## 3. Cách đọc kết quả
 
-### 3.1. Hiện tượng Tiêu đề (`title`) đồng thuận thấp ({t_exact_pct:.2f}% exact / {t_soft_pct:.2f}% soft)
-- **Nguyên nhân cốt lõi**: File `.bib` do `bibtexparser v2` phân tích có cấu trúc trường rõ ràng (`title = {{...}}`). Ngược lại, `\\bibitem` trong mã nguồn TeX thực tế do các tác giả gõ tay tự do, thường xuyên:
-  1. Không dùng cặp ngoặc kép tiêu chuẩn (`` ``...'' `` hay `"`).
-  2. Không bọc tiêu đề trong `\\emph{{}}` hoặc `\\textit{{}}`, mà dùng định dạng trần hoặc in hoa tuỳ tiện.
-  3. Đặt dấu chấm câu, tên tạp chí hoặc tác giả lẫn vào vùng bắt của regex.
-- **Quyết định thiết kế**: Đây là bằng chứng thực nghiệm rõ ràng nhất khẳng định quy tắc trong `collect_bib()`: **"Khi cùng `citation_key`, bản ghi từ `.bib` luôn ghi đè bản ghi từ `\\bibitem`"** là hoàn toàn cần thiết để bảo vệ tính toàn vẹn và độ chuẩn xác của siêu dữ liệu.
+Trong {stats.get('title_soft_matches', 0):,} cặp khớp tiêu đề theo cách `soft`, có {stats.get('title_exact_matches', 0):,} cặp khớp chính xác và {soft_only} cặp khớp nhờ điều kiện chứa chuỗi. Số liệu chỉ mô tả entry cùng `citation_key`; nguyên nhân của các tiêu đề khác nhau chưa được khảo sát.
 
-### 3.2. Hiệu quả của Regex `\\bibitem` trong Deduplication xuyên version
-- Mặc dù tiêu đề bóc tách tự do dễ bị trôi dạt, các trường định danh nòng cốt như **Năm xuất bản ({y_pct:.2f}%)**, **Họ tác giả đầu ({a_pct:.2f}%)** và **DOI ({d_pct:.2f}%)** đạt độ tin cậy vượt bậc.
-- Thuật toán `signature()` thiết kế theo tầng (ưu tiên DOI/arXiv ID -> fallback về Normalized Title + First Author Surname) cung cấp tín hiệu phân giải cao giữa các nguồn trên tập đối chứng.
-- **Lưu ý phương pháp luận**: Báo cáo này đo lường mức độ đồng thuận liên nguồn (Inter-source Concordance), chưa phải Precision/Recall trên tập ground-truth dán nhãn thủ công (nội dung này thuộc phạm vi đánh giá của Milestone 3).
+`collect_bib()` ưu tiên entry từ `.bib` khi hai nguồn có cùng `citation_key`. Bảng này đo mức đồng thuận. Muốn so sánh độ chính xác của hai nguồn hoặc tính precision/recall của `unify_publication()`, cần có tập ground truth.
 
-### 3.3. Xử lý xung đột Citation Key xuyên version
-- Quá trình chạy thực tế trên 102 publication ghi nhận các trường hợp cùng một citation key ở các version khác nhau nhưng trỏ tới hai tài liệu khác nhau (key reuse).
-- Hàm `unify_publication_with_stats()` quản lý bản đồ đổi tên citation theo từng version (`version_rename_maps`), bảo đảm các lệnh `\\cite{{}}` trong tài liệu được cập nhật đúng khóa đại diện mà không bị ô nhiễm chéo giữa các version.
+## 4. Block BibTeX lỗi cú pháp
 
-### 3.4. Ghi nhận về tính toàn vẹn của nguồn .bib
-- Việc sử dụng chế độ lenient khi đọc file `.bib` cho phép vớt tối đa các entry hợp lệ từ các file chứa block lỗi cú pháp (ví dụ template, comment sai quy cách).
-- Các block lỗi cú pháp này được ghi nhận tường minh trong trường `error_type` của `logs/bib.csv` (dạng `bib_syntax_error:N`) để đảm bảo tính minh bạch, không che giấu lỗi đọc nguồn.
+Bước đánh giá ghi nhận {failed_bib_blocks:,} block lỗi trên {syntax_error_versions} version. Parser vẫn giữ các entry hợp lệ. `logs/bib.csv` đánh dấu version có lỗi bằng `bib_syntax_error:N`.
 """
     out_path.write_text(md, encoding="utf-8")
     return md
