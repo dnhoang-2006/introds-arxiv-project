@@ -160,21 +160,42 @@ def evaluate_concordance(
                         v_error = type(b_exc).__name__
                         continue
 
-            # 2. Đọc entries từ thebibliography trong file .tex
-            for tf in sorted(vdir.rglob("*.tex")):
-                if tf.is_file() and not tf.name.startswith("."):
-                    try:
-                        tex = tf.read_text(encoding="utf-8", errors="ignore")
-                    except OSError:
-                        continue
-                    if r"\begin{thebibliography}" in tex:
-                        for k, raw in split_bibitems(tex):
-                            tex_entries.append(parse_bibitem(k, raw))
+            # 2. Đọc entries từ thebibliography trong các file .tex thuộc compile path
+            from parser.gather import gather_detail
 
-            if not bib_entries and not tex_entries:
+            g = gather_detail(vdir, aid)
+            compile_tex_files: list[Path] = []
+            if g.status == "ok" and g.compile_path:
+                compile_tex_files = g.compile_path
+            elif g.status == "empty":
+                compile_tex_files = []
+            else:
+                # Không tìm được compile path hợp lệ -> Đánh dấu version lỗi, không fallback quét toàn bộ *.tex
+                v_status = "fail"
+                v_error = f"no_compile_path:{g.error_type or 'no_root'}"
+                compile_tex_files = []
+
+            for tf in compile_tex_files:
+                try:
+                    tex = tf.read_text(encoding="utf-8", errors="ignore")
+                except OSError:
+                    continue
+                if r"\begin{thebibliography}" in tex:
+                    for k, raw in split_bibitems(tex):
+                        tex_entries.append(parse_bibitem(k, raw))
+
+            if failed_blocks or v_error:
+                v_status = "fail"
+                if not v_error:
+                    v_error = f"bib_syntax_error:{len(failed_blocks)}"
+                elif failed_blocks:
+                    v_error = f"{v_error};bib_syntax_error:{len(failed_blocks)}"
+            elif not bib_entries and not tex_entries:
                 v_status = "empty"
-            elif failed_blocks and not v_error:
-                v_error = f"bib_syntax_error:{len(failed_blocks)}"
+                v_error = ""
+            else:
+                v_status = "ok"
+                v_error = ""
         except Exception as exc:  # noqa: BLE001
             v_status = "fail"
             v_error = type(exc).__name__
@@ -290,10 +311,12 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
     tot_surveyed = stats.get("total_versions_surveyed", 0)
     tot_bib = stats.get("total_bib_entries", 0)
     tot_bibitem = stats.get("total_bibitem_entries", 0)
+    cov_pct = (v_eval / tot_surveyed * 100) if tot_surveyed else 0.0
+    cov_note = f"Đạt 100% ({v_eval}/{tot_surveyed})" if cov_pct >= 99.999 else f"Đạt {cov_pct:.1f}% ({v_eval}/{tot_surveyed})"
 
     md = f"""# Báo cáo Đánh giá Đối chứng: .bib và \\bibitem (Milestone 2)
 
-**Tập dữ liệu**: 124 version có đồng thời cả 2 nguồn (`bib_style == "both"`) trong dải 2503
+**Tập dữ liệu**: {tot_surveyed} version có đồng thời cả 2 nguồn (`bib_style == "both"`) trong dải 2503
 **Mục đích**: Đo mức độ đồng thuận (Inter-source Concordance) giữa việc bóc tách regex từ `\\bibitem` tự do và file `.bib` có cấu trúc chuẩn; làm cơ sở thực nghiệm cho quyết định ưu tiên nguồn và thuật toán deduplication.
 **Phạm vi thống kê**: Các tỷ lệ phần trăm được đo lường **trên đúng {n_pairs:,} cặp có cùng `citation_key`** xuất hiện đồng thời ở cả hai nguồn, không tính trên toàn bộ tập tham chiếu độc lập.
 
@@ -304,7 +327,7 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
 | Chỉ số | Giá trị | Ghi chú |
 | :--- | :--- | :--- |
 | **Số version khảo sát** | {tot_surveyed} | Từ `prescan_versions.csv` (`bib_style == "both"`) |
-| **Số version có dữ liệu trên đĩa** | {v_eval} | Đầy đủ 100% |
+| **Số version có dữ liệu trên đĩa** | {v_eval} | {cov_note} |
 | **Tổng số references từ `.bib`** | {tot_bib:,} | Trung bình ~{avg_bib:.1f} entry/version |
 | **Tổng số references từ `\\bibitem`** | {tot_bibitem:,} | Trung bình ~{avg_bibitem:.1f} entry/version |
 | **Số cặp trùng `citation_key`** | {n_pairs:,} | Cặp đối ứng trực tiếp giữa 2 nguồn dùng để đối chứng |
@@ -487,17 +510,14 @@ def main() -> None:
     parser.add_argument("--reports-map", default=str(config.REPORTS_ROOT / "cite_rename_map.json"))
     parser.add_argument("--report-md", default=str(config.REPORTS_ROOT / "m2_bib_concordance_report.md"))
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--overwrite", action="store_true", help="Ghi đè file CSV thay vì append")
     args = parser.parse_args()
-
-    append_mode = not args.overwrite
 
     print("1. Đang đánh giá đối chứng trên 124 version và ghi logs/bib.csv...")
     stats = evaluate_concordance(
         args.prescan_csv,
         args.corpus_root,
         bib_logs_csv=args.bib_logs_csv,
-        append=append_mode,
+        append=True,
     )
     md = generate_concordance_markdown(stats, args.report_md)
     print(f"-> Đã xuất báo cáo đối chứng: {args.report_md}")
@@ -510,7 +530,7 @@ def main() -> None:
         args.logs_csv,
         args.reports_map,
         limit=args.limit,
-        append=append_mode,
+        append=True,
     )
     print(f"-> Đã ghi {n_done}/{n_pubs} publications vào {args.logs_csv} và {args.reports_map}")
 

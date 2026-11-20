@@ -28,6 +28,7 @@ try:
         rename_cites,
         signature,
         unify_publication,
+        unify_publication_with_stats,
     )
 except ImportError:
     from src.parser.bib_dedup import (  # type: ignore[no-redef]
@@ -47,6 +48,7 @@ except ImportError:
         rename_cites,
         signature,
         unify_publication,
+        unify_publication_with_stats,
     )
 
 
@@ -808,5 +810,22 @@ def test_unify_publication_empty_and_missing_bib():
     assert renamed == norm_text
     assert rows == []
     assert rmap == {}
+
+
+def test_unify_publication_dangling_cite_not_renamed_by_other_version():
+    """v1 có \\cite{newkey} nhưng chỉ v2 khai báo newkey -> v1 là dangling, không được đổi."""
+    norm_text = {
+        1: r"Version 1 cites \cite{newkey}.",
+        2: r"Version 2 cites \cite{newkey}.",
+    }
+    bib_entries = {
+        1: [],  # v1 không khai báo newkey
+        2: [_e("newkey", "Paper X", ["Author X"], year=2020, version=2)],
+    }
+    renamed, rows, rmap, stats = unify_publication_with_stats(norm_text, bib_entries)
+    # v1 phải giữ nguyên \cite{newkey} và tính là dangling
+    assert renamed[1] == r"Version 1 cites \cite{newkey}."
+    assert stats["n_dangling"] == 1
+    assert stats["n_cite_renamed"] == 0
 
 

@@ -39,12 +39,15 @@ def test_evaluate_concordance_and_markdown(tmp_path: Path):
         encoding="utf-8",
     )
 
-    # Tạo file .tex
+    # Tạo file .tex có documentclass chuẩn
     (vdir / "main.tex").write_text(
         r"""
+        \documentclass{article}
+        \begin{document}
         \begin{thebibliography}{1}
         \bibitem{vaswani2017} A. Vaswani, N. Shazeer. ``Attention Is All You Need''. In NeurIPS, 2017. doi:10.5555/3295222.
         \end{thebibliography}
+        \end{document}
         """,
         encoding="utf-8",
     )
@@ -306,4 +309,65 @@ def test_read_bib_file_failed_blocks_and_logging(tmp_path: Path):
     with open(bib_logs_csv, encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     assert len(rows) == 1
+    assert rows[0]["status"] == "fail"
     assert "bib_syntax_error:1" in rows[0]["error_type"]
+
+
+def test_evaluate_concordance_no_compile_path_marked_fail(tmp_path: Path):
+    """Khi không tìm được compile path (thiếu documentclass), version phải bị đánh dấu fail,
+    không được fallback quét toàn bộ *.tex và không thu thập \\bibitem từ file mồ côi.
+    """
+    corpus_root = tmp_path / "corpus"
+    vdir = corpus_root / "2503-12005" / "v1"
+    vdir.mkdir(parents=True)
+
+    # File .tex mồ côi (không có documentclass)
+    (vdir / "orphan.tex").write_text(
+        r"""
+        \begin{thebibliography}{1}
+        \bibitem{orphan_key} Orphan Author. ``Orphan Title''. 2024.
+        \end{thebibliography}
+        """,
+        encoding="utf-8",
+    )
+
+    prescan_csv = tmp_path / "prescan_versions.csv"
+    with open(prescan_csv, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["arxiv_id", "version", "bib_style"])
+        writer.writeheader()
+        writer.writerow({"arxiv_id": "2503.12005", "version": "v1", "bib_style": "both"})
+
+    bib_logs_csv = tmp_path / "logs" / "bib.csv"
+    stats = evaluate_concordance(prescan_csv, corpus_root, bib_logs_csv=bib_logs_csv, append=False)
+
+    with open(bib_logs_csv, encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    assert len(rows) == 1
+    assert rows[0]["status"] == "fail"
+    assert "no_compile_path" in rows[0]["error_type"]
+    assert int(rows[0]["n_bibitem"]) == 0
+    assert stats["overlap_keys_count"] == 0
+
+
+def test_generate_concordance_markdown_dynamic_coverage(tmp_path: Path):
+    """Báo cáo Markdown phải tính tỷ lệ bao phủ động khi thiếu version trên đĩa."""
+    stats = {
+        "total_versions_surveyed": 2,
+        "versions_evaluated": 1,
+        "total_bib_entries": 10,
+        "total_bibitem_entries": 10,
+        "overlap_keys_count": 5,
+        "title_exact_matches": 1,
+        "title_soft_matches": 3,
+        "author_matches": 4,
+        "year_both_present": 5,
+        "year_matches": 5,
+        "doi_both_present": 2,
+        "doi_matches": 2,
+        "arxiv_both_present": 0,
+        "arxiv_matches": 0,
+    }
+    report_md = tmp_path / "report_partial.md"
+    content = generate_concordance_markdown(stats, report_md)
+    assert "Đạt 50.0% (1/2)" in content
+    assert "Đầy đủ 100%" not in content

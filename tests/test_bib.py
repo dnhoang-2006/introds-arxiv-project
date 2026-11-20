@@ -352,3 +352,46 @@ def test_collect_bib_nested_subdirectories(tmp_path: Path):
     keys = {e["citation_key"] for e in entries}
     assert keys == {"nested_tex_ref", "nested_bib_ref"}
 
+
+def test_collect_bib_failed_blocks_tracking(tmp_path: Path):
+    """Kiểm tra collect_bib thu thập failed_blocks và ghi nhận lỗi khi có block lỗi cú pháp."""
+    (tmp_path / "broken.bib").write_text(
+        """
+        @article{ok_key,
+          title = {OK Title},
+          year = {2024}
+        }
+        @article{broken_key,
+          title = {Broken Title
+        """,
+        encoding="utf-8",
+    )
+    failed: list[Any] = []
+    errors: list[str] = []
+    entries = collect_bib(tmp_path, failed_blocks_out=failed, errors_out=errors)
+    assert len(entries) == 1
+    assert entries[0]["citation_key"] == "ok_key"
+    assert len(failed) == 1
+
+
+def test_collect_bib_emits_warning_even_without_failed_blocks_arg(tmp_path: Path, caplog: pytest.LogCaptureFixture):
+    """Kiểm tra collect_bib luôn phát cảnh báo warning kể cả khi caller không truyền failed_blocks_out."""
+    import logging
+
+    (tmp_path / "broken.bib").write_text(
+        """
+        @article{ok_key2,
+          title = {OK Title 2},
+          year = {2024}
+        }
+        @article{broken_key2,
+          title = {Broken Title 2
+        """,
+        encoding="utf-8",
+    )
+    with caplog.at_level(logging.WARNING):
+        entries = collect_bib(tmp_path)
+    assert len(entries) == 1
+    assert entries[0]["citation_key"] == "ok_key2"
+    assert any("chứa 1 block lỗi cú pháp bị bỏ qua" in r.message for r in caplog.records)
+

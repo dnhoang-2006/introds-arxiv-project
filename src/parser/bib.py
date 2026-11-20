@@ -318,17 +318,27 @@ def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
     }
 
 
-def collect_bib(vdir: Path | str) -> list[dict[str, Any]]:
+def collect_bib(
+    vdir: Path | str,
+    failed_blocks_out: list[Any] | None = None,
+    errors_out: list[str] | None = None,
+) -> list[dict[str, Any]]:
     """Gom toàn bộ reference của MỘT version từ cả hai nguồn (.bib và \\bibitem).
 
     Quy tắc ưu tiên: khi cùng citation_key ở cả hai nguồn, bản từ .bib ghi đè
     bản từ \\bibitem vì .bib có cấu trúc chuẩn và trường chính xác hơn.
+
+    Args:
+        vdir: Thư mục version (ví dụ corpus/2503-12000/v1)
+        failed_blocks_out: Nếu truyền list, các block lỗi cú pháp .bib sẽ được thêm vào đây.
+        errors_out: Nếu truyền list, thông báo ngoại lệ khi đọc file .bib sẽ được thêm vào đây.
     """
     vdir = Path(vdir)
     if not vdir.is_dir():
         return []
 
     collected: dict[str, dict[str, Any]] = {}
+    logger = logging.getLogger("parser.bib")
 
     # 1. Bóc từ \bibitem trong các file .tex (đưa vào trước)
     tex_files = sorted(
@@ -352,11 +362,26 @@ def collect_bib(vdir: Path | str) -> list[dict[str, Any]]:
         if p.is_file() and not p.name.startswith(".")
     )
     for p in bib_files:
+        cur_failed: list[tuple[str, str]] = []
         try:
-            # Dùng lenient=True để vớt các entries hợp lệ ngay cả khi có block lỗi cú pháp
-            entries = read_bib_file(p, lenient=True)
-        except Exception:
+            # Dùng lenient=True để vớt các entries hợp lệ, ghi nhận failed_blocks
+            entries = read_bib_file(p, lenient=True, failed_blocks_out=cur_failed)
+        except Exception as exc:
+            msg = f"Lỗi đọc file BibTeX {p}: {type(exc).__name__}: {exc}"
+            logger.warning(msg)
+            if errors_out is not None:
+                errors_out.append(msg)
             continue
+
+        if cur_failed:
+            logger.warning(
+                "File BibTeX %s chứa %d block lỗi cú pháp bị bỏ qua (lenient mode)",
+                p,
+                len(cur_failed),
+            )
+            if failed_blocks_out is not None:
+                failed_blocks_out.extend(cur_failed)
+
         for entry in entries:
             key = entry.get("citation_key")
             if key:

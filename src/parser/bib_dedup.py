@@ -1342,7 +1342,7 @@ def unify_publication_with_stats(
     total_renamed = 0
     total_dangling = 0
     for v in sorted(norm_text):
-        v_map = {**global_rename_map, **version_rename_maps.get(v, {})}
+        v_map = version_rename_maps.get(v, {})
         r_txt, n_ren, n_dang = _rename_cites_with_stats(norm_text[v], v_map)
         renamed_text[v] = r_txt
         total_renamed += n_ren
