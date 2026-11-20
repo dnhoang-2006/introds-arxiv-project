@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -117,6 +118,9 @@ def evaluate_concordance(
         "title_exact_matches": 0,
         "title_soft_matches": 0,
         "title_both_present": 0,
+        "title_bib_only": 0,
+        "title_bibitem_only": 0,
+        "title_neither": 0,
         "author_matches": 0,
         "author_both_present": 0,
         "year_matches": 0,
@@ -126,10 +130,23 @@ def evaluate_concordance(
         "arxiv_matches": 0,
         "arxiv_both_present": 0,
         "total_failed_bib_blocks": 0,
+        "sensitivity_bib_args": 0,
+        "sensitivity_unresolved_args": 0,
+        "sensitivity_resolved_files": 0,
+        "sensitivity_total_disk_files": 0,
+        "sensitivity_unreferenced_files": 0,
         "bib_log_rows": [],
     }
 
     bib_log_rows: list[dict[str, Any]] = []
+
+    COMMENT_PAT = re.compile(r"(?<!\\)%.*$")
+    BIB_CMD_PAT = re.compile(r"\\(?:bibliography|addbibresource)\s*(?:\[[^\]]*\])?\s*\{([^}]+)\}")
+
+    all_disk_bib_files: set[Path] = set()
+    distinct_resolved_bib_files: set[Path] = set()
+    unresolved_bib_args: list[tuple[str, str, str, str]] = []
+    total_bib_args = 0
 
     for r in rows:
         aid = r["arxiv_id"]
@@ -151,9 +168,10 @@ def evaluate_concordance(
         failed_blocks: list[Any] = []
 
         try:
-            # 1. Đọc entries từ file .bib (dùng lenient=True để vớt entry hợp lệ, thu thập block lỗi)
+            # Thu thập file .bib trên đĩa
             for bf in sorted(vdir.rglob("*.bib")):
                 if bf.is_file() and not bf.name.startswith("."):
+                    all_disk_bib_files.add(bf.resolve())
                     try:
                         bib_entries.extend(
                             read_bib_file(bf, lenient=True, failed_blocks_out=failed_blocks)
@@ -182,6 +200,31 @@ def evaluate_concordance(
                     tex = tf.read_text(encoding="utf-8", errors="ignore")
                 except OSError:
                     continue
+
+                # Quét kiểm tra độ nhạy lệnh \bibliography và \addbibresource
+                clean_lines = [COMMENT_PAT.sub("", line) for line in tex.splitlines()]
+                clean_txt = "\n".join(clean_lines)
+                for m_cmd in BIB_CMD_PAT.finditer(clean_txt):
+                    args_str = m_cmd.group(1).strip()
+                    parts = [p.strip() for p in args_str.split(",") if p.strip()]
+                    for p in parts:
+                        total_bib_args += 1
+                        candidates = [
+                            tf.parent / p,
+                            tf.parent / f"{p}.bib",
+                            vdir / p,
+                            vdir / f"{p}.bib",
+                        ]
+                        found = None
+                        for c in candidates:
+                            if c.is_file():
+                                found = c.resolve()
+                                break
+                        if found:
+                            distinct_resolved_bib_files.add(found)
+                        else:
+                            unresolved_bib_args.append((aid, ver_str, tf.name, p))
+
                 if r"\begin{thebibliography}" in tex:
                     for k, raw in split_bibitems(tex):
                         tex_entries.append(parse_bibitem(k, raw))
@@ -242,6 +285,12 @@ def evaluate_concordance(
                     stats["title_soft_matches"] += 1
                 elif tb in tt or tt in tb:
                     stats["title_soft_matches"] += 1
+            elif tb and not tt:
+                stats["title_bib_only"] += 1
+            elif not tb and tt:
+                stats["title_bibitem_only"] += 1
+            else:
+                stats["title_neither"] += 1
 
             # First author surname
             ab = _first_author_last_name(b.get("authors"))
@@ -276,6 +325,13 @@ def evaluate_concordance(
                     stats["arxiv_matches"] += 1
 
     stats["bib_log_rows"] = bib_log_rows
+    stats["sensitivity_bib_args"] = total_bib_args
+    stats["sensitivity_unresolved_args"] = len(unresolved_bib_args)
+    stats["sensitivity_resolved_files"] = len(distinct_resolved_bib_files)
+    stats["sensitivity_total_disk_files"] = len(all_disk_bib_files)
+    stats["sensitivity_unreferenced_files"] = max(
+        len(all_disk_bib_files) - len(distinct_resolved_bib_files), 0
+    )
 
     if bib_logs_csv is not None:
         if append:
@@ -353,6 +409,16 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
     )
     failed_bib_blocks = stats.get("total_failed_bib_blocks", 0)
 
+    t_bib_only = stats.get("title_bib_only", 0)
+    t_bibitem_only = stats.get("title_bibitem_only", 0)
+    t_neither = stats.get("title_neither", 0)
+
+    sens_bib_args = stats.get("sensitivity_bib_args", 0)
+    sens_unres_args = stats.get("sensitivity_unresolved_args", 0)
+    sens_res_files = stats.get("sensitivity_resolved_files", 0)
+    sens_total_disk = stats.get("sensitivity_total_disk_files", 0)
+    sens_unref_files = stats.get("sensitivity_unreferenced_files", 0)
+
     scope_extra_rows = ""
     if bib_log_rows and actual_both_versions < v_eval:
         scope_extra_rows = f"""| Version khảo sát có cả 2 nguồn (.bib trên đĩa và \\bibitem trong compile path) | {actual_both_versions} | {n_only_bib} version còn lại thuần `.bib` (prescan bắt nhầm template), {v_eval - actual_both_versions - n_only_bib} version `.bib` rỗng |
@@ -401,15 +467,18 @@ Mỗi cặp gồm hai entry có cùng `citation_key`.
 ## 3. Cách đọc kết quả
 
 Trong {n_pairs:,} cặp cùng `citation_key`:
-- **Tiêu đề**: Có {t_both:,} cặp ({t_both / n_pairs * 100 if n_pairs else 0:.1f}%) trích xuất thành công tiêu đề ở cả hai nguồn (đã bao gồm macro `\\bibinfo{{title}}` từ REVTeX), đạt tỷ lệ khớp exact {t_exact_pct:.2f}% ({stats.get('title_exact_matches', 0):,} cặp) và soft {t_soft_pct:.2f}% ({stats.get('title_soft_matches', 0):,} cặp, gồm {soft_only} cặp soft-only). Có {no_title_count:,} cặp ({no_title_pct:.1f}%) thiếu tiêu đề ở ít nhất một nguồn, chủ yếu do văn bản `\\bibitem` thực tế chỉ in tác giả và tạp chí/năm mà không in tiêu đề bài báo (định dạng rút gọn ở một số bài báo vật lý/toán), hoặc cấu trúc LaTeX phức tạp vượt quá khả năng biểu thức chính quy.
+- **Tiêu đề**: Có {t_both:,} cặp ({t_both / n_pairs * 100 if n_pairs else 0:.1f}%) mà bộ bóc tách (parser) trích xuất thành công tiêu đề ở cả hai nguồn (bao gồm macro `\\bibinfo{{title}}` với thuật toán cân bằng ngoặc lồng sâu). Trên tập {t_both:,} cặp này, tỷ lệ khớp exact đạt {t_exact_pct:.2f}% ({stats.get('title_exact_matches', 0):,} cặp) và soft đạt {t_soft_pct:.2f}% ({stats.get('title_soft_matches', 0):,} cặp, gồm {soft_only} cặp soft-only).
+- **Phân định các cặp thiếu tiêu đề**: Có {no_title_count:,} cặp ({no_title_pct:.1f}%) thiếu trường tiêu đề ở ít nhất một nguồn. Trong đó có {t_bib_only:,} cặp mà file `.bib` có tiêu đề nhưng parser không bóc tách được từ `\\bibitem`, {t_bibitem_only:,} cặp chỉ `\\bibitem` có tiêu đề, và {t_neither:,} cặp cả hai nguồn đều không có. Sự chênh lệch này gồm hai nguyên nhân thực tế:
+  1. *Đặc trưng định dạng nguồn*: Nhiều tạp chí (đặc biệt trong các lĩnh vực vật lý và toán học) in `\\bibitem` theo quy ước rút gọn, chỉ chứa tác giả, tên tạp chí, số tập, trang và năm mà hoàn toàn không in tên bài báo.
+  2. *Giới hạn trích xuất của parser*: Việc bóc tách văn bản tự do phi cấu trúc bằng heuristic/regex gặp khó khăn trước các macro định dạng tùy biến lạ của tác giả. Vì vậy, {t_both:,} là số cặp mà parser lấy được, phản ánh độ phủ của công cụ chứ không phải toàn bộ số tiêu đề thực tế có trong văn bản.
 - **Quy tắc ưu tiên**: `collect_bib()` ưu tiên entry từ `.bib` khi hai nguồn có cùng `citation_key` vì `.bib` có đầy đủ tiêu đề và trường chuẩn hóa hơn.
 - **Phân định phạm vi**: Bảng này đo mức độ đồng thuận liên nguồn (Inter-source Concordance), không phải độ chính xác tuyệt đối (Ground Truth Accuracy) hay Precision/Recall của pipeline deduplication.
 
 ## 4. Phân định phạm vi file `.bib` và kiểm tra độ nhạy
 
 - `\\bibitem` được trích xuất nghiêm ngặt từ các file `.tex` thuộc `compile_path` (qua `gather_detail`, loại bỏ hoàn toàn các file mồ côi hoặc template).
-- Nguồn `.bib` được khảo sát trên toàn bộ file `.bib` có trong thư mục version (158 file, {tot_bib:,} entry).
-- **Kiểm tra độ nhạy (Sensitivity Analysis)**: Trong số 158 file `.bib`, có 100 file được các lệnh `\\bibliography` hoặc `\\addbibresource` trong compile path trực tiếp gọi; 58 file còn lại không có lệnh gọi trực tiếp. Khi các tác giả nộp bài lên arXiv, nhiều trường hợp đã chèn sẵn môi trường `thebibliography` (từ file `.bbl` đã biên dịch) vào mã nguồn TeX và để lại file `.bib` gốc trong gói nộp mà không còn lệnh `\\bibliography` hoạt động. Do đó, việc gom toàn bộ file `.bib` có mặt trong thư mục version là một heuristic thu thập ứng viên tối đa cho quá trình đối chiếu và phục vụ matching pool ở M3.
+- Nguồn `.bib` được khảo sát trên toàn bộ file `.bib` có trong thư mục version ({sens_total_disk} file, {tot_bib:,} entry).
+- **Kiểm tra độ nhạy (Sensitivity Analysis)**: Trong số {sens_total_disk} file `.bib` trên đĩa của {v_eval} version khảo sát, các lệnh `\\bibliography` và `\\addbibresource` trong `compile_path` chứa {sens_bib_args} tham số gọi file. Trong đó có {sens_unres_args} tham số không resolve được thành file trên đĩa và {sens_res_files} file `.bib` riêng biệt được xác định trực tiếp từ compile path; {sens_unref_files} file `.bib` còn lại trên đĩa không được các lệnh trên trực tiếp gọi. Khi nộp bài lên arXiv, nhiều tác giả đã chèn sẵn môi trường `thebibliography` (từ file `.bbl` đã biên dịch) vào mã nguồn TeX và để lại file `.bib` trong gói nộp mà không còn lệnh `\\bibliography` hoạt động. Do đó, việc gom toàn bộ file `.bib` có mặt trong thư mục version là một heuristic thu thập ứng viên tối đa cho quá trình đối chiếu và phục vụ matching pool ở M3.
 
 ## 5. Block BibTeX lỗi cú pháp
 

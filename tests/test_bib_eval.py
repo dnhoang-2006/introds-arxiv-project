@@ -371,3 +371,65 @@ def test_generate_concordance_markdown_dynamic_coverage(tmp_path: Path):
     content = generate_concordance_markdown(stats, report_md)
     assert "Đạt 50.0% (1/2)" in content
     assert "Đầy đủ 100%" not in content
+
+
+def test_evaluate_concordance_sensitivity_tracking(tmp_path: Path):
+    """Kiểm tra evaluate_concordance tính toán động số tham số bibliography và file .bib trên đĩa."""
+    corpus_root = tmp_path / "corpus"
+    vdir = corpus_root / "2503-12001" / "v1"
+    vdir.mkdir(parents=True)
+
+    # 2 file .bib trên đĩa: refs.bib (được gọi) và extra.bib (không được gọi)
+    (vdir / "refs.bib").write_text(
+        """
+        @article{key1,
+          title = {Ref Title},
+          year = {2024}
+        }
+        """,
+        encoding="utf-8",
+    )
+    (vdir / "extra.bib").write_text(
+        """
+        @article{extra1,
+          title = {Extra Title},
+          year = {2024}
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    # File .tex trong compile path có \bibliography{refs,missing}
+    (vdir / "main.tex").write_text(
+        r"""
+        \documentclass{article}
+        \begin{document}
+        \bibliography{refs,missing}
+        \begin{thebibliography}{1}
+        \bibitem{key1} Author. ``Ref Title''. 2024.
+        \end{thebibliography}
+        \end{document}
+        """,
+        encoding="utf-8",
+    )
+
+    prescan_csv = tmp_path / "prescan_versions.csv"
+    with open(prescan_csv, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["arxiv_id", "version", "bib_style"])
+        writer.writeheader()
+        writer.writerow({"arxiv_id": "2503.12001", "version": "v1", "bib_style": "both"})
+
+    bib_logs_csv = tmp_path / "logs" / "bib.csv"
+    stats = evaluate_concordance(prescan_csv, corpus_root, bib_logs_csv=bib_logs_csv, append=False)
+
+    assert stats["sensitivity_bib_args"] == 2
+    assert stats["sensitivity_unresolved_args"] == 1  # 'missing' không tìm thấy
+    assert stats["sensitivity_resolved_files"] == 1  # 'refs.bib' resolve thành công
+    assert stats["sensitivity_total_disk_files"] == 2  # refs.bib và extra.bib
+    assert stats["sensitivity_unreferenced_files"] == 1  # extra.bib
+
+    report_md = tmp_path / "report.md"
+    content = generate_concordance_markdown(stats, report_md)
+    assert "2 tham số" in content
+    assert "1 file `.bib` riêng biệt" in content
+

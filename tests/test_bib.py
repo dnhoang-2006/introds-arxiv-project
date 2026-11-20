@@ -413,3 +413,21 @@ def test_parse_bibitem_revtex_bibinfo():
     assert "Zhang, W.-L." in item["authors"][0]
 
 
+def test_parse_bibitem_nested_braces_baptista():
+    """Kiểm tra parse_bibitem trích xuất tiêu đề có độ lồng ngoặc sâu nhiều cấp như Baptista2024."""
+    raw = (
+        r"\bibitem[{J. {Baptista} {et~al.}(2024){Baptista}}]{Baptista2024}"
+        r"{Baptista}, J., {Prochaska}, J.~X., {Mannings}, A.~G., {et~al.} 2024, "
+        r"\bibinfo{title}{{Measuring the Variance of the Macquart Relation in Redshift{\textendash}Extragalactic Dispersion Measure Modeling},} "
+        r"\apj, 965, 57, \dodoi{10.3847/1538-4357/ad2705}"
+    )
+    item = parse_bibitem("Baptista2024", raw)
+    assert item["citation_key"] == "Baptista2024"
+    assert item["title"] is not None
+    assert "Measuring the Variance" in item["title"]
+    assert "Extragalactic Dispersion Measure Modeling" in item["title"]
+    assert item["year"] == 2024
+    assert item["doi"] == "10.3847/1538-4357/ad2705"
+
+
+

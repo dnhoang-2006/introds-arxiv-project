@@ -35,14 +35,43 @@ ARXIV_PAT = re.compile(r"arXiv[:\s]*(\d{4}\.\d{4,5}|[a-z-]+/\d{7})(?:v\d+)?", re
 ARXIV_REF_PAT = re.compile(r"(?:arXiv[:.]|abs/)\s*(\d{4}\.\d{4,5}|[a-z-]+/\d{7})(?:v\d+)?", re.IGNORECASE)
 URL_PAT = re.compile(r"https?://[^\s,}]+")
 
-# Ưu tiên \bibinfo{title}{...} (REVTeX/APS), sau đó đến ngoặc kép ``...'' và "...",
+# Các regex trích xuất tiêu đề fallback theo ngoặc kép ``...'' và "...",
 # cuối cùng là \emph/\textit/\textbf vì \emph{} thường dùng cho tên hội nghị/tạp chí
 TITLE_PATS = [
-    re.compile(r"\\bibinfo\s*\{title\}\s*\{((?:[^{}]|\{[^{}]*\})+)\}", re.IGNORECASE),
     re.compile(r"``(.+?)''"),
     re.compile(r'"([^"]+)"'),
     re.compile(r"\\(?:emph|textit|textbf)\{([^}]+)\}"),
 ]
+
+
+def _extract_bibinfo_title_span(raw: str) -> tuple[str, int, int] | None:
+    """Trích xuất tiêu đề từ \\bibinfo{title}{...} bằng cách cân bằng ngoặc nhọn (arbitrary nesting).
+
+    Hỗ trợ độ lồng ngoặc không giới hạn (như {\\textendash}, {\\ensuremath{\\alpha}}, v.v.),
+    tránh giới hạn của regex tĩnh khi gặp macro lồng sâu bên trong tiêu đề.
+    Trả về (nội dung tiêu đề thô, vị trí bắt đầu, vị trí kết thúc) hoặc None.
+    """
+    m = re.search(r"\\bibinfo\s*\{title\}\s*\{", raw, re.IGNORECASE)
+    if not m:
+        return None
+    start_content = m.end()
+    depth = 1
+    i = start_content
+    n = len(raw)
+    while i < n and depth > 0:
+        c = raw[i]
+        if c == "\\":
+            i += 2
+            continue
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                content = raw[start_content:i]
+                return content, m.start(), i
+        i += 1
+    return None
 
 
 def _clean_bib_text(val: str | None) -> str | None:
@@ -285,12 +314,33 @@ def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
     # Title
     title = None
     title_match = None
-    for pat in TITLE_PATS:
-        m = pat.search(clean_raw)
-        if m:
-            title = _clean_bib_text(m.group(1))
-            title_match = m
-            break
+
+    # 1. Ưu tiên bóc tách cân bằng ngoặc cho \bibinfo{title}{...} (REVTeX/APS), hỗ trợ lồng ngoặc sâu
+    res_bibinfo = _extract_bibinfo_title_span(clean_raw)
+    if res_bibinfo:
+        raw_title, t_start, _ = res_bibinfo
+        title = _clean_bib_text(raw_title)
+        if title:
+            title = title.rstrip(" ,.")
+
+        class _SpanMatch:
+            def __init__(self, start_pos: int):
+                self._start = start_pos
+
+            def start(self) -> int:
+                return self._start
+
+        title_match = _SpanMatch(t_start)  # type: ignore[assignment]
+    else:
+        # 2. Thử các pattern regex fallback
+        for pat in TITLE_PATS:
+            m = pat.search(clean_raw)
+            if m:
+                title = _clean_bib_text(m.group(1))
+                if title:
+                    title = title.rstrip(" ,.")
+                title_match = m
+                break
 
     # Year
     m_year = YEAR_PAT.search(clean_raw)
