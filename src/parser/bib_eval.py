@@ -421,8 +421,8 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
 
     scope_extra_rows = ""
     if bib_log_rows and actual_both_versions < v_eval:
-        scope_extra_rows = f"""| Version khảo sát có cả 2 nguồn (.bib trên đĩa và \\bibitem trong compile path) | {actual_both_versions} | {n_only_bib} version còn lại chỉ có `.bib` trong compile path (các `\\bibitem` nếu có chỉ nằm ở file ngoài compile path), {v_eval - actual_both_versions - n_only_bib} version `.bib` rỗng |
-| Entry thô từ file `.bib` (trong {actual_both_versions} version đối chứng) | {actual_both_bib:,} | Trung bình ~{(actual_both_bib / actual_both_versions):.1f} entry thô/version (ngoài ra có {bib_in_only_bib:,} entry thô thuộc {n_only_bib} version chỉ có `.bib` trong compile path) |
+        scope_extra_rows = f"""| Version khảo sát có cả 2 nguồn (.bib trên đĩa và \\bibitem trong compile path) | {actual_both_versions} | {n_only_bib} version còn lại có entry `.bib` trên đĩa nhưng không có `\\bibitem` trong compile path, {v_eval - actual_both_versions - n_only_bib} version `.bib` rỗng |
+| Entry thô từ file `.bib` (trong {actual_both_versions} version đối chứng) | {actual_both_bib:,} | Trung bình ~{(actual_both_bib / actual_both_versions):.1f} entry thô/version (ngoài ra có {bib_in_only_bib:,} entry thô thuộc {n_only_bib} version không có `\\bibitem` trong compile path) |
 | Entry từ `\\bibitem` (trong {actual_both_versions} version đối chứng) | {actual_both_bibitem:,} | Trung bình ~{(actual_both_bibitem / actual_both_versions):.1f} entry/version (tổng cộng 124 version là {tot_bibitem:,}) |
 """
 
