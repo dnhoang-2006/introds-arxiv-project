@@ -39,5 +39,35 @@ def build_store(
 
     Returns:
         (elements, hierarchy) theo đúng schema mục 1.1 và 1.2.
+        Version có cây rỗng (chỉ có gốc) cho đúng một dòng element và 0 dòng
+        hierarchy — khớp schema mục 6.
     """
-    raise NotImplementedError
+    # Dedup = ghi đè theo element_id: cùng kind + nội dung đã chuẩn hoá -> cùng id.
+    elements: dict[str, dict[str, Any]] = {}
+    hierarchy: list[dict[str, Any]] = []
+
+    def add_element(kind: str, content: str) -> str:
+        eid = element_uid(pub_key, kind, content)
+        elements[eid] = {"element_id": eid, "arxiv_id": arxiv_id,
+                         "kind": kind, "content": content}
+        return eid
+
+    for version in sorted(trees):
+        root = trees[version]
+        if root.kind != "document":
+            raise ValueError(f"gốc của v{version} phải có kind='document', gặp {root.kind!r}")
+        root_id = add_element("document", f"{arxiv_id}v{version}")
+
+        # Cùng một câu lặp lại dưới cùng một cha trong một version -> chỉ một cạnh.
+        seen: set[tuple[str, str]] = set()
+        stack: list[tuple[Node, str]] = [(c, root_id) for c in reversed(root.children)]
+        while stack:                              # DFS tiền thứ tự, giữ thứ tự văn bản
+            node, parent_id = stack.pop()
+            eid = add_element(node.kind, node.content)
+            if (eid, parent_id) not in seen:
+                seen.add((eid, parent_id))
+                hierarchy.append({"arxiv_id": arxiv_id, "version": version,
+                                  "element_id": eid, "parent_id": parent_id})
+            stack.extend((c, eid) for c in reversed(node.children))
+
+    return list(elements.values()), hierarchy

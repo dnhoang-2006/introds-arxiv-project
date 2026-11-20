@@ -10,6 +10,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from .normalize import strip_noncontent
+
 
 @dataclass
 class Node:
@@ -281,5 +283,247 @@ def build_tree(tex: str) -> Node:
         equation (đã chuẩn hoá bởi normalize) -> kind="formula"
         lemma, theorem, proposition, proof... -> KHÔNG phải lá: coi là văn xuôi,
                                                  bỏ vỏ \\begin/\\end rồi tách câu bên trong
+
+    Cấp section lấy từ infer_levels(): cấp 1 -> kind "section", 2 -> "subsection",
+    3 -> "subsubsection", từ 4 trở xuống -> "paragraph". Lớp book có \\chapter thì
+    chapter là "section" và \\section là "subsection".
+
+    Node gốc có content rỗng; build_store() tự gán f"{arxiv_id}v{version}" khi băm.
+
+    >>> t = build_tree(r"\\begin{document}\\section{Intro} A b. C d.\\end{document}")
+    >>> [(c.kind, c.content) for c in t.children[0].children]
+    [('sentence', 'A b.'), ('sentence', 'C d.')]
     """
-    raise NotImplementedError
+    body = _strip_comments(strip_references(extract_body(tex)))
+    levels = infer_levels(body)
+    root = Node("document", "")
+
+    # stack: (cấp, node). Gốc ở cấp 0, mọi section có cấp >= 1.
+    stack: list[tuple[int, Node]] = [(0, root)]
+    pos = 0
+    for m in SECTION_CMD.finditer(body):
+        if m.start() < pos:          # nằm trong tiêu đề của heading trước — bỏ qua
+            continue
+        stack[-1][1].children.extend(_parse_block(body[pos:m.start()]))
+        title, pos = _read_group(body, m.end() - 1)
+        level = levels[m.group(1)]
+        while stack[-1][0] >= level:
+            stack.pop()
+        node = Node(_LEVEL_KIND.get(level, "paragraph"), _clean_prose(title))
+        stack[-1][1].children.append(node)
+        stack.append((level, node))
+    stack[-1][1].children.extend(_parse_block(body[pos:]))
+    return root
+
+
+# --------------------------------------------------------------------------- #
+# Tiện ích của build_tree
+# --------------------------------------------------------------------------- #
+_LEVEL_KIND = {1: "section", 2: "subsection", 3: "subsubsection"}
+
+# Môi trường thành lá kind="figure" (đề gộp bảng vào hình; tabular/algorithm đứng
+# riêng cũng là khối hình-bảng, tách câu bên trong chỉ ra rác).
+#
+# LUẬT "NGOÀI CÙNG THẮNG": chỉ môi trường ngoài cùng khớp danh sách mới thành lá, và
+# lá giữ NGUYÊN VĂN cả khối — không quét vào bên trong nữa. Nên \begin{table}...
+# \begin{tabular}...\end{tabular}...\end{table} là MỘT node figure, figure chứa các
+# subfigure cũng là MỘT node. tabular chỉ thành lá riêng khi nó đứng ngoài mọi
+# table/figure (vd. trong center, trong \item).
+#
+# algorithm không phải hình cũng không phải bảng; gán "figure" là lựa chọn thực dụng
+# vì trong 10 kind cho phép không có giá trị nào gần hơn (ghi rõ trong báo cáo).
+_FIGURE_ENVS = frozenset({
+    "figure", "figure*", "table", "table*", "subfigure", "subtable",
+    "wrapfigure", "wraptable", "sidewaysfigure", "sidewaystable",
+    "longtable", "longtable*", "tabular", "tabular*", "tabularx",
+    "algorithm", "algorithm*",
+})
+
+# Môi trường thành lá kind="formula". normalize đưa khối về equation, nhưng vẫn bắt
+# các biến thể phòng khi văn bản chưa qua normalize.
+_FORMULA_ENVS = frozenset({
+    "equation", "equation*", "align", "align*", "alignat", "alignat*",
+    "gather", "gather*", "multline", "multline*", "flalign", "flalign*",
+    "eqnarray", "eqnarray*", "displaymath", "math", "dmath", "dmath*",
+})
+
+_LIST_ENVS = frozenset({"itemize", "enumerate", "description"})
+
+# Môi trường bóc vỏ có đối số bắt buộc vô nghĩa ({width}, {số cột}) — bỏ luôn đối số.
+_ENVS_WITH_ARG = frozenset({"minipage", "multicols", "adjustbox"})
+
+_BEGIN = re.compile(r"\\begin\s*\{([A-Za-z@]+\*?)\}")
+_ENV_TOKEN = re.compile(r"\\(begin|end)\s*\{([A-Za-z@]+\*?)\}")
+# Toán khối viết tắt: $$...$$ và \[...\] (không bắt \\[2pt] xuống dòng).
+_DISPLAY = re.compile(r"\$\$.*?\$\$|(?<!\\)\\\[.*?\\\]", re.DOTALL)
+# Ranh giới \item ở độ sâu 0 — cần biết \begin/\end để bỏ qua danh sách lồng.
+_LIST_TOKEN = re.compile(r"\\(begin|end)\s*\{[A-Za-z@]+\*?\}|\\item(?![A-Za-z])\s*")
+
+# Lệnh không mang nội dung (\label, \maketitle, \vspace...) bỏ bằng
+# normalize.strip_noncontent() — nguồn sự thật duy nhất, clean_latex cũng gọi nó.
+# KHÔNG thêm danh sách lệnh riêng ở file này.
+# \end{...} lạc trong văn xuôi: môi trường bị heading cắt ngang, vd.
+# \begin{appendix}\section{A}...\end{appendix}. Chỉ bỏ khi tách câu.
+_STRAY_END = re.compile(r"\\end\s*\{[A-Za-z@]+\*?\}")
+_HAS_WORD = re.compile(r"\w")
+
+
+def _read_group(s: str, i: int, open_: str = "{", close: str = "}") -> tuple[str, int]:
+    """s[i] là dấu mở. Trả (nội dung bên trong, vị trí ngay sau dấu đóng khớp).
+
+    Bỏ qua ký tự bị escape (\\{). Thiếu dấu đóng thì lấy tới hết chuỗi.
+    """
+    depth = 0
+    j = i
+    while j < len(s):
+        c = s[j]
+        if c == "\\":
+            j += 2
+            continue
+        if c == open_:
+            depth += 1
+        elif c == close:
+            depth -= 1
+            if depth == 0:
+                return s[i + 1:j], j + 1
+        j += 1
+    return s[i + 1:], len(s)
+
+
+def _skip_args(s: str, i: int, mandatory: int = 0) -> int:
+    """Bỏ qua một [tuỳ chọn] và `mandatory` nhóm {...} đứng ngay từ vị trí i."""
+    j = i + _leading_ws(s, i)
+    if j < len(s) and s[j] == "[":
+        _, j = _read_group(s, j, "[", "]")
+    for _ in range(mandatory):
+        k = j + _leading_ws(s, j)
+        if k < len(s) and s[k] == "{":
+            _, j = _read_group(s, k)
+    return j
+
+
+def _find_env_end(s: str, start: int, name: str) -> tuple[int, int]:
+    """Tìm \\end{name} khớp với \\begin{name} vừa đọc xong ở vị trí start.
+
+    Đếm lồng nhau cùng tên (itemize trong itemize). Trả (đầu \\end, cuối \\end);
+    thiếu \\end thì coi môi trường kéo tới hết chuỗi.
+    """
+    depth = 1
+    for m in _ENV_TOKEN.finditer(s, start):
+        if m.group(2) != name:
+            continue
+        depth += 1 if m.group(1) == "begin" else -1
+        if depth == 0:
+            return m.start(), m.end()
+    return len(s), len(s)
+
+
+def _collapse(s: str) -> str:
+    return " ".join(s.split())
+
+
+def _clean_prose(s: str) -> str:
+    return _collapse(strip_noncontent(s))
+
+
+def _sentences(prose: str) -> list[Node]:
+    prose = _STRAY_END.sub(" ", strip_noncontent(prose))
+    return [Node("sentence", t) for t in split_sentences(prose) if _HAS_WORD.search(t)]
+
+
+def _parse_block(text: str) -> list[Node]:
+    """Bóc môi trường thành node TRƯỚC, phần văn xuôi còn lại mới đem tách câu."""
+    out: list[Node] = []
+    pos = 0
+    while True:
+        mb = _BEGIN.search(text, pos)
+        md = _DISPLAY.search(text, pos)
+        if md and (not mb or md.start() < mb.start()):
+            out.extend(_sentences(text[pos:md.start()]))
+            out.append(Node("formula", _collapse(md.group(0))))
+            pos = md.end()
+            continue
+        if not mb:
+            out.extend(_sentences(text[pos:]))
+            return out
+
+        out.extend(_sentences(text[pos:mb.start()]))
+        name = mb.group(1)
+        inner_end, env_end = _find_env_end(text, mb.end(), name)
+
+        if name in _FIGURE_ENVS:
+            out.append(Node("figure", _collapse(text[mb.start():env_end])))
+        elif name in _FORMULA_ENVS:
+            out.append(Node("formula", _collapse(text[mb.start():env_end])))
+        elif name in _LIST_ENVS:
+            node = _parse_list(text[_skip_args(text, mb.end()):inner_end])
+            if node.children:
+                out.append(node)
+        else:
+            # lemma, theorem, proof, abstract, center...: bỏ vỏ, ruột xử lý như văn xuôi
+            # (ruột vẫn có thể chứa equation/figure/itemize nên gọi đệ quy).
+            if name.rstrip("*") in _ENVS_WITH_ARG:
+                inner_start = _skip_args(text, mb.end(), mandatory=1)
+            else:
+                inner_start = mb.end()
+            out.extend(_parse_block(text[inner_start:inner_end]))
+        pos = env_end
+
+
+def _parse_list(inner: str) -> Node:
+    """Ruột của itemize/enumerate/description -> node itemize, mỗi \\item một con."""
+    cuts: list[tuple[int, int]] = []          # (đầu, cuối) của các \item ở độ sâu 0
+    depth = 0
+    for m in _LIST_TOKEN.finditer(inner):
+        if m.group(1) == "begin":
+            depth += 1
+        elif m.group(1) == "end":
+            depth -= 1
+        elif depth == 0:
+            cuts.append((m.start(), m.end()))
+
+    node = Node("itemize", _list_text(inner))
+    for k, (_, start) in enumerate(cuts):
+        end = cuts[k + 1][0] if k + 1 < len(cuts) else len(inner)
+        raw = inner[start:end]
+        if raw.startswith("["):                   # \item[nhãn] -> giữ chữ của nhãn
+            label, after = _read_group(raw, 0, "[", "]")
+            raw = label + " " + raw[after:]
+        content = _list_text(raw)                 # item có thể chứa danh sách lồng
+        if not content:
+            continue
+        # LUÔN tách câu, kể cả khi item chỉ có một câu: item là node chứa, câu luôn
+        # là lá kind="sentence". Nếu item một câu lại là lá, thì khi v2 thêm câu vào
+        # item đó, cùng câu ấy bị băm với kind "item" ở v1 và "sentence" ở v2 -> hai
+        # element_id -> dedup hỏng đúng ở loại sửa đổi phổ biến nhất.
+        node.children.append(Node("item", content, _parse_block(raw)))
+    return node
+
+
+# Vỏ của danh sách: \item[nhãn] và \begin{itemize}[tuỳ chọn] / \end{itemize}.
+_ITEM_MARK = re.compile(r"\\item(?![A-Za-z])\s*(?:\[([^\]]*)\])?")
+_LIST_WRAP = re.compile(
+    r"\\begin\s*\{(?:itemize|enumerate|description)\}(?:\s*\[[^\]]*\])?"
+    r"|\\end\s*\{(?:itemize|enumerate|description)\}"
+)
+_ITEM_SEP = "\x02"
+
+
+def _list_text(raw: str) -> str:
+    """Content sạch của node itemize/item: bỏ vỏ danh sách, mỗi point một dòng.
+
+    Schema mục 1.1: content là nội dung đã chuẩn hoá — không được để \\item hay
+    \\begin{itemize} thô lọt vào (sẽ lộ ra trong dataset M3 và làm đỏ phép kiểm
+    "không còn lệnh LaTeX sót"). \\item được thay bằng dấu xuống dòng làm dấu phân
+    cách point, nhãn của \\item[nhãn] được giữ lại như chữ thường. Danh sách lồng
+    trong item cũng được làm sạch theo cùng cách.
+
+    >>> _list_text(r"\\item Alpha is good. \\item Beta only.")
+    'Alpha is good.\\nBeta only.'
+    >>> _list_text(r"Third \\begin{enumerate}[a)] \\item n1 \\item[X] n2 \\end{enumerate}")
+    'Third\\nn1\\nX n2'
+    """
+    text = _ITEM_MARK.sub(lambda m: _ITEM_SEP + (m.group(1) or "") + " ", raw)
+    text = strip_noncontent(_LIST_WRAP.sub(" ", text))
+    parts = (_collapse(p) for p in text.split(_ITEM_SEP))
+    return "\n".join(p for p in parts if p)
