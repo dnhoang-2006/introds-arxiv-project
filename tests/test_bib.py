@@ -395,3 +395,21 @@ def test_collect_bib_emits_warning_even_without_failed_blocks_arg(tmp_path: Path
     assert entries[0]["citation_key"] == "ok_key2"
     assert any("chứa 1 block lỗi cú pháp bị bỏ qua" in r.message for r in caplog.records)
 
+
+def test_parse_bibitem_revtex_bibinfo():
+    """Kiểm tra parse_bibitem trích xuất tiêu đề và tác giả từ định dạng REVTeX có \bibinfo."""
+    raw = (
+        r"\bibitem{zhang2021} "
+        r"\bibinfo{author}{{Zhang}, W.-L.} \emph{et~al.} "
+        r"\newblock \bibinfo{title}{{Two Periodic Activity Epochs in FRB 20201124A: Coincident with Critical RM}} "
+        r"\newblock \emph{\bibinfo{journal}{Astrophys. J.}} \textbf{\bibinfo{volume}{920}}, "
+        r"\bibinfo{pages}{153} (\bibinfo{year}{2021})."
+    )
+    item = parse_bibitem("zhang2021", raw)
+    assert item["citation_key"] == "zhang2021"
+    assert item["title"] == "Two Periodic Activity Epochs in FRB 20201124A: Coincident with Critical RM"
+    assert item["year"] == 2021
+    assert item["authors"] is not None
+    assert "Zhang, W.-L." in item["authors"][0]
+
+

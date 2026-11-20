@@ -35,8 +35,10 @@ ARXIV_PAT = re.compile(r"arXiv[:\s]*(\d{4}\.\d{4,5}|[a-z-]+/\d{7})(?:v\d+)?", re
 ARXIV_REF_PAT = re.compile(r"(?:arXiv[:.]|abs/)\s*(\d{4}\.\d{4,5}|[a-z-]+/\d{7})(?:v\d+)?", re.IGNORECASE)
 URL_PAT = re.compile(r"https?://[^\s,}]+")
 
-# Ưu tiên ngoặc kép ``...'' và "..." trước vì \emph{} thường dùng cho tên hội nghị/tạp chí
+# Ưu tiên \bibinfo{title}{...} (REVTeX/APS), sau đó đến ngoặc kép ``...'' và "...",
+# cuối cùng là \emph/\textit/\textbf vì \emph{} thường dùng cho tên hội nghị/tạp chí
 TITLE_PATS = [
+    re.compile(r"\\bibinfo\s*\{title\}\s*\{((?:[^{}]|\{[^{}]*\})+)\}", re.IGNORECASE),
     re.compile(r"``(.+?)''"),
     re.compile(r'"([^"]+)"'),
     re.compile(r"\\(?:emph|textit|textbf)\{([^}]+)\}"),
@@ -245,6 +247,10 @@ def _extract_authors(clean_raw: str, title_match: re.Match | None) -> list[str] 
     if not prefix:
         return None
 
+    # Làm sạch các macro LaTeX thường gặp trong \\bibitem như \\bibinfo{author}, \\newblock
+    prefix = re.sub(r"\\newblock\s*", " ", prefix)
+    prefix = re.sub(r"\\bibinfo\s*\{author\}\s*", " ", prefix)
+
     # Tách theo 'and' hoặc '&' (kể cả dạng LaTeX '\&') trước nếu có
     if re.search(r"\band\b|\\?&", prefix, re.IGNORECASE):
         chunks = [c.strip() for c in re.split(r",?\s*(?:\band\b|\\?&)\s*", prefix, flags=re.IGNORECASE) if c.strip()]
@@ -274,6 +280,7 @@ def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
     Giữ nguyên ID cũ dạng hep-th/9901001, không ép về dạng số.
     """
     clean_raw = re.sub(r"\s+", " ", raw).strip()
+    clean_raw = re.sub(r"^\\bibitem\s*(?:\[[^\]]*\])?\s*\{[^}]*\}\s*", "", clean_raw)
 
     # Title
     title = None

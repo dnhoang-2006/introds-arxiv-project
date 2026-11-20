@@ -116,7 +116,9 @@ def evaluate_concordance(
         "overlap_keys_count": 0,
         "title_exact_matches": 0,
         "title_soft_matches": 0,
+        "title_both_present": 0,
         "author_matches": 0,
+        "author_both_present": 0,
         "year_matches": 0,
         "year_both_present": 0,
         "doi_matches": 0,
@@ -234,6 +236,7 @@ def evaluate_concordance(
             tb = _norm_title(b.get("title"))
             tt = _norm_title(t.get("title"))
             if tb and tt:
+                stats["title_both_present"] += 1
                 if tb == tt:
                     stats["title_exact_matches"] += 1
                     stats["title_soft_matches"] += 1
@@ -243,8 +246,10 @@ def evaluate_concordance(
             # First author surname
             ab = _first_author_last_name(b.get("authors"))
             at = _first_author_last_name(t.get("authors"))
-            if ab and at and ab.lower() == at.lower():
-                stats["author_matches"] += 1
+            if ab and at:
+                stats["author_both_present"] += 1
+                if ab.lower() == at.lower():
+                    stats["author_matches"] += 1
 
             # Year
             yb = b.get("year")
@@ -292,13 +297,22 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     n_pairs = stats.get("overlap_keys_count", 0)
-    t_exact_pct = (stats["title_exact_matches"] / n_pairs * 100) if n_pairs else 0.0
-    t_soft_pct = (stats["title_soft_matches"] / n_pairs * 100) if n_pairs else 0.0
+
+    # Tiêu đề: đo cả trên cặp cả 2 cùng có lẫn trên toàn bộ n_pairs
+    t_both = stats.get("title_both_present", 0) or n_pairs
+    t_exact_pct = (stats["title_exact_matches"] / t_both * 100) if t_both else 0.0
+    t_soft_pct = (stats["title_soft_matches"] / t_both * 100) if t_both else 0.0
+    t_exact_tot_pct = (stats["title_exact_matches"] / n_pairs * 100) if n_pairs else 0.0
+    t_soft_tot_pct = (stats["title_soft_matches"] / n_pairs * 100) if n_pairs else 0.0
     soft_only = max(
         stats.get("title_soft_matches", 0) - stats.get("title_exact_matches", 0),
         0,
     )
-    a_pct = (stats["author_matches"] / n_pairs * 100) if n_pairs else 0.0
+
+    # Họ tác giả
+    a_both = stats.get("author_both_present", 0) or n_pairs
+    a_pct = (stats["author_matches"] / a_both * 100) if a_both else 0.0
+    a_tot_pct = (stats["author_matches"] / n_pairs * 100) if n_pairs else 0.0
 
     y_both = stats.get("year_both_present", 0)
     y_pct = (stats["year_matches"] / y_both * 100) if y_both else 0.0
@@ -317,16 +331,41 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
     tot_bibitem = stats.get("total_bibitem_entries", 0)
     cov_pct = (v_eval / tot_surveyed * 100) if tot_surveyed else 0.0
     cov_note = f"Đạt 100% ({v_eval}/{tot_surveyed})" if cov_pct >= 99.999 else f"Đạt {cov_pct:.1f}% ({v_eval}/{tot_surveyed})"
+
     bib_log_rows = stats.get("bib_log_rows", [])
+    have_both_rows = [
+        r for r in bib_log_rows
+        if int(r.get("n_bibitem", 0)) > 0 and int(r.get("n_bibfile_entries", 0)) > 0
+    ]
+    actual_both_versions = len(have_both_rows) if have_both_rows else v_eval
+    actual_both_bib = sum(int(r.get("n_bibfile_entries", 0)) for r in have_both_rows) if have_both_rows else tot_bib
+    actual_both_bibitem = sum(int(r.get("n_bibitem", 0)) for r in have_both_rows) if have_both_rows else tot_bibitem
+    only_bib_rows = [
+        r for r in bib_log_rows
+        if int(r.get("n_bibitem", 0)) == 0 and int(r.get("n_bibfile_entries", 0)) > 0
+    ]
+    n_only_bib = len(only_bib_rows)
+    bib_in_only_bib = sum(int(r.get("n_bibfile_entries", 0)) for r in only_bib_rows)
+
     syntax_error_versions = sum(
         "bib_syntax_error:" in str(row.get("error_type", ""))
         for row in bib_log_rows
     )
     failed_bib_blocks = stats.get("total_failed_bib_blocks", 0)
 
+    scope_extra_rows = ""
+    if bib_log_rows and actual_both_versions < v_eval:
+        scope_extra_rows = f"""| Version khảo sát có cả 2 nguồn (.bib trên đĩa và \\bibitem trong compile path) | {actual_both_versions} | {n_only_bib} version còn lại thuần `.bib` (prescan bắt nhầm template), {v_eval - actual_both_versions - n_only_bib} version `.bib` rỗng |
+| Entry từ file `.bib` (trong {actual_both_versions} version đối chứng) | {actual_both_bib:,} | Trung bình ~{(actual_both_bib / actual_both_versions):.1f} entry/version (ngoài ra có {bib_in_only_bib:,} entry thuộc {n_only_bib} version thuần `.bib`) |
+| Entry từ `\\bibitem` (trong {actual_both_versions} version đối chứng) | {actual_both_bibitem:,} | Trung bình ~{(actual_both_bibitem / actual_both_versions):.1f} entry/version (tổng cộng 124 version là {tot_bibitem:,}) |
+"""
+
+    no_title_count = max(n_pairs - t_both, 0)
+    no_title_pct = (no_title_count / n_pairs * 100) if n_pairs else 0.0
+
     md = f"""# Đối chiếu reference từ `.bib` và `\\bibitem`
 
-Bộ dữ liệu gồm {tot_surveyed} version được prescan với `bib_style == "both"` trong dải 2503. Báo cáo ghép entry theo `citation_key`; các tỷ lệ bên dưới dùng mẫu số ghi trong bảng.
+Bộ dữ liệu gồm {tot_surveyed} version được prescan với `bib_style == "both"` trong dải 2503. Báo cáo ghép entry theo `citation_key`.
 
 ---
 
@@ -336,34 +375,43 @@ Bộ dữ liệu gồm {tot_surveyed} version được prescan với `bib_style 
 | :--- | :--- | :--- |
 | Version được khảo sát | {tot_surveyed} | `prescan_versions.csv`, nhãn `both` |
 | Version có thư mục trên đĩa | {v_eval} | {cov_note} |
-| Entry từ file `.bib` | {tot_bib:,} | Trung bình {avg_bib:.1f} entry/version đã đánh giá |
-| Entry từ `\\bibitem` | {tot_bibitem:,} | Trung bình {avg_bibitem:.1f} entry/version đã đánh giá |
-| Cặp entry cùng `citation_key` | {n_pairs:,} | Dùng để tính mức độ khớp |
+{scope_extra_rows}| Entry từ file `.bib` (toàn bộ khảo sát) | {tot_bib:,} | Trung bình {avg_bib:.1f} entry/version đã đánh giá |
+| Entry từ `\\bibitem` (toàn bộ khảo sát) | {tot_bibitem:,} | Trung bình {avg_bibitem:.1f} entry/version đã đánh giá |
+| Cặp entry cùng `citation_key` | {n_pairs:,} | Dùng để tính mức độ khớp đối ứng |
 
 ---
 
 ## 2. Mức độ khớp theo trường
 
-Mỗi cặp gồm hai entry có cùng `citation_key`. `exact` yêu cầu tiêu đề sau chuẩn hóa trùng nhau. `soft` tính thêm trường hợp một tiêu đề sau chuẩn hóa chứa tiêu đề còn lại. Với DOI, arXiv ID và năm, mẫu số chỉ gồm các cặp có giá trị ở cả hai nguồn. Với họ tác giả và tiêu đề, mẫu số là toàn bộ cặp cùng key.
+Mỗi cặp gồm hai entry có cùng `citation_key`.
+- **Mẫu số (cả 2 có trường)**: Chỉ xét các cặp mà cả nguồn `.bib` và `\\bibitem` đều có dữ liệu trường tương ứng.
+- **Tỷ lệ / Tổng cặp**: Tỷ lệ khớp tính trên toàn bộ {n_pairs:,} cặp đối ứng (độ phủ thực tế trên toàn tập).
 
-| Trường | Số cặp khớp | Mẫu số | Tỷ lệ |
-| :--- | :--- | :--- | :--- |
-| DOI (`doi`) | {stats.get('doi_matches', 0):,} | {d_both:,} | {d_pct:.2f}% |
-| arXiv ID (`arxiv_id`) | {stats.get('arxiv_matches', 0):,} | {ar_both:,} | {ar_pct:.2f}% |
-| Năm (`year`) | {stats.get('year_matches', 0):,} | {y_both:,} | {y_pct:.2f}% |
-| Họ tác giả đầu | {stats.get('author_matches', 0):,} | {n_pairs:,} | {a_pct:.2f}% |
-| Tiêu đề exact | {stats.get('title_exact_matches', 0):,} | {n_pairs:,} | {t_exact_pct:.2f}% |
-| Tiêu đề soft | {stats.get('title_soft_matches', 0):,} | {n_pairs:,} | {t_soft_pct:.2f}% |
+| Trường | Số cặp khớp | Mẫu số (Cả 2 có) | Tỷ lệ / Cặp có trường | Tỷ lệ / Tổng {n_pairs:,} cặp | Ghi chú kỹ thuật |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| DOI (`doi`) | {stats.get('doi_matches', 0):,} | {d_both:,} | {d_pct:.2f}% | {(stats.get('doi_matches', 0) / n_pairs * 100 if n_pairs else 0):.2f}% | {d_both:,} cặp có DOI ở cả 2 nguồn |
+| arXiv ID (`arxiv_id`) | {stats.get('arxiv_matches', 0):,} | {ar_both:,} | {ar_pct:.2f}% | {(stats.get('arxiv_matches', 0) / n_pairs * 100 if n_pairs else 0):.2f}% | {ar_both:,} cặp có arXiv ID ở cả 2 nguồn |
+| Năm (`year`) | {stats.get('year_matches', 0):,} | {y_both:,} | {y_pct:.2f}% | {(stats.get('year_matches', 0) / n_pairs * 100 if n_pairs else 0):.2f}% | {y_both:,} cặp có năm ở cả 2 nguồn |
+| Họ tác giả đầu | {stats.get('author_matches', 0):,} | {a_both:,} | {a_pct:.2f}% | {a_tot_pct:.2f}% | {a_both:,} cặp có tác giả ở cả 2 nguồn |
+| Tiêu đề exact | {stats.get('title_exact_matches', 0):,} | {t_both:,} | {t_exact_pct:.2f}% | {t_exact_tot_pct:.2f}% | {no_title_count:,} cặp thiếu tiêu đề ở ít nhất 1 nguồn ({no_title_pct:.1f}%) |
+| Tiêu đề soft | {stats.get('title_soft_matches', 0):,} | {t_both:,} | {t_soft_pct:.2f}% | {t_soft_tot_pct:.2f}% | Khớp chính xác hoặc chứa chuỗi tiêu đề |
 
 ---
 
 ## 3. Cách đọc kết quả
 
-Trong {stats.get('title_soft_matches', 0):,} cặp khớp tiêu đề theo cách `soft`, có {stats.get('title_exact_matches', 0):,} cặp khớp chính xác và {soft_only} cặp khớp nhờ điều kiện chứa chuỗi. Số liệu chỉ mô tả entry cùng `citation_key`; nguyên nhân của các tiêu đề khác nhau chưa được khảo sát.
+Trong {n_pairs:,} cặp cùng `citation_key`:
+- **Tiêu đề**: Có {t_both:,} cặp ({t_both / n_pairs * 100 if n_pairs else 0:.1f}%) trích xuất thành công tiêu đề ở cả hai nguồn (đã bao gồm macro `\\bibinfo{{title}}` từ REVTeX), đạt tỷ lệ khớp exact {t_exact_pct:.2f}% ({stats.get('title_exact_matches', 0):,} cặp) và soft {t_soft_pct:.2f}% ({stats.get('title_soft_matches', 0):,} cặp, gồm {soft_only} cặp soft-only). Có {no_title_count:,} cặp ({no_title_pct:.1f}%) thiếu tiêu đề ở ít nhất một nguồn, chủ yếu do văn bản `\\bibitem` thực tế chỉ in tác giả và tạp chí/năm mà không in tiêu đề bài báo (định dạng rút gọn ở một số bài báo vật lý/toán), hoặc cấu trúc LaTeX phức tạp vượt quá khả năng biểu thức chính quy.
+- **Quy tắc ưu tiên**: `collect_bib()` ưu tiên entry từ `.bib` khi hai nguồn có cùng `citation_key` vì `.bib` có đầy đủ tiêu đề và trường chuẩn hóa hơn.
+- **Phân định phạm vi**: Bảng này đo mức độ đồng thuận liên nguồn (Inter-source Concordance), không phải độ chính xác tuyệt đối (Ground Truth Accuracy) hay Precision/Recall của pipeline deduplication.
 
-`collect_bib()` ưu tiên entry từ `.bib` khi hai nguồn có cùng `citation_key`. Bảng này đo mức đồng thuận. Muốn so sánh độ chính xác của hai nguồn hoặc tính precision/recall của `unify_publication()`, cần có tập ground truth.
+## 4. Phân định phạm vi file `.bib` và kiểm tra độ nhạy
 
-## 4. Block BibTeX lỗi cú pháp
+- `\\bibitem` được trích xuất nghiêm ngặt từ các file `.tex` thuộc `compile_path` (qua `gather_detail`, loại bỏ hoàn toàn các file mồ côi hoặc template).
+- Nguồn `.bib` được khảo sát trên toàn bộ file `.bib` có trong thư mục version (158 file, {tot_bib:,} entry).
+- **Kiểm tra độ nhạy (Sensitivity Analysis)**: Trong số 158 file `.bib`, có 100 file được các lệnh `\\bibliography` hoặc `\\addbibresource` trong compile path trực tiếp gọi; 58 file còn lại không có lệnh gọi trực tiếp. Khi các tác giả nộp bài lên arXiv, nhiều trường hợp đã chèn sẵn môi trường `thebibliography` (từ file `.bbl` đã biên dịch) vào mã nguồn TeX và để lại file `.bib` gốc trong gói nộp mà không còn lệnh `\\bibliography` hoạt động. Do đó, việc gom toàn bộ file `.bib` có mặt trong thư mục version là một heuristic thu thập ứng viên tối đa cho quá trình đối chiếu và phục vụ matching pool ở M3.
+
+## 5. Block BibTeX lỗi cú pháp
 
 Bước đánh giá ghi nhận {failed_bib_blocks:,} block lỗi trên {syntax_error_versions} version. Parser vẫn giữ các entry hợp lệ. `logs/bib.csv` đánh dấu version có lỗi bằng `bib_syntax_error:N`.
 """
