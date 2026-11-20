@@ -1,0 +1,72 @@
+"""Test validator_m2: cây đúng không báo lỗi; mỗi cây sai bị đúng phép kiểm dự kiến bắt."""
+
+## Từ thư mục gốc repo, chạy test:
+# bash
+# python -m pytest tests/test_validator_m2.py -q
+# Nếu muốn xem từng test: thêm -v. 
+# Nếu chỉ chạy một ca: -k cycle (tên ca sai nằm trong BAD_CASES của fixtures_m2.py). Kết quả đúng là 23 passed.
+
+## Khi có dữ liệu parse thật, chạy validator trên parsed/:
+# python src/validator_m2.py --parsed parsed/ --corpus corpus/ --ids-file ids/mssv.txt
+
+"""Test validator_m2: cây đúng không báo lỗi; mỗi cây sai bị đúng phép kiểm dự kiến bắt."""
+import copy
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+
+import fixtures_m2 as fx  # noqa: E402
+from validator_m2 import ValidatorM2, main, validate_publication  # noqa: E402
+
+
+def run(d):
+    return validate_publication(d["elements"], d["hierarchy"], d["arxiv_id"], n_versions=d["n_versions"])
+
+
+def error_checks(issues):
+    return {i.check for i in issues if i.severity == "error"}
+
+
+@pytest.mark.parametrize("name", ["GOOD", "GOOD_REAL", "GOOD_EMPTY_VERSION"])
+def test_good_trees_have_no_errors(name):
+    issues = run(getattr(fx, name))
+    assert error_checks(issues) == set(), [i.message for i in issues]
+
+
+@pytest.mark.parametrize("name", list(fx.BAD_CASES))
+def test_bad_tree_caught_by_expected_check(name):
+    tree, expected = fx.BAD_CASES[name]
+    issues = run(tree)
+    assert error_checks(issues) == expected, [(i.check, i.message) for i in issues]
+
+
+def test_shared_leaf_is_only_a_warning():
+    issues = run(fx.GOOD)
+    assert not error_checks(issues)
+
+
+def test_empty_version_needs_marker():
+    d = copy.deepcopy(fx.GOOD_EMPTY_VERSION)
+    d["elements"] = [e for e in d["elements"] if e["element_id"] != f"{fx.PK}#root3"]
+    assert error_checks(run(d)) == {"V6"}
+
+
+def test_cli_on_disk(tmp_path):
+    parsed = tmp_path / "parsed"
+    pub = parsed / fx.PK
+    pub.mkdir(parents=True)
+    d = fx.GOOD_REAL
+    (pub / "elements.jsonl").write_text("\n".join(json.dumps(r) for r in d["elements"]), encoding="utf-8")
+    (pub / "hierarchy.jsonl").write_text("\n".join(json.dumps(r) for r in d["hierarchy"]), encoding="utf-8")
+    out = tmp_path / "r.json"
+    assert main(["--parsed", str(parsed), "--corpus", str(tmp_path / "nocorpus"), "--out", str(out)]) == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["summary"]["passed"] is True
+    # hỏng một dòng JSON -> lỗi, exit 1
+    with open(pub / "hierarchy.jsonl", "a", encoding="utf-8") as fh:
+        fh.write("\n{broken")
+    assert main(["--parsed", str(parsed), "--corpus", str(tmp_path / "nocorpus"), "--out", str(out)]) == 1
