@@ -421,8 +421,8 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
 
     scope_extra_rows = ""
     if bib_log_rows and actual_both_versions < v_eval:
-        scope_extra_rows = f"""| Version khảo sát có cả 2 nguồn (.bib trên đĩa và \\bibitem trong compile path) | {actual_both_versions} | {n_only_bib} version còn lại thuần `.bib` (prescan bắt nhầm template), {v_eval - actual_both_versions - n_only_bib} version `.bib` rỗng |
-| Entry từ file `.bib` (trong {actual_both_versions} version đối chứng) | {actual_both_bib:,} | Trung bình ~{(actual_both_bib / actual_both_versions):.1f} entry/version (ngoài ra có {bib_in_only_bib:,} entry thuộc {n_only_bib} version thuần `.bib`) |
+        scope_extra_rows = f"""| Version khảo sát có cả 2 nguồn (.bib trên đĩa và \\bibitem trong compile path) | {actual_both_versions} | {n_only_bib} version còn lại chỉ có `.bib` trong compile path (các `\\bibitem` nếu có chỉ nằm ở file ngoài compile path), {v_eval - actual_both_versions - n_only_bib} version `.bib` rỗng |
+| Entry thô từ file `.bib` (trong {actual_both_versions} version đối chứng) | {actual_both_bib:,} | Trung bình ~{(actual_both_bib / actual_both_versions):.1f} entry thô/version (ngoài ra có {bib_in_only_bib:,} entry thô thuộc {n_only_bib} version chỉ có `.bib` trong compile path) |
 | Entry từ `\\bibitem` (trong {actual_both_versions} version đối chứng) | {actual_both_bibitem:,} | Trung bình ~{(actual_both_bibitem / actual_both_versions):.1f} entry/version (tổng cộng 124 version là {tot_bibitem:,}) |
 """
 
@@ -431,7 +431,7 @@ def generate_concordance_markdown(stats: dict[str, Any], out_path: Path | str) -
 
     md = f"""# Đối chiếu reference từ `.bib` và `\\bibitem`
 
-Bộ dữ liệu gồm {tot_surveyed} version được prescan với `bib_style == "both"` trong dải 2503. Báo cáo ghép entry theo `citation_key`.
+Bộ dữ liệu gồm {tot_surveyed} version được prescan với `bib_style == "both"` trong dải 2503. Báo cáo ghép entry theo `citation_key` trên tập ứng viên giữa `\\bibitem` thuộc compile path và toàn bộ file `.bib` có trong thư mục version.
 
 ---
 
@@ -441,9 +441,9 @@ Bộ dữ liệu gồm {tot_surveyed} version được prescan với `bib_style 
 | :--- | :--- | :--- |
 | Version được khảo sát | {tot_surveyed} | `prescan_versions.csv`, nhãn `both` |
 | Version có thư mục trên đĩa | {v_eval} | {cov_note} |
-{scope_extra_rows}| Entry từ file `.bib` (toàn bộ khảo sát) | {tot_bib:,} | Trung bình {avg_bib:.1f} entry/version đã đánh giá |
+{scope_extra_rows}| Entry thô từ file `.bib` (toàn bộ khảo sát) | {tot_bib:,} | Tổng số entry thô đọc được (chưa khử trùng lặp key giữa các file `.bib`, ghi nhận lặp key ở 6 version; trung bình {avg_bib:.1f}/version) |
 | Entry từ `\\bibitem` (toàn bộ khảo sát) | {tot_bibitem:,} | Trung bình {avg_bibitem:.1f} entry/version đã đánh giá |
-| Cặp entry cùng `citation_key` | {n_pairs:,} | Dùng để tính mức độ khớp đối ứng |
+| Cặp entry cùng `citation_key` (tập ứng viên) | {n_pairs:,} | Ghép đối ứng heuristic giữa `\\bibitem` trong compile path và mọi file `.bib` trong version |
 
 ---
 
@@ -472,12 +472,13 @@ Trong {n_pairs:,} cặp cùng `citation_key`:
   1. *Đặc trưng định dạng nguồn*: Nhiều tạp chí (đặc biệt trong các lĩnh vực vật lý và toán học) in `\\bibitem` theo quy ước rút gọn, chỉ chứa tác giả, tên tạp chí, số tập, trang và năm mà hoàn toàn không in tên bài báo.
   2. *Giới hạn trích xuất của parser*: Việc bóc tách văn bản tự do phi cấu trúc bằng heuristic/regex gặp khó khăn trước các macro định dạng tùy biến lạ của tác giả. Vì vậy, {t_both:,} là số cặp mà parser lấy được, phản ánh độ phủ của công cụ chứ không phải toàn bộ số tiêu đề thực tế có trong văn bản.
 - **Quy tắc ưu tiên**: `collect_bib()` ưu tiên entry từ `.bib` khi hai nguồn có cùng `citation_key` vì `.bib` có đầy đủ tiêu đề và trường chuẩn hóa hơn.
-- **Phân định phạm vi**: Bảng này đo mức độ đồng thuận liên nguồn (Inter-source Concordance), không phải độ chính xác tuyệt đối (Ground Truth Accuracy) hay Precision/Recall của pipeline deduplication.
+- **Phân định phạm vi và tập ứng viên**: {n_pairs:,} cặp đối ứng được ghép giữa `\\bibitem` (trong compile path) và toàn bộ các entry từ mọi file `.bib` có trong thư mục version (kể cả file không được lệnh `\\bibliography` trực tiếp gọi). Đây là heuristic xây dựng **tập ứng viên (candidate pool)** phục vụ đo lường tương thích và chuẩn bị cho matching pool ở Milestone 3, không phải đối chiếu nghiêm ngặt giữa hai nguồn chắc chắn cùng được trình biên dịch TeX sử dụng đồng thời.
+- **Đồng thuận liên nguồn (Concordance)**: Bảng này đo mức độ đồng thuận liên nguồn giữa hai biểu diễn của cùng citation key, không phải độ chính xác tuyệt đối (Ground Truth Accuracy) hay Precision/Recall của pipeline deduplication.
 
 ## 4. Phân định phạm vi file `.bib` và kiểm tra độ nhạy
 
 - `\\bibitem` được trích xuất nghiêm ngặt từ các file `.tex` thuộc `compile_path` (qua `gather_detail`, loại bỏ hoàn toàn các file mồ côi hoặc template).
-- Nguồn `.bib` được khảo sát trên toàn bộ file `.bib` có trong thư mục version ({sens_total_disk} file, {tot_bib:,} entry).
+- Nguồn `.bib` được khảo sát trên toàn bộ file `.bib` có trong thư mục version ({sens_total_disk} file, {tot_bib:,} entry thô).
 - **Kiểm tra độ nhạy (Sensitivity Analysis)**: Trong số {sens_total_disk} file `.bib` trên đĩa của {v_eval} version khảo sát, các lệnh `\\bibliography` và `\\addbibresource` trong `compile_path` chứa {sens_bib_args} tham số gọi file. Trong đó có {sens_unres_args} tham số không resolve được thành file trên đĩa và {sens_res_files} file `.bib` riêng biệt được xác định trực tiếp từ compile path; {sens_unref_files} file `.bib` còn lại trên đĩa không được các lệnh trên trực tiếp gọi. Khi nộp bài lên arXiv, nhiều tác giả đã chèn sẵn môi trường `thebibliography` (từ file `.bbl` đã biên dịch) vào mã nguồn TeX và để lại file `.bib` trong gói nộp mà không còn lệnh `\\bibliography` hoạt động. Do đó, việc gom toàn bộ file `.bib` có mặt trong thư mục version là một heuristic thu thập ứng viên tối đa cho quá trình đối chiếu và phục vụ matching pool ở M3.
 
 ## 5. Block BibTeX lỗi cú pháp
