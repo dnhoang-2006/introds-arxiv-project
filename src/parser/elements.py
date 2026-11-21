@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 from typing import Any
 
 from .hierarchy import Node
@@ -12,6 +13,11 @@ KIND_CODE = {
     "subsubsection": "ssb", "paragraph": "par", "itemize": "itz",
     "item": "itm", "sentence": "snt", "formula": "eqn", "figure": "fig",
 }
+
+# Lá được phép dùng chung giữa nhiều cha trong cùng một version (đó chính là dedup
+# nội dung). Node KHÔNG phải lá định hình bộ khung nên phải là cây: lần xuất hiện
+# thứ 2 trở đi trong cùng một version nhận hậu tố ~k. Xem validator_m2.py V4.
+LEAF_KINDS = frozenset({"sentence", "formula", "figure"})
 
 
 def element_uid(pub_key: str, kind: str, clean_content: str) -> str:
@@ -46,8 +52,10 @@ def build_store(
     elements: dict[str, dict[str, Any]] = {}
     hierarchy: list[dict[str, Any]] = []
 
-    def add_element(kind: str, content: str) -> str:
+    def add_element(kind: str, content: str, occ_index: int = 1) -> str:
         eid = element_uid(pub_key, kind, content)
+        if occ_index > 1:
+            eid = f"{eid}~{occ_index}"
         elements[eid] = {"element_id": eid, "arxiv_id": arxiv_id,
                          "kind": kind, "content": content}
         return eid
@@ -60,10 +68,15 @@ def build_store(
 
         # Cùng một câu lặp lại dưới cùng một cha trong một version -> chỉ một cạnh.
         seen: set[tuple[str, str]] = set()
+        occ: Counter[str] = Counter()      # đếm lần xuất hiện của node không-lá
         stack: list[tuple[Node, str]] = [(c, root_id) for c in reversed(root.children)]
         while stack:                              # DFS tiền thứ tự, giữ thứ tự văn bản
             node, parent_id = stack.pop()
-            eid = add_element(node.kind, node.content)
+            k = 1
+            if node.kind not in LEAF_KINDS:
+                occ[element_uid(pub_key, node.kind, node.content)] += 1
+                k = occ[element_uid(pub_key, node.kind, node.content)]
+            eid = add_element(node.kind, node.content, k)
             if (eid, parent_id) not in seen:
                 seen.add((eid, parent_id))
                 hierarchy.append({"arxiv_id": arxiv_id, "version": version,

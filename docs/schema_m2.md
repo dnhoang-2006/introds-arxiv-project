@@ -88,6 +88,19 @@ def element_uid(pub_key: str, kind: str, clean_content: str) -> str:
     return f"{pub_key}#{KIND_CODE[kind]}_{h}"
 ```
 
+**`[QUYẾT ĐỊNH]` Lần xuất hiện thứ 2 trở đi của một node KHÔNG phải lá trong cùng
+một version nhận hậu tố `~k`** — ví dụ `2504-12530#sub_6893b09f~2`.
+
+Lý do: `hierarchy` phải là cây, mỗi node chứa chỉ được có một cha. Không có hậu tố
+thì hai `\subsubsection` trùng tiêu đề ở hai vị trí khác nhau ra cùng `element_id`
+rồi gắn với hai `parent_id`, biến cây thành đồ thị (validator V4 bắt lỗi này).
+
+Node **lá** (`sentence`, `formula`, `figure`) KHÔNG áp dụng: lá dùng chung giữa
+nhiều cha chính là dedup nội dung đang hoạt động đúng.
+
+Dedup xuyên version giữ nguyên vì lần thứ k ở v1 khớp lần thứ k ở v2. Đo trên
+5.000 bài trước khi sửa: 22.971/3.179.447 node (0,722%) có nhiều hơn một cha.
+
 Hàm thật nằm ở `src/parser/elements.py`. **Không ai tự nối chuỗi id** — luôn gọi `element_uid()`.
 
 **Vì sao băm nội dung thay vì đánh số tăng dần:** dedup xảy ra **tự động**. Hai version có cùng một
