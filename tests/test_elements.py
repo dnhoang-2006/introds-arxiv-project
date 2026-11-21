@@ -163,3 +163,35 @@ def test_end_to_end_with_build_tree():
     assert sum(e["element_id"] == bert for e in elements) == 1
     assert sum(h["element_id"] == bert for h in hierarchy) == 2
     assert sum(e["content"] == "New sentence." for e in elements) == 1
+
+
+def _tree_with_repeated_heading(tail: str) -> Node:
+    """Hai subsection cùng tiêu đề 'Remark' nằm dưới hai section khác nhau."""
+    return Node("document", "", [
+        Node("section", "A", [Node("subsection", "Remark", [Node("sentence", "Shared.")])]),
+        Node("section", "B", [Node("subsection", "Remark", [Node("sentence", tail)])]),
+    ])
+
+
+def test_repeated_nonleaf_in_same_version_gets_distinct_ids():
+    """V4: node không phải lá lặp trong CÙNG version -> ID riêng, không node nào 2 cha."""
+    _, hierarchy = build_store("2504-12530", "2504.12530",
+                               {1: _tree_with_repeated_heading("Old.")})
+    parents = {}
+    for h in hierarchy:
+        parents.setdefault(h["element_id"], set()).add(h["parent_id"])
+    multi = {k: v for k, v in parents.items() if len(v) > 1}
+    assert multi == {}, f"node có nhiều hơn một cha: {multi}"
+
+
+def test_repeated_nonleaf_matches_across_versions():
+    """Dedup xuyên version vẫn chạy: lần thứ k ở v1 khớp lần thứ k ở v2."""
+    elements, _ = build_store("2504-12530", "2504.12530",
+                              {1: _tree_with_repeated_heading("Old."),
+                               2: _tree_with_repeated_heading("New.")})
+    subs = sorted(e["element_id"] for e in elements if e["kind"] == "subsection")
+    assert len(subs) == 2, f"'Remark' phải thành đúng 2 element, gặp {subs}"
+    assert subs[1].endswith("~2"), f"lần thứ 2 phải có hậu tố ~2: {subs}"
+    # lá trùng nội dung vẫn gộp thành MỘT element
+    shared = [e for e in elements if e["content"] == "Shared."]
+    assert len(shared) == 1, f"lá 'Shared.' phải gộp thành 1 element, gặp {len(shared)}"
