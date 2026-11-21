@@ -52,7 +52,8 @@ KINDS = frozenset({
 LEAF_KINDS = frozenset({"sentence", "formula", "figure"})
 
 # Dạng id do elements.element_uid() sinh ra: 2310-12345#snt_a3f9c201
-_ID_SHAPE = re.compile(r"^[^#\s]+#(?:doc|sec|sub|ssb|par|itz|itm|snt|eqn|fig)_[0-9a-f]{8}$")
+# build_store() thêm hậu tố ~k (k >= 2) cho node không phải lá lặp lại trong cùng version.
+_ID_SHAPE = re.compile(r"^[^#\s]+#(?:doc|sec|sub|ssb|par|itz|itm|snt|eqn|fig)_[0-9a-f]{8}(?:~\d+)?$")
 
 CHECKS: dict[str, tuple[str, str, str]] = {
     "V1": ("one_root", "Mỗi version có đúng một gốc, kind document",
