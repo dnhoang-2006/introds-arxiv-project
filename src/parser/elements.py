@@ -14,12 +14,6 @@ KIND_CODE = {
     "item": "itm", "sentence": "snt", "formula": "eqn", "figure": "fig",
 }
 
-# Lá được phép dùng chung giữa nhiều cha trong cùng một version (đó chính là dedup
-# nội dung). Node KHÔNG phải lá định hình bộ khung nên phải là cây: lần xuất hiện
-# thứ 2 trở đi trong cùng một version nhận hậu tố ~k. Xem validator_m2.py V4.
-LEAF_KINDS = frozenset({"sentence", "formula", "figure"})
-
-
 def element_uid(pub_key: str, kind: str, clean_content: str) -> str:
     """2310-12345#snt_a3f9c201 — xem docs/schema_m2.md mục 2.
 
@@ -66,17 +60,19 @@ def build_store(
             raise ValueError(f"gốc của v{version} phải có kind='document', gặp {root.kind!r}")
         root_id = add_element("document", f"{arxiv_id}v{version}")
 
-        # Cùng một câu lặp lại dưới cùng một cha trong một version -> chỉ một cạnh.
+        # Chốt chặn: không bao giờ ghi hai cạnh trùng khít (V4 kiểm điều này).
         seen: set[tuple[str, str]] = set()
-        occ: Counter[str] = Counter()      # đếm lần xuất hiện của node không-lá
+        occ: Counter[str] = Counter()      # đếm lần xuất hiện trong version này
         stack: list[tuple[Node, str]] = [(c, root_id) for c in reversed(root.children)]
         while stack:                              # DFS tiền thứ tự, giữ thứ tự văn bản
             node, parent_id = stack.pop()
-            k = 1
-            if node.kind not in LEAF_KINDS:
-                occ[element_uid(pub_key, node.kind, node.content)] += 1
-                k = occ[element_uid(pub_key, node.kind, node.content)]
-            eid = add_element(node.kind, node.content, k)
+            # Đề quy định dedup chỉ áp dụng GIỮA các version. Hai lần xuất hiện
+            # khác nhau trong CÙNG một version là hai node khác nhau của cây, nên
+            # lần thứ 2 trở đi nhận hậu tố ~k — áp dụng cho mọi kind, kể cả lá.
+            # Lần thứ k ở v1 vẫn khớp lần thứ k ở v2, nên dedup xuyên version giữ nguyên.
+            base = element_uid(pub_key, node.kind, node.content)
+            occ[base] += 1
+            eid = add_element(node.kind, node.content, occ[base])
             if (eid, parent_id) not in seen:
                 seen.add((eid, parent_id))
                 hierarchy.append({"arxiv_id": arxiv_id, "version": version,
