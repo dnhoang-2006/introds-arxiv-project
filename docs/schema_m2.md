@@ -88,18 +88,19 @@ def element_uid(pub_key: str, kind: str, clean_content: str) -> str:
     return f"{pub_key}#{KIND_CODE[kind]}_{h}"
 ```
 
-**`[QUYẾT ĐỊNH]` Lần xuất hiện thứ 2 trở đi của một node KHÔNG phải lá trong cùng
-một version nhận hậu tố `~k`** — ví dụ `2504-12530#sub_6893b09f~2`.
+**`[QUYẾT ĐỊNH]` Lần xuất hiện thứ 2 trở đi của một node trong cùng một version
+nhận hậu tố `~k`** — ví dụ `2504-12530#sub_6893b09f~2`. Áp dụng cho MỌI kind.
 
-Lý do: `hierarchy` phải là cây, mỗi node chứa chỉ được có một cha. Không có hậu tố
-thì hai `\subsubsection` trùng tiêu đề ở hai vị trí khác nhau ra cùng `element_id`
-rồi gắn với hai `parent_id`, biến cây thành đồ thị (validator V4 bắt lỗi này).
+Lý do: đề quy định dedup chỉ áp dụng GIỮA các version ("both levels operate
+across versions"). Hai lần xuất hiện khác nhau trong CÙNG một version là hai node
+khác nhau của cây, nên phải có ID riêng — nếu gộp, `hierarchy` thành đồ thị chứ
+không còn là "hierarchical tree structure" như đề yêu cầu.
 
-Node **lá** (`sentence`, `formula`, `figure`) KHÔNG áp dụng: lá dùng chung giữa
-nhiều cha chính là dedup nội dung đang hoạt động đúng.
+Dedup xuyên version giữ nguyên: lần thứ k ở v1 khớp lần thứ k ở v2.
 
-Dedup xuyên version giữ nguyên vì lần thứ k ở v1 khớp lần thứ k ở v2. Đo trên
-5.000 bài trước khi sửa: 22.971/3.179.447 node (0,722%) có nhiều hơn một cha.
+*Giới hạn đã biết:* việc ghép theo thứ tự xuất hiện có thể ghép nhầm nếu version
+sau đảo thứ tự các mục trùng tên. Hệ quả nhỏ vì nội dung hai mục giống hệt nhau
+nên dòng `elements` ra như nhau; xem `test_occurrence_pairing_follows_document_order`.
 
 Hàm thật nằm ở `src/parser/elements.py`. **Không ai tự nối chuỗi id** — luôn gọi `element_uid()`.
 

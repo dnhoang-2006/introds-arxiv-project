@@ -195,3 +195,39 @@ def test_repeated_nonleaf_matches_across_versions():
     # lá trùng nội dung vẫn gộp thành MỘT element
     shared = [e for e in elements if e["content"] == "Shared."]
     assert len(shared) == 1, f"lá 'Shared.' phải gộp thành 1 element, gặp {len(shared)}"
+
+def test_repeated_leaf_in_same_version_also_gets_distinct_ids():
+    tree = Node("document", "", [
+        Node("section", "A", [Node("sentence", "Shared.")]),
+        Node("section", "B", [Node("sentence", "Shared.")]),
+    ])
+    _, hierarchy = build_store("2504-12530", "2504.12530", {1: tree})
+    parents = {}
+    for h in hierarchy:
+        parents.setdefault(h["element_id"], set()).add(h["parent_id"])
+    assert all(len(v) == 1 for v in parents.values()), \
+        f"hierarchy phải là cây, không node nào hai cha: {parents}"
+
+
+def test_occurrence_pairing_follows_document_order_not_logical_identity():
+    v1 = Node("document", "", [
+        Node("section", "A", [Node("subsection", "Remark", [Node("sentence", "alpha")])]),
+        Node("section", "B", [Node("subsection", "Remark", [Node("sentence", "beta")])]),
+    ])
+    v2 = Node("document", "", [          # đảo thứ tự hai section
+        Node("section", "B", [Node("subsection", "Remark", [Node("sentence", "beta")])]),
+        Node("section", "A", [Node("subsection", "Remark", [Node("sentence", "alpha")])]),
+    ])
+    elements, hierarchy = build_store("2504-12530", "2504.12530", {1: v1, 2: v2})
+
+    # vẫn là cây ở cả hai version
+    for version in (1, 2):
+        parents = {}
+        for h in hierarchy:
+            if h["version"] == version:
+                parents.setdefault(h["element_id"], set()).add(h["parent_id"])
+        assert all(len(v) == 1 for v in parents.values())
+
+    # 'Remark' vẫn chỉ sinh đúng 2 element dù xuất hiện 4 lần trên 2 version
+    remarks = {e["element_id"] for e in elements if e["content"] == "Remark"}
+    assert len(remarks) == 2, f"phải đúng 2 element 'Remark', gặp {sorted(remarks)}"
