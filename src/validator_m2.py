@@ -11,7 +11,8 @@ Sáu phép kiểm
     V4 edges_kinds     kind hợp lệ; cạnh không trùng; lá không làm cha; `document` chỉ là gốc;
                        node không phải lá chỉ có MỘT cha trong một version
     V5 elements        file đọc được; element_id duy nhất, đúng tiền tố `pub_key#`;
-                       arxiv_id là bản gốc; không có hai hàng cùng (kind, content);
+                       arxiv_id là bản gốc; nội dung trùng chỉ được tách ID theo hậu tố ~k
+                       với node không phải lá lặp trong cùng version;
                        dedup hiệu quả giữa các version
     V6 version_cover   mọi version 1..n_versions có cây, hoặc là bản ghi rỗng đúng mục 6
 
@@ -41,8 +42,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import config  # noqa: E402
 from validator import Issue, write_report  # noqa: E402  (dùng lại Issue và ghi báo cáo của M1)
+from parser.elements import element_uid  # noqa: E402  (dùng cùng quy tắc sinh ID với parser)
 
-VALIDATOR_M2_VERSION = "1.0"
+VALIDATOR_M2_VERSION = "1.1"
 
 # docs/schema_m2.md mục 3: đúng 10 giá trị, không thêm không bớt
 KINDS = frozenset({
@@ -51,9 +53,15 @@ KINDS = frozenset({
 })
 LEAF_KINDS = frozenset({"sentence", "formula", "figure"})
 
-# Dạng id do elements.element_uid() sinh ra: 2310-12345#snt_a3f9c201
-# build_store() thêm hậu tố ~k (k >= 2) cho node không phải lá lặp lại trong cùng version.
-_ID_SHAPE = re.compile(r"^[^#\s]+#(?:doc|sec|sub|ssb|par|itz|itm|snt|eqn|fig)_[0-9a-f]{8}(?:~\d+)?$")
+# Dạng ID do element_uid() sinh ra; build_store() chỉ thêm ~k (k >= 2) cho node không lá.
+_ID_SHAPE = re.compile(
+    r"^[^#\s]+#(?:"
+    r"(?:doc|snt|eqn|fig)_[0-9a-f]{8}|"
+    r"(?:sec|sub|ssb|par|itz|itm)_[0-9a-f]{8}(?:~(?:[2-9]|[1-9]\d+))?"
+    r")$"
+)
+_REPEATABLE_NONLEAF_KINDS = frozenset({"section", "subsection", "subsubsection",
+                                      "paragraph", "itemize", "item"})
 
 CHECKS: dict[str, tuple[str, str, str]] = {
     "V1": ("one_root", "Mỗi version có đúng một gốc, kind document",
@@ -65,8 +73,9 @@ CHECKS: dict[str, tuple[str, str, str]] = {
                           "node không phải lá chỉ có một cha trong một version",
            "schema_m2 mục 3: 10 giá trị kind; đề: lá là sentence, formula, figure"),
     "V5": ("elements", "File đọc được; element_id duy nhất, đúng tiền tố pub_key#, arxiv_id bản gốc, "
-                       "không có hai hàng cùng (kind, content)",
-           "đề: nội dung khớp giữa các version chiếm một hàng duy nhất"),
+                       "nội dung trùng chỉ được tách ID ~k cho node không lá lặp trong cùng version",
+           "đề: nội dung khớp giữa các version dùng chung ID; schema_m2 mục 2: node không lá lặp trong "
+           "cùng version nhận hậu tố ~k để giữ cây"),
     "V6": ("version_cover", "Mọi version 1..n_versions có cây hoặc là bản ghi rỗng đúng quy ước",
            "đề: ghi version rỗng, không bỏ qua; schema_m2 mục 6"),
 }
@@ -191,10 +200,41 @@ class ValidatorM2:
         for eid, row in elem.items():
             if isinstance(row.get("content"), str):
                 by_content[(row.get("kind"), row["content"])].append(eid)
+        suffixed_content_groups: list[tuple[str, list[str], str, str]] = []
         for (kind, content), ids in by_content.items():
-            if len(ids) > 1:
+            if len(ids) <= 1:
+                continue
+
+            # build_store() must split repeated non-leaf occurrences within a version
+            # into base, ~2, ~3, ... IDs. These rows intentionally share content; they
+            # are still deduplicated across versions by occurrence index.
+            valid_occurrence_ids = kind in _REPEATABLE_NONLEAF_KINDS and isinstance(content, str)
+            if valid_occurrence_ids:
+                base_id = element_uid(pub_key, kind, content)
+                suffixes: list[int] = []
+                for eid in ids:
+                    if eid == base_id:
+                        continue
+                    match = re.fullmatch(re.escape(base_id) + r"~([2-9]|[1-9]\d+)", eid)
+                    if not match:
+                        valid_occurrence_ids = False
+                        break
+                    suffixes.append(int(match.group(1)))
+                if valid_occurrence_ids:
+                    suffixes.sort()
+                    valid_occurrence_ids = (
+                        base_id in ids
+                        and suffixes == list(range(2, len(ids) + 1))
+                    )
+                    if valid_occurrence_ids:
+                        suffixed_content_groups.append(
+                            (base_id, [eid for eid in ids if eid != base_id], kind, content)
+                        )
+
+            if not valid_occurrence_ids:
                 err("V5", None, f"{len(ids)} hàng elements cùng (kind={kind}, content="
-                                f"{content[:40]!r}): {_sample(ids)}. Nội dung khớp phải chiếm một hàng")
+                                f"{str(content)[:40]!r}): {_sample(ids)}. Chỉ node không lá lặp trong "
+                                f"cùng version mới được tách ID theo hậu tố ~2, ~3, ...")
 
         # ---------------- bảng hierarchy ----------------------------------- #
         by_version: dict[int, list[tuple[str, str]]] = defaultdict(list)
@@ -211,6 +251,23 @@ class ValidatorM2:
             elif row.get("arxiv_id") != arxiv_id:
                 err("V5", v, f"cạnh có arxiv_id {row.get('arxiv_id')!r}, phải là '{arxiv_id}' (bản gốc)")
             by_version[v].append((child, parent))
+
+        # A ~k row is justified only if that occurrence and its base occurrence
+        # are both present in at least one version's hierarchy.
+        children_by_version = {
+            v: {child for child, _ in edges} for v, edges in by_version.items()
+        }
+        for base_id, suffixed_ids, kind, content in suffixed_content_groups:
+            unsupported = [
+                eid for eid in suffixed_ids
+                if not any(
+                    base_id in children and eid in children
+                    for children in children_by_version.values()
+                )
+            ]
+            if unsupported:
+                err("V5", None, f"(kind={kind}, content={content[:40]!r}): hậu tố ~k không được "
+                                f"dùng chung version với ID gốc {base_id}: {_sample(unsupported)}")
 
         # ---------------- V5: dedup hiệu quả giữa các version --------------- #
         if len(by_version) > 1:
