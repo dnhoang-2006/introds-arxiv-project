@@ -88,13 +88,22 @@ def element_uid(pub_key: str, kind: str, clean_content: str) -> str:
     return f"{pub_key}#{KIND_CODE[kind]}_{h}"
 ```
 
-**`[QUYẾT ĐỊNH]` Lần xuất hiện thứ 2 trở đi của một node trong cùng một version
-nhận hậu tố `~k`** — ví dụ `2504-12530#sub_6893b09f~2`. Áp dụng cho MỌI kind.
+**`[QUYẾT ĐỊNH]` Lần xuất hiện thứ 2 trở đi của một node KHÔNG PHẢI LÁ trong cùng
+một version nhận hậu tố `~k`** — ví dụ `2504-12530#sub_6893b09f~2`. Node lá
+(`sentence`, `formula`, `figure`) KHÔNG nhận hậu tố và được dùng chung giữa nhiều cha.
 
 Lý do: đề quy định dedup chỉ áp dụng GIỮA các version ("both levels operate
-across versions"). Hai lần xuất hiện khác nhau trong CÙNG một version là hai node
-khác nhau của cây, nên phải có ID riêng — nếu gộp, `hierarchy` thành đồ thị chứ
-không còn là "hierarchical tree structure" như đề yêu cầu.
+across versions"), nên cách xử lý trùng lặp TRONG một version là lựa chọn của nhóm.
+Nhóm chọn tách ở các node chứa và gộp ở tầng lá:
+
+- Node chứa (`section`, `subsection`, `item`, …) định hình bộ khung. Nếu gộp thì một
+  mục sẽ có hai cha và `hierarchy` không còn là "hierarchical tree structure" như đề
+  yêu cầu. Vậy phải tách.
+- Node lá là nơi dedup nội dung có giá trị thật: một câu lặp lại nên chiếm đúng một
+  dòng `elements`. Vậy gộp.
+
+Hệ quả: `hierarchy` là **cây ở các node chứa và DAG ở tầng lá**. Validator V4 kiểm
+đúng tính chất này (chỉ báo lỗi khi node không-lá có nhiều cha; lá nhiều cha là cảnh báo).
 
 Dedup xuyên version giữ nguyên: lần thứ k ở v1 khớp lần thứ k ở v2.
 
