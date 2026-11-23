@@ -14,6 +14,12 @@ KIND_CODE = {
     "item": "itm", "sentence": "snt", "formula": "eqn", "figure": "fig",
 }
 
+# QUY ƯỚC NHÓM (chốt 23/11): node LÁ được phép dùng chung giữa nhiều cha trong cùng
+# một version — đó chính là dedup nội dung. Node KHÔNG phải lá định hình bộ khung
+# nên phải là cây: lần xuất hiện thứ 2 trở đi trong cùng version nhận hậu tố ~k.
+# Hệ quả: hierarchy là cây ở các node chứa, và là DAG ở tầng lá.
+LEAF_KINDS = frozenset({"sentence", "formula", "figure"})
+
 def element_uid(pub_key: str, kind: str, clean_content: str) -> str:
     """2310-12345#snt_a3f9c201 — xem docs/schema_m2.md mục 2.
 
@@ -62,17 +68,17 @@ def build_store(
 
         # Chốt chặn: không bao giờ ghi hai cạnh trùng khít (V4 kiểm điều này).
         seen: set[tuple[str, str]] = set()
-        occ: Counter[str] = Counter()      # đếm lần xuất hiện trong version này
+        occ: Counter[str] = Counter()      # đếm lần xuất hiện của node không-lá
         stack: list[tuple[Node, str]] = [(c, root_id) for c in reversed(root.children)]
         while stack:                              # DFS tiền thứ tự, giữ thứ tự văn bản
             node, parent_id = stack.pop()
-            # Đề quy định dedup chỉ áp dụng GIỮA các version. Hai lần xuất hiện
-            # khác nhau trong CÙNG một version là hai node khác nhau của cây, nên
-            # lần thứ 2 trở đi nhận hậu tố ~k — áp dụng cho mọi kind, kể cả lá.
-            # Lần thứ k ở v1 vẫn khớp lần thứ k ở v2, nên dedup xuyên version giữ nguyên.
+            # Lần thứ k ở v1 khớp lần thứ k ở v2, nên dedup xuyên version giữ nguyên.
             base = element_uid(pub_key, node.kind, node.content)
-            occ[base] += 1
-            eid = add_element(node.kind, node.content, occ[base])
+            k = 1
+            if node.kind not in LEAF_KINDS:
+                occ[base] += 1
+                k = occ[base]
+            eid = add_element(node.kind, node.content, k)
             if (eid, parent_id) not in seen:
                 seen.add((eid, parent_id))
                 hierarchy.append({"arxiv_id": arxiv_id, "version": version,

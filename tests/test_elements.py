@@ -196,17 +196,22 @@ def test_repeated_nonleaf_matches_across_versions():
     shared = [e for e in elements if e["content"] == "Shared."]
     assert len(shared) == 1, f"lá 'Shared.' phải gộp thành 1 element, gặp {len(shared)}"
 
-def test_repeated_leaf_in_same_version_also_gets_distinct_ids():
+def test_leaf_may_be_shared_within_one_version():
+    """QUY ƯỚC NHÓM (chốt 23/11): lá dùng chung nhiều cha trong cùng một version.
+
+    Đề chỉ yêu cầu dedup GIỮA các version, nên gộp trong cùng version là lựa chọn
+    của nhóm, không phải yêu cầu của đề. Hệ quả: hierarchy là cây ở các node chứa
+    và là DAG ở tầng lá. Validator V4 coi đây là hợp lệ (chỉ cảnh báo).
+    """
     tree = Node("document", "", [
         Node("section", "A", [Node("sentence", "Shared.")]),
         Node("section", "B", [Node("sentence", "Shared.")]),
     ])
-    _, hierarchy = build_store("2504-12530", "2504.12530", {1: tree})
-    parents = {}
-    for h in hierarchy:
-        parents.setdefault(h["element_id"], set()).add(h["parent_id"])
-    assert all(len(v) == 1 for v in parents.values()), \
-        f"hierarchy phải là cây, không node nào hai cha: {parents}"
+    elements, hierarchy = build_store("2504-12530", "2504.12530", {1: tree})
+    shared = [e for e in elements if e["content"] == "Shared."]
+    assert len(shared) == 1, f"lá trùng nội dung phải gộp thành 1 element, gặp {len(shared)}"
+    edges = [h for h in hierarchy if h["element_id"] == shared[0]["element_id"]]
+    assert len(edges) == 2, "lá dùng chung phải có đủ cạnh tới cả hai cha"
 
 
 def test_occurrence_pairing_follows_document_order_not_logical_identity():
