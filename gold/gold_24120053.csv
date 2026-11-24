@@ -1,0 +1,165 @@
+arxiv_id,version,status,gold_node_id,parent_gold_node_id,kind,content,source_file
+2507.10558,1,empty,,,,,
+2507.11361,1,empty,,,,,
+2507.11361,2,empty,,,,,
+2507.11361,3,empty,,,,,
+2507.11361,4,empty,,,,,
+2507.11361,5,empty,,,,,
+2507.07180,1,ok,v1-root,,document,2507.07180v1,main.tex
+2507.07180,1,ok,v1-s1,v1-root,section,Introduction,main.tex
+2507.07180,1,ok,v1-s1-n1,v1-s1,sentence,The nature of the neutrino as Dirac or Majorana is one of the most important open questions in neutrino physics.,main.tex
+2507.07180,1,ok,v1-s1-n2,v1-s1,sentence,"Are the neutrinos Dirac fermions with conservation of lepton number, or Majorana fermions with lepton number violated?",main.tex
+2507.07180,1,ok,v1-s1-n3,v1-s1,sentence,"Answering this question is extremely challenging since any known difference between Dirac and Majorana neutrinos in a physical observable, within the Standard Model~(SM) framework, is suppressed by the neutrino mass scale -- which is smaller than one millionth of the mass of the electron.",main.tex
+2507.07180,1,ok,v1-s1-n4,v1-s1,sentence,"This is the Dirac-Majorana confusion theorem (DMCT), first presented by Kayser and Shrock in ref.~\cite{Kayser:1982br} and ref.~\cite{Shrock:1982sc}, respectively.",main.tex
+2507.07180,1,ok,v1-s1-n5,v1-s1,sentence,"For this theorem, there is not presently a general, model-independent and process-independent proof.",main.tex
+2507.07180,1,ok,v1-s1-n6,v1-s1,sentence,"The quest to shed light on the nature of the neutrino motivates searching for processes that could violate the DMCT, and make distinguishing Dirac from Majorana more experimentally accessible.",main.tex
+2507.07180,1,ok,v1-s1-n7,v1-s1,sentence,"For processes which violate lepton number, and are zero otherwise, consistency with the DMCT follows from the neutrino mass as a spurion of symmetry breaking -- for example, neutrinoless double beta decay~\cite{Schechter:1981bd,Nieves:1984sn,Takasugi:1984xr, kayser1987proc,Rosen:1992qa}.",main.tex
+2507.07180,1,ok,v1-s1-n8,v1-s1,sentence,"However, in processes involving multiple final-state neutrinos as well as addition observable particles, it has been proposed that differences in the quantum statistics of Dirac and Majorana neutrinos could give rise to correlations of the observable particles that are not subject to this suppression.",main.tex
+2507.07180,1,ok,v1-s1-n9,v1-s1,sentence,"For example, in a recent sequence of papers~\cite{Kim:2021dyj,Kim:2023iwz, Kim:2024tsm} the authors claim to have discovered a violation of the DMCT in $B_0$ decays to two charged leptons and two neutrinos.",main.tex
+2507.07180,1,ok,v1-s1-n10,v1-s1,sentence,"This claim has been disputed in ref.~\cite{Akhmedov:2024qpr}, giving general arguments that the above violation of the DMCT is not physical.",main.tex
+2507.07180,1,ok,v1-s1-n11,v1-s1,sentence,"In this work, we revisit the impact of quantum statistics on decays to two-neutrino final states together with additional charged leptons using spinor helicity techniques.",main.tex
+2507.07180,1,ok,v1-s1-n12,v1-s1,sentence,"Notably, the DMCT applies to interactions within the framework of the SM, where left-chiral neutrinos interact only via the electroweak force, and right-chiral neutrinos are sterile.",main.tex
+2507.07180,1,ok,v1-s1-n13,v1-s1,sentence,The chiral nature of the SM electroweak interactions make spinor-helicity techniques particularly suited to this application.,main.tex
+2507.07180,1,ok,v1-s1-n14,v1-s1,sentence,"In this work, we use massive spinor helicity formalism, in which massive spinors can be constructed as a sum of massless spinors with shifted momenta -- a framework introduced by Mahlon and Parke in ref.~\cite{Mahlon:1995zn} for calculating top-quark angular correlations.",main.tex 
+2507.07180,1,ok,v1-s1-n15,v1-s1,sentence,"For massless spinors, helicity and chirality are equivalent, and thus tree-level calculations of processes involving chiral interactions are notably simplified.",main.tex
+2507.07180,1,ok,v1-s1-n16,v1-s1,sentence,"While the greatest gain in computational efficiency arises for processes involving chiral interactions, the methodology introduced here for neutrino final-state calculations is not limited to such cases, and can be readily extended to frameworks beyond the Standard Model (BSM).",main.tex
+2507.07180,1,ok,v1-s1-n17,v1-s1,sentence,"In this work, we primarily highlight a demonstrative example of decays into multi-neutrino final states.",main.tex 
+2507.07180,1,ok,v1-s1-n18,v1-s1,sentence,"This is the decay of a neutral scalar particle, with a mass roughly that of the $B_0$ meson, into two charged leptons and two neutrinos via off-shell $W$ bosons.",main.tex 
+2507.07180,1,ok,v1-s1-n19,v1-s1,sentence,"We consider the cases of Dirac and Majorana neutrinos, with particular emphasis on the phases of the spinors so as to calculate the Majorana amplitudes from Dirac amplitudes with correct, physical, anti-symmetrization.",main.tex 
+2507.07180,1,ok,v1-s1-n20,v1-s1,sentence,"We explicitly give the Dirac and Majorana amplitudes for each spin configuration, and their square.",main.tex 
+2507.07180,1,ok,v1-s1-n21,v1-s1,sentence,"We show that mathematically there are two ways to construct this anti-symmetrization: one that leads to a set of amplitudes that make consistent physics sense, and the other leads to a set of amplitudes with pathologies that make them unphysical.",main.tex 
+2507.07180,1,ok,v1-s1-n22,v1-s1,sentence,Elucidating the physical distinction between these two choices is particular clear using the spinor helicity formalism evaluated in the helicity basis.,main.tex
+2507.07180,1,ok,v1-s1-n23,v1-s1,sentence,The outline of this paper is as follows.,main.tex 
+2507.07180,1,ok,v1-s1-n24,v1-s1,sentence,"In Section~\ref{sec:Spinors}, we give a brief summary of the spinor-helicity method for massive fermions, before proceeding to Section~\ref{sec:Scalar} where we discuss light neutral scalar decay.",main.tex
+2507.07180,1,ok,v1-s1-n25,v1-s1,sentence,"In Section~\ref{sec:Dir} we give the four independent amplitudes for our scalar particle decay assuming the neutrinos are Dirac fermions, their square and sum over the spins, assuming the charged leptons are massless for simplicity.",main.tex 
+2507.07180,1,ok,v1-s1-n26,v1-s1,sentence,"In Section~\ref{sec:AntiS}, anti-symmetrization possibilities of the Dirac amplitudes to form Majorana amplitudes are discussed, and the physical anti-symmetrization is used in Section~\ref{sec:Maj} to construct a set of three independent amplitudes.",main.tex 
+2507.07180,1,ok,v1-s1-n27,v1-s1,sentence,"The phenomenology and the difference between Dirac and Majorana neutrinos is discussed in Section~\ref{sec:Pheno}, concluding that the DMCT is not violated in these decays.",main.tex 
+2507.07180,1,ok,v1-s1-n28,v1-s1,sentence,In Section~\ref{sec:CLMass} we show that considering charged leptons with non-zero mass does not change the conclusions above.,main.tex
+2507.07180,1,ok,v1-s1-n29,v1-s1,sentence,"In Section~\ref{sec:b0decay} we explicitly apply the results above to the case of $B_0$ leptonic decays, and in Section~\ref{sec:BSM} briefly discuss how BSM physics can change this picture.",main.tex 
+2507.07180,1,ok,v1-s1-n30,v1-s1,sentence,"We conclude in Section~\ref{sec:Concl}, and also include a selection of appendices that highlight more detailed aspects of our methods, arguments, and confirmation of techniques.",main.tex
+2507.07180,1,ok,v1-s2,v1-root,section,Spinor-Helicity Technics for Massive Dirac or Majorana Fermions,main.tex
+2507.07180,1,ok,v1-s3,v1-root,section,Light Scalar Decay as an Instructive Example,main.tex
+2507.07180,1,ok,v1-ss1,v1-s3,subsection,Massive Dirac Neutrinos,main.tex
+2507.07180,1,ok,v1-ss2,v1-s3,subsection,Anti-symmetrization to form Majorana Amplitudes,main.tex
+2507.07180,1,ok,v1-ss3,v1-s3,subsection,Massive Majorana Neutrinos,main.tex
+2507.07180,1,ok,v1-ss4,v1-s3,subsection,Comparison of the Dirac and Majorana cases,main.tex
+2507.07180,1,ok,v1-ss5,v1-s3,subsection,Adding Masses to the Charged Leptons,main.tex
+2507.07180,1,ok,v1-s4,v1-root,section,Application to $B_0$ decay,main.tex
+2507.07180,1,ok,v1-s5,v1-root,section,Beyond Standard Model Interactions,main.tex
+2507.07180,1,ok,v1-s6,v1-root,section,Conclusions,main.tex
+2507.07180,1,ok,v1-itz1,v1-s6,itemize,,main.tex
+2507.07180,1,ok,v1-itm1,v1-itz1,item,"For a Dirac amplitude which is not helicity suppressed, such as $L_1\overlineR_2$, the anti-symmetrized is with a Dirac",main.tex
+2507.07180,1,ok,v1-itm2,v1-itz1,item,"For a Dirac amplitude that is singly helicity suppressed, such as $L_1\overlineL_2$, the anti-symmetrized is with anothe",main.tex
+2507.07180,1,ok,v1-s7,v1-root,section,Technical Appendices,main.tex
+2507.07180,1,ok,v1-ss6,v1-s7,subsection,A Full Set of Spinors,main.tex
+2507.07180,1,ok,v1-ss7,v1-s7,subsection,A Technical Argument Against Anti-symmetrization Option B,main.tex
+2507.07180,1,ok,v1-ss8,v1-s7,subsection,Different Bases,main.tex
+2507.07180,1,ok,v1-s8,v1-root,section,Application to $e^+e^- \rightarrow NN$,main.tex
+2507.07768,1,ok,v1-root,,document,2507.07768v1,neurips_2025.tex
+2507.07768,1,ok,v1-s1,v1-root,section,Introduction,neurips_2025.tex
+2507.07768,1,ok,v1-itz1,v1-s1,itemize,,neurips_2025.tex
+2507.07768,1,ok,v1-itm1,v1-itz1,item,"We identify and empirically validate the asymmetric suppression of non-robust features across classes. Specifically, we",neurips_2025.tex
+2507.07768,1,ok,v1-itm2,v1-itz1,item,We also empirically analyze the difference between targeted and untargeted adversarial training to study the influence o,neurips_2025.tex
+2507.07768,1,ok,v1-itm3,v1-itz1,item,"We propose TRIX, a fairness-aware adversarial training method that dynamically assigns either targeted or untargeted adv",neurips_2025.tex
+2507.07768,1,ok,v1-itm4,v1-itz1,item,"Experiments on CIFAR-10, CIFAR-100, and STL-10 show that TRIX significantly improves worst-class accuracy and inter-clas",neurips_2025.tex
+2507.07768,1,ok,v1-s2,v1-root,section,Preliminaries,neurips_2025.tex
+2507.07768,1,ok,v1-p1,v1-s2,paragraph,Adversarial Training with Targeted and Untargeted Objectives.,neurips_2025.tex
+2507.07768,1,ok,v1-s3,v1-root,section,Related Work,neurips_2025.tex
+2507.07768,1,ok,v1-p2,v1-s3,paragraph,Fairness in Adversarial Training.,neurips_2025.tex
+2507.07768,1,ok,v1-s4,v1-root,section,Empirical Analysis,neurips_2025.tex
+2507.07768,1,ok,v1-p3,v1-s4,paragraph,Impact of Attack Strength.,neurips_2025.tex
+2507.07768,1,ok,v1-p4,v1-s4,paragraph,Targeted vs. Untargeted Adversarial Training.,neurips_2025.tex
+2507.07768,1,ok,v1-s5,v1-root,section,Adversarially Fair TRADES via Mixed Adversarial Training,neurips_2025.tex
+2507.07768,1,ok,v1-p5,v1-s5,paragraph,Adaptive Class Weights via Feature Similarity.,neurips_2025.tex
+2507.07768,1,ok,v1-p6,v1-s5,paragraph,Mixed TRADES Loss with Adaptive Targeting.,neurips_2025.tex
+2507.07768,1,ok,v1-p7,v1-s5,paragraph,Final Training Objective.,neurips_2025.tex
+2507.07768,1,ok,v1-s6,v1-root,section,Experiments,neurips_2025.tex
+2507.07768,1,ok,v1-p8,v1-s6,paragraph,Datasets and Baseline Details.,neurips_2025.tex
+2507.07768,1,ok,v1-p9,v1-s6,paragraph,"Hyperparameters, Implementation Details and Metrics.",neurips_2025.tex
+2507.07768,1,ok,v1-p10,v1-s6,paragraph,Adversarial Fairness Performance.,neurips_2025.tex
+2507.07768,1,ok,v1-p11,v1-s6,paragraph,Design Choices of TRIX.,neurips_2025.tex
+2507.07768,1,ok,v1-s7,v1-root,section,Conclusion,neurips_2025.tex
+2507.07768,1,ok,v1-p12,v1-s7,paragraph,Limitations.,neurips_2025.tex
+2507.07768,1,ok,v1-s8,v1-root,section,Appendix,neurips_2025.tex
+2507.07768,1,ok,v1-ss1,v1-s8,subsection,Algorithm of TRIX,neurips_2025.tex
+2507.07768,1,ok,v1-p13,v1-ss1,paragraph,TRIX Algorithmic Overview.,neurips_2025.tex
+2507.07768,1,ok,v1-ss2,v1-s8,subsection,Additional Implementation and Experimental Details,neurips_2025.tex
+2507.07768,1,ok,v1-ss3,v1-s8,subsection,Additional Experiments,neurips_2025.tex
+2507.07768,1,ok,v1-sss1,v1-ss3,subsubsection,Experiments on Different Architectures,neurips_2025.tex
+2507.07768,1,ok,v1-sss2,v1-ss3,subsubsection,Experiments on Tiny-ImageNet,neurips_2025.tex
+2507.07768,1,ok,v1-ss4,v1-s8,subsection,Ablation Studies,neurips_2025.tex
+2507.07768,1,ok,v1-sss3,v1-ss4,subsubsection,Ablations with Different Data Augmentations,neurips_2025.tex
+2507.07768,1,ok,v1-ss5,v1-s8,subsection,Theoretical Analysis,neurips_2025.tex
+2507.07768,1,ok,v1-itz2,v1-ss5,itemize,,neurips_2025.tex
+2507.07768,1,ok,v1-itm5,v1-itz2,item,"The One-vs-All (OvA) classifier scheme resembles defense against untargeted adversaries, which push a class away from al",neurips_2025.tex
+2507.07768,1,ok,v1-itm6,v1-itz2,item,"The One-vs-One (OvO) classifier scheme mimics the defense against targeted adversaries, which separate one class from an",neurips_2025.tex
+2507.07768,1,ok,v1-itz3,v1-ss5,itemize,,neurips_2025.tex
+2507.07768,1,ok,v1-itm7,v1-itz3,item,"Any One-vs-One (OvO) classifier trained on class pair $(i,j)$ with margin $R > 0$ requires weight magnitude of order $\m",neurips_2025.tex
+2507.07768,1,ok,v1-itm8,v1-itz3,item,"Any One-vs-All (OvA) classifier for class $i$, separating it from all other classes with margin $R$, requires weight mag",neurips_2025.tex
+2507.07768,1,ok,v1-itm9,v1-itz3,item,"Consequently, TRIX's use of OvA-style untargeted losses for weak classes, paired with higher weighting, ensures broad se",neurips_2025.tex
+2507.07768,1,ok,v1-p14,v1-ss5,paragraph,1. OvO Scheme.,neurips_2025.tex
+2507.07768,1,ok,v1-p15,v1-ss5,paragraph,2. OvA Scheme.,neurips_2025.tex
+2507.07768,1,ok,v1-p16,v1-ss5,paragraph,3. Implication for TRIX.,neurips_2025.tex
+2507.07768,1,ok,v1-itz4,v1-p16,itemize,,neurips_2025.tex
+2507.07768,1,ok,v1-itm10,v1-itz4,item,"OvA-style (untargeted) adversarial training with higher weights for weak or confused classes, ensuring they are pushed a",neurips_2025.tex
+2507.07768,1,ok,v1-itm11,v1-itz4,item,"OvO-style (targeted) adversarial training with lower weights for strong classes, since they only require refinement agai",neurips_2025.tex
+2507.07768,1,ok,v1-p17,v1-ss5,paragraph,Conclusion.,neurips_2025.tex
+2507.07768,1,ok,v1-ss6,v1-s8,subsection,Feature Space Coverage,neurips_2025.tex
+2507.07768,1,ok,v1-s9,v1-root,section,NeurIPS Paper Checklist,neurips_2025.tex
+2507.07768,1,ok,v1-itz5,v1-s9,itemize,,neurips_2025.tex
+2507.07768,1,ok,v1-itm12,v1-itz5,item,\bf Claims,neurips_2025.tex
+2507.07768,1,ok,v1-itm13,v1-itz5,item,Question: Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scop,neurips_2025.tex
+2507.07768,1,ok,v1-itm14,v1-itz5,item,Answer: \answerYes,neurips_2025.tex
+2507.07768,1,ok,v1-itm15,v1-itz5,item,Justification: See Sec..,neurips_2025.tex
+2507.07768,1,ok,v1-itm16,v1-itz5,item,\bf Limitations,neurips_2025.tex
+2507.07768,1,ok,v1-itm17,v1-itz5,item,Question: Does the paper discuss the limitations of the work performed by the authors?,neurips_2025.tex
+2507.07768,1,ok,v1-itm18,v1-itz5,item,Answer: \answerYes,neurips_2025.tex
+2507.07768,1,ok,v1-itm19,v1-itz5,item,Justification: See below Sec..,neurips_2025.tex
+2507.07768,1,ok,v1-itm20,v1-itz5,item,\bf Theory assumptions and proofs,neurips_2025.tex
+2507.07768,1,ok,v1-itm21,v1-itz5,item,"Question: For each theoretical result, does the paper provide the full set of assumptions and a complete (and correct) p",neurips_2025.tex
+2507.07768,1,ok,v1-itm22,v1-itz5,item,Answer: \answerNA,neurips_2025.tex
+2507.07768,1,ok,v1-itm23,v1-itz5,item,\bf Experimental result reproducibility,neurips_2025.tex
+2507.07768,1,ok,v1-itm24,v1-itz5,item,Question: Does the paper fully disclose all the information needed to reproduce the main experimental results of the pap,neurips_2025.tex
+2507.07768,1,ok,v1-itm25,v1-itz5,item,Answer: \answerYes,neurips_2025.tex
+2507.07768,1,ok,v1-itm26,v1-itz5,item,Justification: See Sec. and Appendix .,neurips_2025.tex
+2507.07768,1,ok,v1-itm27,v1-itz5,item,\bf Open access to data and code,neurips_2025.tex
+2507.07768,1,ok,v1-itm28,v1-itz5,item,"Question: Does the paper provide open access to the data and code, with sufficient instructions to faithfully reproduce",neurips_2025.tex
+2507.07768,1,ok,v1-itm29,v1-itz5,item,Answer: \answerYes,neurips_2025.tex
+2507.07768,1,ok,v1-itm30,v1-itz5,item,Justification: The code is available at supplementary material.,neurips_2025.tex
+2507.07768,1,ok,v1-itm31,v1-itz5,item,\bf Experimental setting/details,neurips_2025.tex
+2507.07768,1,ok,v1-itm32,v1-itz5,item,"Question: Does the paper specify all the training and test details (e.g., data splits, hyperparameters, how they were ch",neurips_2025.tex
+2507.07768,1,ok,v1-itm33,v1-itz5,item,Answer: \answerYes,neurips_2025.tex
+2507.07768,1,ok,v1-itm34,v1-itz5,item,Justification: See Sec. and Appendix .,neurips_2025.tex
+2507.07768,1,ok,v1-itm35,v1-itz5,item,\bf Experiment statistical significance,neurips_2025.tex
+2507.07768,1,ok,v1-itm36,v1-itz5,item,Question: Does the paper report error bars suitably and correctly defined or other appropriate information about the sta,neurips_2025.tex
+2507.07768,1,ok,v1-itm37,v1-itz5,item,Answer: \answerYes,neurips_2025.tex
+2507.07768,1,ok,v1-itm38,v1-itz5,item,Justification: We include mean and standard deviation.,neurips_2025.tex
+2507.07768,1,ok,v1-itm39,v1-itz5,item,\bf Experiments compute resources,neurips_2025.tex
+2507.07768,1,ok,v1-itm40,v1-itz5,item,"Question: For each experiment, does the paper provide sufficient information on the computer resources (type of compute",neurips_2025.tex
+2507.07768,1,ok,v1-itm41,v1-itz5,item,Answer: \answerYes,neurips_2025.tex
+2507.07768,1,ok,v1-itm42,v1-itz5,item,Justification: See Appendix .,neurips_2025.tex
+2507.07768,1,ok,v1-itm43,v1-itz5,item,\bf Code of ethics,neurips_2025.tex
+2507.07768,1,ok,v1-itm44,v1-itz5,item,"Question: Does the research conducted in the paper conform, in every respect, with the NeurIPS Code of Ethics \urlhttps:",neurips_2025.tex
+2507.07768,1,ok,v1-itm45,v1-itz5,item,Answer: \answerYes,neurips_2025.tex
+2507.07768,1,ok,v1-itm46,v1-itz5,item,\bf Broader impacts,neurips_2025.tex
+2507.07768,1,ok,v1-itm47,v1-itz5,item,Question: Does the paper discuss both potential positive societal impacts and negative societal impacts of the work perf,neurips_2025.tex
+2507.07768,1,ok,v1-itm48,v1-itz5,item,Answer: \answerYes,neurips_2025.tex
+2507.07768,1,ok,v1-itm49,v1-itz5,item,Justification: See Sec..,neurips_2025.tex
+2507.07768,1,ok,v1-itm50,v1-itz5,item,\bf Safeguards,neurips_2025.tex
+2507.07768,1,ok,v1-itm51,v1-itz5,item,Question: Does the paper describe safeguards that have been put in place for responsible release of data or models that,neurips_2025.tex
+2507.07768,1,ok,v1-itm52,v1-itz5,item,Answer: \answerNA,neurips_2025.tex
+2507.07768,1,ok,v1-itm53,v1-itz5,item,\bf Licenses for existing assets,neurips_2025.tex
+2507.07768,1,ok,v1-itm54,v1-itz5,item,"Question: Are the creators or original owners of assets (e.g., code, data, models), used in the paper, properly credited",neurips_2025.tex
+2507.07768,1,ok,v1-itm55,v1-itz5,item,Answer: \answerYes,neurips_2025.tex
+2507.07768,1,ok,v1-itm56,v1-itz5,item,\bf New assets,neurips_2025.tex
+2507.07768,1,ok,v1-itm57,v1-itz5,item,Question: Are new assets introduced in the paper well documented and is the documentation provided alongside the assets?,neurips_2025.tex
+2507.07768,1,ok,v1-itm58,v1-itz5,item,Answer: \answerNA,neurips_2025.tex
+2507.07768,1,ok,v1-itm59,v1-itz5,item,\bf Crowdsourcing and research with human subjects,neurips_2025.tex
+2507.07768,1,ok,v1-itm60,v1-itz5,item,"Question: For crowdsourcing experiments and research with human subjects, does the paper include the full text of instru",neurips_2025.tex
+2507.07768,1,ok,v1-itm61,v1-itz5,item,Answer: \answerNA,neurips_2025.tex
+2507.07768,1,ok,v1-itm62,v1-itz5,item,\bf Institutional review board (IRB) approvals or equivalent for research with human subjects,neurips_2025.tex
+2507.07768,1,ok,v1-itm63,v1-itz5,item,"Question: Does the paper describe potential risks incurred by study participants, whether such risks were disclosed to t",neurips_2025.tex
+2507.07768,1,ok,v1-itm64,v1-itz5,item,Answer: \answerNA,neurips_2025.tex
+2507.07768,1,ok,v1-itm65,v1-itz5,item,\bf Declaration of LLM usage,neurips_2025.tex
+2507.07768,1,ok,v1-itm66,v1-itz5,item,"Question: Does the paper describe the usage of LLMs if it is an important, original, or non-standard component of the co",neurips_2025.tex
+2507.07768,1,ok,v1-itm67,v1-itz5,item,Answer: \answerNo,neurips_2025.tex
