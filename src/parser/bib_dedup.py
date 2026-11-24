@@ -220,8 +220,10 @@ def _first_author_last_name(authors: Any) -> str | None:
             # Nếu p0 là họ dạng "Last, First" (ví dụ "Smith, John", "Vaswani, A.", "van Rossum, Guido Peter"):
             else:
                 last_name = p0
-        else:
+        elif parts:
             last_name = _extract_surname_from_chunk(parts[0])
+        else:
+            return None
     else:
         last_name = _extract_surname_from_chunk(first_auth)
 
