@@ -92,6 +92,13 @@ def find_root(vdir: Path, arxiv_id: str = "") -> Path | None:
             candidates.append(rel)
             has_inc[rel] = bool(ordered_includes(text))
     if not candidates:
+        tex_files = [p for p in sorted(vdir.glob("**/*.tex")) if not p.name.startswith(".")]
+        if len(tex_files) == 1:
+            return tex_files[0].resolve()
+        for cand in ["main.tex", f"{vdir.name}.tex", "paper.tex"]:
+            p = vdir / cand
+            if p.is_file():
+                return p.resolve()
         return None
     if len(candidates) == 1:
         best = candidates[0]
