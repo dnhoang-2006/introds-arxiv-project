@@ -92,14 +92,23 @@ def find_root(vdir: Path, arxiv_id: str = "") -> Path | None:
             candidates.append(rel)
             has_inc[rel] = bool(ordered_includes(text))
     if not candidates:
+        # Dự phòng: vài bài không khai báo \documentclass nhưng vẫn là LaTeX hợp lệ.
+        # Phải kiểm NỘI DUNG, vì có bài (2507.08666/08667/09585) đặt nguyên một
+        # trang HTML dưới tên main.tex — nhận bừa thì thẻ HTML lọt vào elements.
+        # Dùng clean_tex_comments() y như đường chính để \begin{document} nằm
+        # trong comment không được tính.
+        def _is_latex(p: Path) -> bool:
+            return "\\begin{document}" in clean_tex_comments(read_text_safe(p))
+
         tex_files = [p for p in sorted(vdir.glob("**/*.tex")) if not p.name.startswith(".")]
-        if len(tex_files) == 1:
+        if len(tex_files) == 1 and _is_latex(tex_files[0]):
             return tex_files[0].resolve()
         for cand in ["main.tex", f"{vdir.name}.tex", "paper.tex"]:
             p = vdir / cand
-            if p.is_file():
+            if p.is_file() and _is_latex(p):
                 return p.resolve()
         return None
+    
     if len(candidates) == 1:
         best = candidates[0]
     else:
