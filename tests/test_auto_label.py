@@ -30,14 +30,16 @@ def _make_entry(
     doi: str | None = None,
     url: str | None = None,
     title: str | None = "Attention Is All You Need",
+    authors: Any = None,
+    year: Any = 2017,
 ) -> dict[str, Any]:
     return {
         "arxiv_id": arxiv_id,
         "citation_key": citation_key,
         "entry_type": "article",
         "title": title,
-        "authors": ["Vaswani, Ashish"],
-        "year": 2017,
+        "authors": ["Vaswani, Ashish"] if authors is None else authors,
+        "year": year,
         "doi": doi,
         "journal": None,
         "url": url,
@@ -49,17 +51,19 @@ def _make_ref(
     *,
     ref_title: str | None = "Attention Is All You Need",
     ref_doi: str | None = None,
+    ref_authors: Any = None,
+    ref_year: Any = 2017,
 ) -> dict[str, Any]:
     ref: dict[str, Any] = {
         "arxiv_id": "2503.11918",
         "ref_s2_id": "s2-1",
         "ref_title": ref_title,
-        "ref_authors": ["Ashish Vaswani"],
+        "ref_authors": ["Ashish Vaswani"] if ref_authors is None else ref_authors,
         "ref_submission_date": "2017-06-12",
         "ref_arxiv_id": ref_arxiv_id,
         "has_arxiv_id": bool(ref_arxiv_id),
         "ref_venue": "NeurIPS",
-        "ref_year": 2017,
+        "ref_year": ref_year,
     }
     if ref_doi is not None:
         ref["ref_doi"] = ref_doi
@@ -169,7 +173,11 @@ class TestMatchByIdAndDoi:
         assert res["score"] == 1.0
 
     def test_match_regular_doi_when_candidate_has_doi_and_noop_otherwise(self) -> None:
-        entry = _make_entry("iros24", doi="https://doi.org/10.1109/IROS.2024.10")
+        entry = _make_entry(
+            "iros24",
+            doi="https://doi.org/10.1109/IROS.2024.10",
+            title="Distinct Entry Title Without Title Match",
+        )
         with_ref_doi = [_make_ref("2408.04054", ref_doi="10.1109/iros.2024.10")]
         without_ref_doi = [_make_ref("2408.04054")]
 
@@ -190,8 +198,16 @@ class TestMatchByIdAndDoi:
     def test_non_arxiv_url_and_missing_candidate_return_null(self) -> None:
         candidates = [_make_ref("1706.03762"), _make_ref(None)]
         entries = [
-            _make_entry("s2_url", url="https://api.semanticscholar.org/CorpusID:123"),
-            _make_entry("other_arxiv", url="https://arxiv.org/abs/9999.99999"),
+            _make_entry(
+                "s2_url",
+                url="https://api.semanticscholar.org/CorpusID:123",
+                title="Unrelated S2 Paper",
+            ),
+            _make_entry(
+                "other_arxiv",
+                url="https://arxiv.org/abs/9999.99999",
+                title="Unrelated Other Arxiv Paper",
+            ),
             _make_entry("matched", url="https://arxiv.org/abs/1706.03762"),
         ]
         rows = label_entries(entries, candidates, pub_arxiv_id="2503.11918")
@@ -295,7 +311,7 @@ class TestJournalAndOldIdFix:
         assert r["method"] == "arxiv_url"
 
     def test_journal_id_not_in_candidates_is_null(self) -> None:
-        e = _make_entry("jr2")
+        e = _make_entry("jr2", title="Completely Different Journal Paper")
         e["journal"] = "arXiv preprint arXiv:9999.99999"
         assert match_entry(e, [_make_ref("1706.03762")])["method"] is None
 
@@ -303,3 +319,221 @@ class TestJournalAndOldIdFix:
         e = _make_entry("old", url="https://arxiv.org/abs/math.GT/0309136")
         r = match_entry(e, [_make_ref("math/0309136")])
         assert r["groundtruth_arxiv_id"] == "math/0309136"
+
+
+class TestAuthorYearFilterAndTitleMatch:
+    def test_latex_accents_and_braces_in_title_and_author(self) -> None:
+        entry = _make_entry(
+            "bezier02",
+            title="B\\'ezier and {B}-spline {T}echniques for Surface Design",
+            authors=['{\\"O}sterberg, Jan', "Paluszny, Marco"],
+            year="2002",
+        )
+        candidates = [
+            _make_ref(
+                "0201.1234",
+                ref_title="Bézier and B-spline Techniques for Surface Design",
+                ref_authors=["Jan Österberg", "Marco Paluszny"],
+                ref_year=2002,
+            )
+        ]
+        res = match_entry(entry, candidates)
+        assert res["groundtruth_arxiv_id"] == "0201.1234"
+        assert res["method"] == "title"
+        assert res["score"] == 1.0
+
+    @pytest.mark.parametrize(
+        ("entry_authors", "ref_authors", "should_match"),
+        [
+            (["Ben Amor, Heni"], ["H. Ben Amor"], True),
+            (["H. Ben Amor"], ["Ben Amor, Heni"], True),
+            (["Khansari-Zadeh, S. Mohammad"], ["S. Mohammad Khansari Zadeh"], True),
+            (["Li, Wei"], ["Reza Ali"], False),
+        ],
+    )
+    def test_asymmetric_multiword_surname_matching(
+        self,
+        entry_authors: list[str],
+        ref_authors: list[str],
+        should_match: bool,
+    ) -> None:
+        title = "A Comparison of Imitation Learning Algorithms for Manipulation"
+        entry = _make_entry("amor24", title=title, authors=entry_authors, year=2024)
+        cands = [_make_ref("2408.06536", ref_title=title, ref_authors=ref_authors, ref_year=2024)]
+        res = match_entry(entry, cands)
+        if should_match:
+            assert res["groundtruth_arxiv_id"] == "2408.06536"
+            assert res["method"] == "title"
+        else:
+            assert res["groundtruth_arxiv_id"] is None
+            assert res["method"] is None
+
+    def test_short_title_requires_affirmative_first_author_match(self) -> None:
+        cands_with_author = [
+            _make_ref("1601.00001", ref_title="Deep Learning", ref_authors=["Ian Goodfellow"], ref_year=2016)
+        ]
+        cands_no_author = [
+            _make_ref("1601.00001", ref_title="Deep Learning", ref_authors=[], ref_year=2016)
+        ]
+        e_with_author = _make_entry("dl", title="Deep Learning", authors=["Goodfellow, Ian"], year=2016)
+        e_no_author = _make_entry("dl_noauth", title="Deep Learning", authors=[], year=2016)
+        e_three_words = _make_entry("nerf", title="Neural Radiance Fields", authors=[], year=2020)
+        cands_nerf = [
+            _make_ref("2003.08934", ref_title="Neural Radiance Fields", ref_authors=["Ben Mildenhall"], ref_year=2020)
+        ]
+
+        hit = match_entry(e_with_author, cands_with_author)
+        assert hit["groundtruth_arxiv_id"] == "1601.00001"
+        assert hit["method"] == "title"
+
+        assert match_entry(e_with_author, cands_no_author)["groundtruth_arxiv_id"] is None
+        assert match_entry(e_no_author, cands_with_author)["groundtruth_arxiv_id"] is None
+        assert match_entry(e_three_words, cands_nerf)["groundtruth_arxiv_id"] is None
+
+    def test_close_candidates_respect_margin_and_filter(self) -> None:
+        entry = _make_entry(
+            "gnn",
+            title="Graph Neural Networks for Molecular Property Prediction",
+            authors=["Wu, Zhenqin"],
+            year=2023,
+        )
+        # Hai ứng viên đều qua vòng lọc tác giả+năm, score ~1.00 vs ~0.99 (< margin 0.03)
+        ambiguous = [
+            _make_ref(
+                "2301.00001",
+                ref_title="Graph Neural Networks for Molecular Property Prediction",
+                ref_authors=["Zhenqin Wu"],
+                ref_year=2023,
+            ),
+            _make_ref(
+                "2301.00002",
+                ref_title="Graph Neural Networks for Molecular Property Predictions",
+                ref_authors=["Zhenqin Wu"],
+                ref_year=2023,
+            ),
+        ]
+        assert match_entry(entry, ambiguous)["groundtruth_arxiv_id"] is None
+
+        # Khi ứng viên gây nhiễu bị loại bởi lọc tác giả hoặc năm, ứng viên đúng phải khớp
+        filtered_disambiguates = [
+            _make_ref(
+                "2301.00001",
+                ref_title="Graph Neural Networks for Molecular Property Prediction",
+                ref_authors=["Zhenqin Wu"],
+                ref_year=2023,
+            ),
+            _make_ref(
+                "2301.00002",
+                ref_title="Graph Neural Networks for Molecular Property Predictions",
+                ref_authors=["Other Author"],
+                ref_year=2023,
+            ),
+        ]
+        res = match_entry(entry, filtered_disambiguates)
+        assert res["groundtruth_arxiv_id"] == "2301.00001"
+        assert res["method"] == "title"
+
+        # Khi khoảng cách đủ lớn (>= 0.03), vẫn chọn ứng viên tốt nhất
+        clear_margin = [
+            _make_ref(
+                "2301.00001",
+                ref_title="Graph Neural Networks for Molecular Property Prediction",
+                ref_authors=["Zhenqin Wu"],
+                ref_year=2023,
+            ),
+            _make_ref(
+                "2301.00003",
+                ref_title="Graph Neural Networks for Molecular Property Analysis",
+                ref_authors=["Zhenqin Wu"],
+                ref_year=2023,
+            ),
+        ]
+        res2 = match_entry(entry, clear_margin)
+        assert res2["groundtruth_arxiv_id"] == "2301.00001"
+        assert res2["score"] == 1.0
+
+    def test_duplicate_candidate_same_arxiv_id_does_not_block_itself(self) -> None:
+        title = "Learning Stable Nonlinear Dynamical Systems With Gaussian Mixture Models"
+        entry = _make_entry("khansari", title=title, authors=["Khansari-Zadeh, S."], year=2011)
+        cands = [
+            _make_ref("1101.00001", ref_title=title, ref_authors=["S. Khansari-Zadeh"], ref_year=2011),
+            _make_ref("1101.00001", ref_title=title, ref_authors=["S. Khansari-Zadeh"], ref_year=2011),
+        ]
+        res = match_entry(entry, cands)
+        assert res["groundtruth_arxiv_id"] == "1101.00001"
+        assert res["method"] == "title"
+
+    def test_year_delta_and_author_year_never_match_alone(self) -> None:
+        title = "Scaling Learning Algorithms Towards Artificial Intelligence"
+        entry_2024 = _make_entry("y24", title=title, authors=["Bengio, Yoshua"], year=2024)
+        cand_2023 = _make_ref("2305.00001", ref_title=title, ref_authors=["Yoshua Bengio"], ref_year=2023)
+        cand_2022 = _make_ref("2205.00001", ref_title=title, ref_authors=["Yoshua Bengio"], ref_year=2022)
+
+        assert match_entry(entry_2024, [cand_2023])["groundtruth_arxiv_id"] == "2305.00001"
+        assert match_entry(entry_2024, [cand_2022])["groundtruth_arxiv_id"] is None
+
+        # Khớp hệt tác giả và năm nhưng khác tiêu đề -> không được tự gán nhãn
+        wrong_title = _make_entry(
+            "same_auth_yr",
+            title="Completely Unrelated Survey on Robotics",
+            authors=["Bengio, Yoshua"],
+            year=2023,
+        )
+        assert match_entry(wrong_title, [cand_2023])["groundtruth_arxiv_id"] is None
+
+    def test_missing_fields_handling(self) -> None:
+        long_title = "Auto-Encoding Variational Bayes for Representation Learning"
+        # Thiếu author và year ở entry/ref với title đủ dài -> không loại oan
+        e_missing_ay = _make_entry("k1", title=long_title, authors=None, year=None)
+        c_missing_ay = _make_ref("1312.6114", ref_title=long_title, ref_authors=[], ref_year=None)
+        assert match_entry(e_missing_ay, [c_missing_ay])["groundtruth_arxiv_id"] == "1312.6114"
+
+        # Entry thiếu title -> không khớp
+        e_no_title = _make_entry("k2", title=None, authors=["Kingma, Diederik"], year=2013)
+        assert match_entry(e_no_title, [c_missing_ay])["groundtruth_arxiv_id"] is None
+
+        # Reference thiếu ref_title không làm crash và không cản các reference hợp lệ khác
+        c_no_title = _make_ref("9999.00001", ref_title=None, ref_authors=["Someone"], ref_year=2013)
+        res = match_entry(
+            _make_entry("k3", title=long_title, authors=["Kingma, Diederik"], year=2013),
+            [c_no_title, c_missing_ay],
+        )
+        assert res["groundtruth_arxiv_id"] == "1312.6114"
+
+    def test_title_threshold_boundary_and_id_priority_over_title(self) -> None:
+        c_url = _make_ref(
+            "2101.00001",
+            ref_title="Completely Unrelated Reference Title For Id Priority",
+            ref_authors=["Alice Smith"],
+            ref_year=2021,
+        )
+        c_title = _make_ref(
+            "2101.00002",
+            ref_title="Contrastive Representation Learning for Graph Classification Tasks",
+            ref_authors=["Bob Jones"],
+            ref_year=2021,
+        )
+        # Bước 1 (URL) phải thắng và dừng trước khi sang bước title
+        e_priority = _make_entry(
+            "prio",
+            url="https://arxiv.org/abs/2101.00001",
+            title="Contrastive Representation Learning for Graph Classification Tasks",
+            authors=["Jones, Bob"],
+            year=2021,
+        )
+        res_prio = match_entry(e_priority, [c_url, c_title])
+        assert res_prio["groundtruth_arxiv_id"] == "2101.00001"
+        assert res_prio["method"] == "arxiv_url"
+
+        # Score ~0.87: bị loại ở ngưỡng mặc định 0.90, khớp khi hạ ngưỡng xuống 0.85
+        e_near = _make_entry(
+            "near_thresh",
+            title="Contrastive Learning for Graph Classification Tasks",
+            authors=["Jones, Bob"],
+            year=2021,
+        )
+        assert match_entry(e_near, [c_title])["groundtruth_arxiv_id"] is None
+        res_relaxed = match_entry(e_near, [c_title], title_threshold=0.85)
+        assert res_relaxed["groundtruth_arxiv_id"] == "2101.00002"
+        assert res_relaxed["method"] == "title"
+        assert 0.85 <= res_relaxed["score"] < 0.90
