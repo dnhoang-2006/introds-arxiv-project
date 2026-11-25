@@ -413,6 +413,22 @@ def collect_bib(
             if key not in collected:
                 collected[key] = parse_bibitem(key, raw)
 
+    # 1b. Bóc \bibitem trong các file .bbl — bản đã dàn trang, sinh khi compile
+    # từ .bib. Đặt SAU .tex và TRƯỚC .bib để hai nguồn chuẩn hơn vẫn ghi đè được.
+    # Trường bóc ra kém chính xác hơn .bib vì .bbl không còn cấu trúc trường.
+    bbl_files = sorted(
+        p for p in vdir.rglob("*.bbl")
+        if p.is_file() and not p.name.startswith(".")
+    )
+    for p in bbl_files:
+        try:
+            bbl = p.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for key, raw in split_bibitems(bbl):
+            if key not in collected:
+                collected[key] = parse_bibitem(key, raw)
+
     # 2. Đọc từ các file .bib (đưa vào sau để ghi đè khi trùng key)
     bib_files = sorted(
         p for p in vdir.rglob("*.bib")
