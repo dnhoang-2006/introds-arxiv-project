@@ -77,7 +77,7 @@ class TestExtractArxivId:
             ("https://arxiv.org/html/2401.12345v1", "2401.12345"),
             ("https://arxiv.org/abs/hep-th/9901001", "hep-th/9901001"),
             ("http://arxiv.org/pdf/hep-th/9901001v2.pdf", "hep-th/9901001"),
-            ("https://arxiv.org/abs/math.GT/0309136v1", "math.gt/0309136"),
+            ("https://arxiv.org/abs/math.GT/0309136v1", "math/0309136"),
             ("HTTP://ARXIV.ORG/ABS/CS/0601001v1", "cs/0601001"),
             ("https://doi.org/10.48550/arXiv.2401.17991", "2401.17991"),
             ("http://dx.doi.org/10.48550/arXiv.hep-th/9901001v2", "hep-th/9901001"),
@@ -182,7 +182,7 @@ class TestMatchByIdAndDoi:
             "arxiv_id": "2503.11918",
             "citation_key": "iros24",
             "groundtruth_arxiv_id": None,
-            "method": "null",
+            "method": None,
             "score": None,
             "labeler": "auto",
         }
@@ -197,7 +197,7 @@ class TestMatchByIdAndDoi:
         rows = label_entries(entries, candidates, pub_arxiv_id="2503.11918")
         assert len(rows) == 3
         assert rows[0]["groundtruth_arxiv_id"] is None
-        assert rows[0]["method"] == "null"
+        assert rows[0]["method"] is None
         assert rows[0]["score"] is None
         assert rows[1]["groundtruth_arxiv_id"] is None
         assert rows[2]["groundtruth_arxiv_id"] == "1706.03762"
@@ -284,3 +284,22 @@ class TestPublicationIOAndAtomicWrite:
 
         assert not out_file.with_name(out_file.name + ".tmp").exists()
         assert [json.loads(line) for line in out_file.read_text(encoding="utf-8").splitlines()] == initial
+
+
+class TestJournalAndOldIdFix:
+    def test_journal_arxiv_preprint_matches(self) -> None:
+        e = _make_entry("jr")
+        e["journal"] = "arXiv preprint arXiv:1706.03762"
+        r = match_entry(e, [_make_ref("1706.03762")])
+        assert r["groundtruth_arxiv_id"] == "1706.03762"
+        assert r["method"] == "arxiv_url"
+
+    def test_journal_id_not_in_candidates_is_null(self) -> None:
+        e = _make_entry("jr2")
+        e["journal"] = "arXiv preprint arXiv:9999.99999"
+        assert match_entry(e, [_make_ref("1706.03762")])["method"] is None
+
+    def test_old_id_with_subcategory_matches_s2_form(self) -> None:
+        e = _make_entry("old", url="https://arxiv.org/abs/math.GT/0309136")
+        r = match_entry(e, [_make_ref("math/0309136")])
+        assert r["groundtruth_arxiv_id"] == "math/0309136"

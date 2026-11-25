@@ -51,11 +51,17 @@ _DOI_ARXIV_PAT = re.compile(
 )
 
 
+def _canon_arxiv(raw: str) -> str | None:
+    """Chuẩn hóa ID và bỏ tiểu mục ID cũ (`math.GT/0309136` -> `math/0309136`) như Semantic Scholar."""
+    aid = norm_arxiv(raw)
+    return re.sub(r"^([a-z-]+)\.[a-z-]+/", r"\1/", aid) if aid else None
+
+
 def _search_arxiv_patterns(raw: str, patterns: tuple[re.Pattern[str], ...]) -> str | None:
     for pattern in patterns:
         m = pattern.search(raw)
         if m:
-            return norm_arxiv(m.group(1))
+            return _canon_arxiv(m.group(1))
     return None
 
 
@@ -78,7 +84,7 @@ def extract_arxiv_id_from_doi(doi: Any) -> str | None:
     if not clean_doi:
         return None
     m = _DOI_ARXIV_PAT.match(clean_doi)
-    return norm_arxiv(m.group(1)) if m else None
+    return _canon_arxiv(m.group(1)) if m else None
 
 
 def load_bibtex_entries(
@@ -138,7 +144,7 @@ def _index_candidates(
     by_arxiv: dict[str, dict[str, Any]] = {}
     by_doi: dict[str, dict[str, Any]] = {}
     for ref in candidates:
-        aid = norm_arxiv(ref.get("ref_arxiv_id"))
+        aid = _canon_arxiv(str(ref.get("ref_arxiv_id") or ""))
         if not aid:
             continue
         by_arxiv.setdefault(aid, ref)
@@ -152,7 +158,7 @@ def _label_record(
     arxiv_id: str,
     citation_key: str,
     ref: dict[str, Any] | None,
-    method: str,
+    method: str | None,
     score: float | None,
 ) -> dict[str, Any]:
     groundtruth = (
@@ -192,6 +198,12 @@ def match_entry(
     if url_aid and url_aid in by_arxiv:
         return _label_record(entry_arxiv_id, citation_key, by_arxiv[url_aid], "arxiv_url", 1.0)
 
+    # 1b. Trường journal dạng "arXiv preprint arXiv:<id>" (ID tường minh)
+    raw_journal = str(entry.get("journal") or "").strip()
+    jr_aid = _search_arxiv_patterns(raw_journal, (_ARXIV_PREFIX_PAT,)) if raw_journal else None
+    if jr_aid and jr_aid in by_arxiv:
+        return _label_record(entry_arxiv_id, citation_key, by_arxiv[jr_aid], "arxiv_url", 1.0)
+
     # 2. Trường doi: tách 10.48550/arXiv.<id> (D4), hoặc khớp DOI nếu reference có
     doi_aid = extract_arxiv_id_from_doi(entry.get("doi"))
     if doi_aid and doi_aid in by_arxiv:
@@ -206,7 +218,7 @@ def match_entry(
     if url_doi_aid and url_doi_aid in by_arxiv:
         return _label_record(entry_arxiv_id, citation_key, by_arxiv[url_doi_aid], "arxiv_url", 1.0)
 
-    return _label_record(entry_arxiv_id, citation_key, None, "null", None)
+    return _label_record(entry_arxiv_id, citation_key, None, None, None)
 
 
 def label_entries(
