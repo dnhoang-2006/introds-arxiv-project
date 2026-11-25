@@ -1,7 +1,6 @@
 """Re-export các hàm chuẩn hóa văn bản và định danh dùng cho matcher M3.
 
-Theo quyết định D1 trong docs/plan_tuan2_auto_label.md, toàn bộ bước làm sạch
-đi qua module này. Khi nhóm trưởng cung cấp clean.py, chỉ cần đổi nguồn import
+Khi nhóm trưởng cung cấp clean.py, chỉ cần đổi nguồn import
 tại đây mà không sửa logic đối sánh ở các module khác.
 """
 

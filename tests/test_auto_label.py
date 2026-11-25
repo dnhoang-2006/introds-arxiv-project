@@ -918,15 +918,137 @@ class TestCLIAndEval:
 
 
 class TestSkipReportsExistingSize:
-    def test_skip_returns_existing_n_selected(self, tmp_path: Path) -> None:
-        from matching.auto_label import run_auto_label
+    def test_skip_returns_existing_n_selected_and_warns_mismatch(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
         ids = tmp_path / "ids.txt"
         ids.write_text("2503.11918", encoding="utf-8")
         out = tmp_path / "out"
         out.mkdir()
         (out / "24120177.jsonl").write_text("", encoding="utf-8")
         (out / "24120177.pubs.json").write_text('{"n_selected": 5}', encoding="utf-8")
-        res = run_auto_label(ids_path=ids, mssv="24120177", out_dir=out,
-                             parsed_root=tmp_path, corpus_root=tmp_path)
+        res = run_auto_label(
+            ids_path=ids,
+            mssv="24120177",
+            n=500,
+            out_dir=out,
+            parsed_root=tmp_path,
+            corpus_root=tmp_path,
+        )
         assert res["skipped"] is True
         assert res["existing_n_selected"] == 5
+        assert res["n_requested"] == 500
+
+        monkeypatch.setattr(auto_label_mod, "LABELS_ROOT", tmp_path / "lbl")
+        lbl_auto = tmp_path / "lbl" / "auto"
+        lbl_auto.mkdir(parents=True)
+        (lbl_auto / "24120177.jsonl").write_text("", encoding="utf-8")
+        (lbl_auto / "24120177.pubs.json").write_text('{"n_selected": 5}', encoding="utf-8")
+        main(["--ids", str(ids), "--mssv", "24120177", "--n", "500"])
+        out_txt = capsys.readouterr().out
+        assert "5 pub nhưng đang yêu cầu 500 pub" in out_txt
+
+
+class TestZeroMatchedSummaryAndMissingGold:
+    def test_zero_matched_pub_counted_in_summary_and_warned(
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        parsed_root = tmp_path / "parsed"
+        corpus_root = tmp_path / "corpus"
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.30001",
+            [_make_entry("k1", arxiv_id="2503.30001", url="https://arxiv.org/abs/1706.03762")],
+            [_make_ref("1706.03762")],
+        )
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.30002",
+            [_make_entry("k2", arxiv_id="2503.30002", title=None)],
+            [_make_ref("1706.03762")],
+        )
+        ids_file = tmp_path / "ids.txt"
+        ids_file.write_text("2503.30001\n2503.30002\n", encoding="utf-8")
+        res = run_auto_label(
+            ids_path=ids_file,
+            mssv="24120177",
+            n=2,
+            seed=42,
+            dry_run=True,
+            parsed_root=parsed_root,
+            corpus_root=corpus_root,
+        )
+        summ = res["meta"]["summary"]
+        assert summ["n_pubs_with_matches"] == 1
+        assert summ["n_pubs_zero_matched"] == 1
+        auto_label_mod._print_run_summary(res)
+        assert "n_matched=0" in capsys.readouterr().out
+
+    def test_eval_missing_pubs_does_not_penalize_recall_and_cli_roots(
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        parsed_root = tmp_path / "custom_parsed"
+        corpus_root = tmp_path / "custom_corpus"
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.40001",
+            [_make_entry("k1", arxiv_id="2503.40001", url="https://arxiv.org/abs/1706.03762")],
+            [_make_ref("1706.03762")],
+        )
+        # Pub thứ hai có trong gold nhưng không có trên đĩa
+        gold_file = tmp_path / "mixed_gold.jsonl"
+        gold_rows = [
+            {"arxiv_id": "2503.40001", "citation_key": "k1", "groundtruth_arxiv_id": "1706.03762"},
+            {"arxiv_id": "2507.99999", "citation_key": "k2", "groundtruth_arxiv_id": "1810.04805"},
+        ]
+        gold_file.write_text("".join(json.dumps(r) + "\n" for r in gold_rows), encoding="utf-8")
+
+        ev = evaluate_gold(gold_file, parsed_root=parsed_root, corpus_root=corpus_root)
+        assert ev["n_gold_pubs"] == 2
+        assert ev["n_evaluated_pubs"] == 1
+        assert ev["missing_pubs"] == ["2507.99999"]
+        assert ev["missing_pub_details"] == {
+            "2507.99999": ["bibtex_missing_or_invalid", "references_missing"]
+        }
+        assert ev["n_gold_positive"] == 2
+        assert ev["n_gold_positive_evaluated"] == 1
+        assert ev["precision"] == 1.0
+        assert ev["recall"] == 1.0
+        assert ev["by_method"]["arxiv_url"]["recall_share"] == 1.0
+
+        # Kiểm tra CLI --parsed-root và --corpus-root trực tiếp
+        main([
+            "--eval",
+            "--gold", str(gold_file),
+            "--parsed-root", str(parsed_root),
+            "--corpus-root", str(corpus_root),
+        ])
+        out_eval = capsys.readouterr().out
+        assert "Đánh giá trên 1/2 pub" in out_eval
+        assert "2507.99999 (bibtex_missing_or_invalid+references_missing)" in out_eval
+        assert "Recall    (cặp gold):        100.00% (1/1)" in out_eval
+
+        # Trường hợp không có pub nào đánh giá được -> dừng sạch với thông báo rõ
+        only_missing = tmp_path / "only_missing.jsonl"
+        only_missing.write_text(
+            json.dumps({"arxiv_id": "2507.99999", "citation_key": "k2", "groundtruth_arxiv_id": "1810.04805"}) + "\n",
+            encoding="utf-8",
+        )
+        main([
+            "--eval",
+            "--gold", str(only_missing),
+            "--parsed-root", str(parsed_root),
+            "--corpus-root", str(corpus_root),
+        ])
+        out_none = capsys.readouterr().out
+        assert "Không đánh giá được publication nào" in out_none

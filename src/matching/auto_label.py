@@ -667,6 +667,7 @@ def run_auto_label(
             "labels_path": str(labels_path),
             "pubs_path": str(pubs_path),
             "existing_n_selected": existing_n,
+            "n_requested": n,
         }
 
     ids = load_ids_file(ids_path)
@@ -712,6 +713,8 @@ def run_auto_label(
     total_matched = sum(p["n_matched"] for p in pub_records)
     total_unmatched = total_entries - total_matched
     match_rate = round(total_matched / total_entries, 4) if total_entries else 0.0
+    n_pubs_with_matches = sum(1 for p in pub_records if p["n_matched"] > 0)
+    n_pubs_zero_matched = len(pub_records) - n_pubs_with_matches
 
     pubs_meta: dict[str, Any] = {
         "mssv": mssv,
@@ -740,6 +743,8 @@ def run_auto_label(
             "total_matched": total_matched,
             "total_unmatched": total_unmatched,
             "match_rate": match_rate,
+            "n_pubs_with_matches": n_pubs_with_matches,
+            "n_pubs_zero_matched": n_pubs_zero_matched,
             "methods": dict(sorted(total_methods.items())),
         },
         "publications": pub_records,
@@ -761,6 +766,16 @@ def run_auto_label(
 
 def _safe_ratio(num: int, den: int) -> float | None:
     return round(num / den, 4) if den > 0 else None
+
+
+def _diagnose_missing_pub(arxiv_id: str, parsed_root: Path, corpus_root: Path) -> list[str]:
+    reasons: list[str] = []
+    if load_bibtex_entries(arxiv_id, parsed_root=parsed_root) is None:
+        reasons.append("bibtex_missing_or_invalid")
+    ref_status, _ = _inspect_references_status(arxiv_id, corpus_root)
+    if ref_status != "ok":
+        reasons.append(f"references_{ref_status}")
+    return reasons
 
 
 def evaluate_gold(
@@ -805,17 +820,25 @@ def evaluate_gold(
     preds_by_key: dict[tuple[str, str], dict[str, Any]] = {}
     evaluated_pubs: list[str] = []
     missing_pubs: list[str] = []
+    missing_pub_details: dict[str, list[str]] = {}
     total_pub_entries = 0
 
     for pub_id in gold_pubs_order:
         pred_rows = label_publication(pub_id, parsed_root=p_root, corpus_root=c_root)
         if pred_rows is None:
             missing_pubs.append(pub_id)
+            missing_pub_details[pub_id] = _diagnose_missing_pub(pub_id, p_root, c_root)
             continue
         evaluated_pubs.append(pub_id)
         total_pub_entries += len(pred_rows)
         for r in pred_rows:
             preds_by_key[(r["arxiv_id"], r["citation_key"])] = r
+
+    evaluated_pub_set = set(evaluated_pubs)
+    n_gold_entries_evaluated = sum(1 for (pid, _) in gold_entries if pid in evaluated_pub_set)
+    n_gold_positive_evaluated = sum(
+        1 for (pid, _), v in gold_entries.items() if pid in evaluated_pub_set and v is not None
+    )
 
     auto_matched_on_gold = 0
     correct_on_gold = 0
@@ -832,7 +855,7 @@ def evaluate_gold(
     for pair_key, gt_aid in gold_entries.items():
         pred = preds_by_key.get(pair_key)
         if pred is None:
-            if pair_key[0] in evaluated_pubs:
+            if pair_key[0] in evaluated_pub_set:
                 missing_entry_in_bibtex += 1
             continue
         pred_raw = pred["groundtruth_arxiv_id"]
@@ -856,7 +879,7 @@ def evaluate_gold(
             "matched": m,
             "correct": c,
             "precision": _safe_ratio(c, m),
-            "recall_share": _safe_ratio(c, n_gold_positive),
+            "recall_share": _safe_ratio(c, n_gold_positive_evaluated),
         }
 
     return {
@@ -864,8 +887,11 @@ def evaluate_gold(
         "n_gold_pubs": len(gold_pubs_order),
         "n_evaluated_pubs": len(evaluated_pubs),
         "missing_pubs": missing_pubs,
+        "missing_pub_details": missing_pub_details,
         "n_gold_entries": len(gold_entries),
+        "n_gold_entries_evaluated": n_gold_entries_evaluated,
         "n_gold_positive": n_gold_positive,
+        "n_gold_positive_evaluated": n_gold_positive_evaluated,
         "n_gold_null": n_gold_null,
         "n_duplicate_keys": n_duplicate_keys,
         "total_pub_entries": total_pub_entries,
@@ -874,7 +900,7 @@ def evaluate_gold(
         "correct_on_gold": correct_on_gold,
         "auto_matched_unlisted": auto_matched_unlisted,
         "precision": _safe_ratio(correct_on_gold, auto_matched_on_gold),
-        "recall": _safe_ratio(correct_on_gold, n_gold_positive),
+        "recall": _safe_ratio(correct_on_gold, n_gold_positive_evaluated),
         "by_method": by_method,
     }
 
@@ -891,8 +917,15 @@ def _print_run_summary(res: dict[str, Any]) -> None:
             f"Đã có sẵn {res['labels_path']} và/hoặc {res['pubs_path']}; "
             "bỏ qua (dùng --overwrite để ghi đè)."
         )
-        if res.get("existing_n_selected") is not None:
-            print(f"Lưu ý: file cũ chứa {res['existing_n_selected']} pub (có thể là bản chạy thử).")
+        existing_n = res.get("existing_n_selected")
+        requested_n = res.get("n_requested")
+        if existing_n is not None and requested_n is not None and existing_n != requested_n:
+            print(
+                f"Lưu ý: file cũ chứa {existing_n} pub nhưng đang yêu cầu {requested_n} pub; "
+                "cần chạy lại với --overwrite."
+            )
+        elif existing_n is not None:
+            print(f"Lưu ý: file cũ chứa {existing_n} pub (có thể là bản chạy thử).")
         return
 
     meta = res["meta"]
@@ -915,6 +948,11 @@ def _print_run_summary(res: dict[str, Any]) -> None:
         print(
             f"{tag}Cảnh báo: chỉ có {meta['n_selected']} pub đủ điều kiện "
             f"(< --n {meta['n_requested']})."
+        )
+    if summ.get("n_pubs_zero_matched", 0) > 0:
+        print(
+            f"{tag}Lưu ý: {summ['n_pubs_zero_matched']}/{meta['n_selected']} pub không khớp được "
+            "cặp nào (n_matched=0); không chọn các pub này vào tập Valid/Test."
         )
     matched_rows = [r for r in res.get("rows", []) if r["groundtruth_arxiv_id"] is not None]
     samples: list[dict[str, Any]] = []
@@ -950,12 +988,30 @@ def _print_eval_summary(ev: dict[str, Any]) -> None:
         f"(gold entries={ev['n_gold_entries']}: positive={ev['n_gold_positive']}, "
         f"null={ev['n_gold_null']})"
     )
+    if ev["n_duplicate_keys"] > 0:
+        print(f"Cảnh báo: file gold có {ev['n_duplicate_keys']} cặp (arxiv_id, citation_key) trùng (giữ dòng sau).")
     if ev["missing_pubs"]:
-        print(f"Cảnh báo thiếu dữ liệu pub: {ev['missing_pubs']}")
+        details = ev.get("missing_pub_details") or {}
+        formatted = ", ".join(
+            f"{pid} ({'+'.join(details.get(pid, []))})" if details.get(pid) else pid
+            for pid in ev["missing_pubs"]
+        )
+        print(f"Cảnh báo thiếu dữ liệu pub (cần bibtex.jsonl và references.json status=ok): {formatted}")
+        if ev["n_evaluated_pubs"] > 0:
+            print(
+                f"Lưu ý: Recall chỉ tính trên {ev['n_evaluated_pubs']} pub có đủ dữ liệu "
+                f"(positive={ev['n_gold_positive_evaluated']}/{ev['n_gold_positive']})."
+            )
+    if ev["n_evaluated_pubs"] == 0:
+        print(
+            "Không đánh giá được publication nào vì thiếu dữ liệu cục bộ; "
+            "cần chép dữ liệu về hoặc truyền --parsed-root / --corpus-root."
+        )
+        return
     if ev["missing_entry_in_bibtex"]:
         print(f"Cảnh báo entry có trong gold nhưng thiếu ở bibtex.jsonl: {ev['missing_entry_in_bibtex']}")
     print(f"Precision (cặp matcher gán): {_fmt_rate(ev['correct_on_gold'], ev['auto_matched_on_gold'])}")
-    print(f"Recall    (cặp gold):        {_fmt_rate(ev['correct_on_gold'], ev['n_gold_positive'])}")
+    print(f"Recall    (cặp gold):        {_fmt_rate(ev['correct_on_gold'], ev['n_gold_positive_evaluated'])}")
     if ev["auto_matched_unlisted"]:
         print(
             f"Ghi chú: còn {ev['auto_matched_unlisted']} cặp trên cùng pub được matcher gán "
@@ -964,7 +1020,7 @@ def _print_eval_summary(ev: dict[str, Any]) -> None:
     print("Theo method:")
     for method, stats in ev["by_method"].items():
         prec = _fmt_rate(stats["correct"], stats["matched"])
-        rec = _fmt_rate(stats["correct"], ev["n_gold_positive"])
+        rec = _fmt_rate(stats["correct"], ev["n_gold_positive_evaluated"])
         print(f"  - {method:10s} | precision={prec:20s} | recall_share={rec}")
 
 
@@ -981,6 +1037,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--dry-run", action="store_true", help="Chỉ chạy và in thống kê, không ghi file")
     p.add_argument("--eval", action="store_true", help="Chế độ đánh giá precision/recall trên --gold")
     p.add_argument("--gold", type=Path, default=None, help="File nhãn tay JSONL để đánh giá")
+    p.add_argument("--parsed-root", type=Path, default=None, help="Thư mục parsed/ (mặc định parsed/ hoặc PARSED_ROOT)")
+    p.add_argument("--corpus-root", type=Path, default=None, help="Thư mục corpus/ (mặc định corpus/ hoặc CORPUS_ROOT)")
     return p
 
 
@@ -997,7 +1055,11 @@ def main(argv: list[str] | None = None) -> None:
         if args.eval:
             if args.gold is None:
                 parser.error("--eval yêu cầu phải truyền --gold <file nhãn tay jsonl>")
-            ev = evaluate_gold(args.gold)
+            ev = evaluate_gold(
+                args.gold,
+                parsed_root=args.parsed_root,
+                corpus_root=args.corpus_root,
+            )
             _print_eval_summary(ev)
             return
 
@@ -1011,6 +1073,8 @@ def main(argv: list[str] | None = None) -> None:
             exclude_path=args.exclude,
             overwrite=args.overwrite,
             dry_run=args.dry_run,
+            parsed_root=args.parsed_root,
+            corpus_root=args.corpus_root,
         )
         _print_run_summary(res)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
