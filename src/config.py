@@ -64,7 +64,11 @@ LOCAL_TZ = timezone(timedelta(hours=7))  # Asia/Saigon
 # Loại file được giữ lại trong corpus
 # Đề: "extract only the .tex and .bib files"
 # ----------------------------------------------------------------------
-KEEP_EXTENSIONS = (".tex", ".bib")
+# .bbl la ban da dan trang, sinh ra khi compile tu .bib. Nhieu bai khong kem
+# .bib lan \bibitem trong .tex ma chi co .bbl — bo qua thi mat toan bo reference.
+# Do 25/11: 1.190/4.996 publication cua dai 2507 co bibtex rong, 98% trong so do
+# co .bbl trong archive goc. Xem M1 hoi dap cau 18.
+KEEP_EXTENSIONS = (".tex", ".bib", ".bbl")
 
 # Giá trị hợp lệ của trường `reason` trong _EMPTY.json (xem docs/schema.md)
 EMPTY_REASONS = (
