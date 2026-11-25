@@ -1,21 +1,24 @@
 """Matcher tự động gán nhãn cặp BibTeX entry và reference có arXiv ID (Milestone 3).
 
-Sau khi hoàn thiện CLI (GĐ 4), các thành viên khác chạy chung bằng cách đổi `--ids` và `--mssv`:
+Dùng chung cho 5 thành viên (chỉ cần đổi `--ids` và `--mssv`):
 
-    python src/matching/auto_label.py --ids ids/<MSSV>.txt --mssv <MSSV> --n 500 --seed 42 --exclude <file_pub_tay>
+    python src/matching/auto_label.py --ids ids/<MSSV>.txt --mssv <MSSV> --n 500 --seed 42 [--exclude FILE] [--overwrite] [--dry-run]
     python src/matching/auto_label.py --eval --gold <file_nhan_tay.jsonl>
 
 Thứ tự khớp (dừng ở bước đầu tiên khớp): arXiv ID trong `url`/`journal`/`doi`,
-đối sánh DOI (nếu candidate có), lọc ứng viên theo họ tác giả đầu và năm rồi so
+tách `10.48550/arXiv.<id>` từ `doi`, lọc ứng viên theo họ tác giả đầu và năm rồi so
 tiêu đề chuẩn hóa bằng `difflib.SequenceMatcher`.
 """
 
 from __future__ import annotations
 
+import argparse
+from collections import Counter
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 import json
 import os
+import random
 import re
 import sys
 from pathlib import Path
@@ -40,10 +43,15 @@ LABELS_ROOT = Path(os.environ.get("LABELS_ROOT", config.PROJECT_ROOT / "labels")
 DEFAULT_TITLE_THRESHOLD = 0.90
 DEFAULT_MARGIN_THRESHOLD = 0.03
 DEFAULT_YEAR_DELTA = 1
+DEFAULT_MIN_ENTRIES = 1
+DEFAULT_MAX_ENTRIES = 1000
+DEFAULT_SAMPLE_N = 500
+DEFAULT_SEED = 42
 SHORT_TITLE_MIN_CHARS = 20
 SHORT_TITLE_MIN_WORDS = 4
 _MIN_PARTIAL_SURNAME_LEN = 3
 _FLOAT_EPS = 1e-12
+_MSSV_PAT = re.compile(r"^[A-Za-z0-9_-]+$")
 # Tên tác giả còn rác từ .bbl (vd `ibfieldauthor`, `bibnamefont`): không dùng làm bằng chứng.
 _GARBLED_AUTHOR_PAT = re.compile(r"bfield|bfname|bibname|namefont|bibinfo|binfo", re.IGNORECASE)
 # Không có tác giả đáng tin để lọc nên đòi tiêu đề khớp chặt hơn.
@@ -109,10 +117,11 @@ def extract_arxiv_id_from_doi(doi: Any) -> str | None:
 
 def load_bibtex_entries(
     arxiv_id: str,
-    parsed_root: Path = PARSED_ROOT,
+    parsed_root: Path | None = None,
 ) -> list[dict[str, Any]] | None:
     """Đọc `parsed/<pub_key>/bibtex.jsonl`; trả None nếu thiếu file hoặc JSON lỗi."""
-    path = parsed_root / config.pub_key(arxiv_id) / "bibtex.jsonl"
+    root = PARSED_ROOT if parsed_root is None else parsed_root
+    path = root / config.pub_key(arxiv_id) / "bibtex.jsonl"
     if not path.is_file():
         return None
 
@@ -130,31 +139,41 @@ def load_bibtex_entries(
     return entries
 
 
+def _inspect_references_status(
+    arxiv_id: str,
+    corpus_root: Path,
+) -> tuple[str, list[dict[str, Any]] | None]:
+    """Phân loại trạng thái `references.json`: ok / missing / not_ok và lọc ref arXiv."""
+    path = corpus_root / config.pub_key(arxiv_id) / "references.json"
+    if not path.is_file():
+        return "missing", None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return "not_ok", None
+    if not isinstance(data, dict) or data.get("status") != "ok":
+        return "not_ok", None
+    refs = data.get("references")
+    if not isinstance(refs, list):
+        return "not_ok", None
+    cands = [
+        ref for ref in refs
+        if isinstance(ref, dict) and _canon_arxiv(str(ref.get("ref_arxiv_id") or "")) is not None
+    ]
+    return "ok", cands
+
+
 def load_arxiv_candidates(
     arxiv_id: str,
-    corpus_root: Path = config.CORPUS_ROOT,
+    corpus_root: Path | None = None,
 ) -> list[dict[str, Any]] | None:
     """Đọc `references.json` và giữ các reference có `ref_arxiv_id` khác null.
 
     Chỉ nhận publication có `status == "ok"`; trả None nếu thiếu file hoặc status khác.
     """
-    path = corpus_root / config.pub_key(arxiv_id) / "references.json"
-    if not path.is_file():
-        return None
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-        return None
-    if not isinstance(data, dict) or data.get("status") != "ok":
-        return None
-
-    refs = data.get("references")
-    if not isinstance(refs, list):
-        return None
-    return [
-        ref for ref in refs
-        if isinstance(ref, dict) and norm_arxiv(ref.get("ref_arxiv_id")) is not None
-    ]
+    root = config.CORPUS_ROOT if corpus_root is None else corpus_root
+    status, cands = _inspect_references_status(arxiv_id, root)
+    return cands if status == "ok" else None
 
 
 @dataclass(frozen=True, slots=True)
@@ -398,8 +417,8 @@ def label_entries(
 
 def label_publication(
     arxiv_id: str,
-    parsed_root: Path = PARSED_ROOT,
-    corpus_root: Path = config.CORPUS_ROOT,
+    parsed_root: Path | None = None,
+    corpus_root: Path | None = None,
     *,
     title_threshold: float = DEFAULT_TITLE_THRESHOLD,
     margin_threshold: float = DEFAULT_MARGIN_THRESHOLD,
@@ -433,3 +452,570 @@ def write_jsonl_atomic(path: Path, rows: Iterable[dict[str, Any]]) -> None:
     except Exception:
         tmp.unlink(missing_ok=True)
         raise
+
+
+def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    """Ghi dict JSON UTF-8 qua file `.tmp` rồi replace nguyên tử."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        os.replace(tmp, path)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
+def _normalize_raw_id(raw: str) -> str:
+    s = raw.strip()
+    if s.lower().startswith("arxiv:"):
+        s = s[6:].strip()
+    return config.strip_version(s)
+
+
+def load_ids_file(path: Path) -> list[str]:
+    """Đọc file danh sách arXiv ID (1 ID/dòng); bỏ trống, comment, version và trùng."""
+    if not path.is_file():
+        raise FileNotFoundError(f"Không tìm thấy file ID: {path}")
+    result: list[str] = []
+    seen: set[str] = set()
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        aid = _normalize_raw_id(s)
+        if aid and aid not in seen:
+            seen.add(aid)
+            result.append(aid)
+    return result
+
+
+def load_exclude_ids(path: Path | None) -> set[str]:
+    """Đọc danh sách `arxiv_id` gán tay cần loại khỏi mẫu tự động (--exclude)."""
+    if path is None:
+        return set()
+    if not path.is_file():
+        raise FileNotFoundError(f"Không tìm thấy file --exclude: {path}")
+
+    text = path.read_text(encoding="utf-8-sig").strip()
+    if not text:
+        return set()
+
+    # Hỗ trợ JSON (list ID/dict hoặc object có `publications`/`arxiv_id`), JSONL hoặc text 1 ID/dòng.
+    if text[0] in "[{":
+        try:
+            obj = json.loads(text)
+            if isinstance(obj, list):
+                out: set[str] = set()
+                for item in obj:
+                    raw_id = item.get("arxiv_id") if isinstance(item, dict) else item
+                    if raw_id:
+                        out.add(_normalize_raw_id(str(raw_id)))
+                return out
+            if isinstance(obj, dict):
+                if "publications" in obj and isinstance(obj["publications"], list):
+                    return {
+                        _normalize_raw_id(str(item["arxiv_id"] if isinstance(item, dict) else item))
+                        for item in obj["publications"]
+                        if item and (not isinstance(item, dict) or item.get("arxiv_id"))
+                    }
+                if "arxiv_id" in obj and obj["arxiv_id"]:
+                    return {_normalize_raw_id(str(obj["arxiv_id"]))}
+        except json.JSONDecodeError:
+            pass
+
+    excluded: set[str] = set()
+    for line in text.splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        if s.startswith("{"):
+            row = json.loads(s)
+            if isinstance(row, dict) and row.get("arxiv_id"):
+                excluded.add(_normalize_raw_id(str(row["arxiv_id"])))
+                continue
+        aid = _normalize_raw_id(s)
+        if aid:
+            excluded.add(aid)
+    return excluded
+
+
+def _count_bibtex_entries_bounded(
+    arxiv_id: str,
+    parsed_root: Path,
+    max_entries: int,
+) -> int | None:
+    """Đếm entry trong `bibtex.jsonl`, dừng sớm ngay khi vượt `max_entries` để tiết kiệm I/O và RAM."""
+    path = parsed_root / config.pub_key(arxiv_id) / "bibtex.jsonl"
+    if not path.is_file():
+        return None
+    count = 0
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                if isinstance(row, dict):
+                    count += 1
+                    if count > max_entries:
+                        return count
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    return count
+
+
+def select_eligible_publications(
+    ids: list[str],
+    *,
+    exclude_ids: set[str],
+    parsed_root: Path | None = None,
+    corpus_root: Path | None = None,
+    min_entries: int = DEFAULT_MIN_ENTRIES,
+    max_entries: int = DEFAULT_MAX_ENTRIES,
+) -> tuple[list[str], dict[str, int]]:
+    """Lọc các publication đủ điều kiện (D3 + D6) và thống kê số lượng bị loại theo từng lý do."""
+    p_root = PARSED_ROOT if parsed_root is None else parsed_root
+    c_root = config.CORPUS_ROOT if corpus_root is None else corpus_root
+    counts = {
+        "total_ids": len(ids),
+        "excluded_manual": 0,
+        "references_missing": 0,
+        "references_not_ok": 0,
+        "no_arxiv_candidates": 0,
+        "bibtex_missing": 0,
+        "no_bibtex_entries": 0,
+        "too_many_bibtex_entries": 0,
+        "eligible": 0,
+    }
+    eligible: list[str] = []
+
+    for aid in ids:
+        if aid in exclude_ids:
+            counts["excluded_manual"] += 1
+            continue
+
+        ref_status, candidates = _inspect_references_status(aid, c_root)
+        if ref_status == "missing":
+            counts["references_missing"] += 1
+            continue
+        if ref_status != "ok" or candidates is None:
+            counts["references_not_ok"] += 1
+            continue
+        if not candidates:
+            counts["no_arxiv_candidates"] += 1
+            continue
+
+        n_entries = _count_bibtex_entries_bounded(aid, p_root, max_entries)
+        if n_entries is None:
+            counts["bibtex_missing"] += 1
+            continue
+        if n_entries < min_entries:
+            counts["no_bibtex_entries"] += 1
+            continue
+        if n_entries > max_entries:
+            counts["too_many_bibtex_entries"] += 1
+            continue
+
+        eligible.append(aid)
+
+    counts["eligible"] = len(eligible)
+    return eligible, counts
+
+
+def _method_key(method: str | None) -> str:
+    return method if method is not None else "null"
+
+
+def run_auto_label(
+    *,
+    ids_path: Path,
+    mssv: str,
+    n: int = DEFAULT_SAMPLE_N,
+    seed: int = DEFAULT_SEED,
+    exclude_path: Path | None = None,
+    overwrite: bool = False,
+    dry_run: bool = False,
+    parsed_root: Path | None = None,
+    corpus_root: Path | None = None,
+    out_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Chọn mẫu `n` publication hợp lệ (D3+D6), chạy matcher và ghi `.jsonl` + `.pubs.json`."""
+    if n < 1:
+        raise ValueError("--n phải >= 1")
+    if not _MSSV_PAT.fullmatch(mssv):
+        raise ValueError(f"--mssv không hợp lệ: {mssv!r}")
+    if not ids_path.is_file():
+        raise FileNotFoundError(f"Không tìm thấy file ID: {ids_path}")
+    if exclude_path is not None and not exclude_path.is_file():
+        raise FileNotFoundError(f"Không tìm thấy file --exclude: {exclude_path}")
+
+    p_root = PARSED_ROOT if parsed_root is None else parsed_root
+    c_root = config.CORPUS_ROOT if corpus_root is None else corpus_root
+    target_dir = out_dir if out_dir is not None else (LABELS_ROOT / "auto")
+    labels_path = target_dir / f"{mssv}.jsonl"
+    pubs_path = target_dir / f"{mssv}.pubs.json"
+
+    if not dry_run and not overwrite and (labels_path.exists() or pubs_path.exists()):
+        existing_n: int | None = None
+        try:
+            existing_n = json.loads(pubs_path.read_text(encoding="utf-8")).get("n_selected")
+        except (OSError, ValueError, AttributeError):
+            pass
+        return {
+            "skipped": True,
+            "labels_path": str(labels_path),
+            "pubs_path": str(pubs_path),
+            "existing_n_selected": existing_n,
+        }
+
+    ids = load_ids_file(ids_path)
+    exclude_ids = load_exclude_ids(exclude_path)
+    eligible, eligibility_counts = select_eligible_publications(
+        ids,
+        exclude_ids=exclude_ids,
+        parsed_root=p_root,
+        corpus_root=c_root,
+    )
+
+    shuffled = list(eligible)
+    random.Random(seed).shuffle(shuffled)
+    selected = shuffled[: min(n, len(shuffled))]
+
+    all_rows: list[dict[str, Any]] = []
+    pub_records: list[dict[str, Any]] = []
+    total_methods: Counter[str] = Counter()
+
+    for aid in selected:
+        entries = load_bibtex_entries(aid, parsed_root=p_root) or []
+        candidates = load_arxiv_candidates(aid, corpus_root=c_root) or []
+        rows = label_entries(entries, candidates, pub_arxiv_id=aid)
+        all_rows.extend(rows)
+
+        pub_methods: Counter[str] = Counter(_method_key(r["method"]) for r in rows)
+        total_methods.update(pub_methods)
+        n_matched = sum(1 for r in rows if r["groundtruth_arxiv_id"] is not None)
+        n_unmatched = len(rows) - n_matched
+        pub_records.append(
+            {
+                "arxiv_id": aid,
+                "pub_key": config.pub_key(aid),
+                "n_entries": len(rows),
+                "n_candidates": len(candidates),
+                "n_matched": n_matched,
+                "n_unmatched": n_unmatched,
+                "methods": dict(sorted(pub_methods.items())),
+            }
+        )
+
+    total_entries = len(all_rows)
+    total_matched = sum(p["n_matched"] for p in pub_records)
+    total_unmatched = total_entries - total_matched
+    match_rate = round(total_matched / total_entries, 4) if total_entries else 0.0
+
+    pubs_meta: dict[str, Any] = {
+        "mssv": mssv,
+        "ids_file": str(ids_path),
+        "exclude_file": str(exclude_path) if exclude_path is not None else None,
+        "seed": seed,
+        "n_requested": n,
+        "n_selected": len(selected),
+        "excluded_ids_count": len(exclude_ids),
+        "criteria": {
+            "references_status": "ok",
+            "requires_ref_arxiv_id": True,
+            "min_entries": DEFAULT_MIN_ENTRIES,
+            "max_entries": DEFAULT_MAX_ENTRIES,
+            "manual_publications_excluded": True,
+            "title_threshold": DEFAULT_TITLE_THRESHOLD,
+            "margin_threshold": DEFAULT_MARGIN_THRESHOLD,
+            "year_delta": DEFAULT_YEAR_DELTA,
+            "short_title_min_chars": SHORT_TITLE_MIN_CHARS,
+            "short_title_min_words": SHORT_TITLE_MIN_WORDS,
+            "garbled_author_title_threshold": GARBLED_AUTHOR_TITLE_THRESHOLD,
+        },
+        "eligibility": eligibility_counts,
+        "summary": {
+            "total_entries": total_entries,
+            "total_matched": total_matched,
+            "total_unmatched": total_unmatched,
+            "match_rate": match_rate,
+            "methods": dict(sorted(total_methods.items())),
+        },
+        "publications": pub_records,
+    }
+
+    if not dry_run:
+        write_jsonl_atomic(labels_path, all_rows)
+        write_json_atomic(pubs_path, pubs_meta)
+
+    return {
+        "skipped": False,
+        "dry_run": dry_run,
+        "labels_path": str(labels_path),
+        "pubs_path": str(pubs_path),
+        "meta": pubs_meta,
+        "rows": all_rows,
+    }
+
+
+def _safe_ratio(num: int, den: int) -> float | None:
+    return round(num / den, 4) if den > 0 else None
+
+
+def evaluate_gold(
+    gold_path: Path,
+    *,
+    parsed_root: Path | None = None,
+    corpus_root: Path | None = None,
+) -> dict[str, Any]:
+    """Đánh giá matcher trên file nhãn tay JSONL: precision cặp gán, recall cặp gold, theo method."""
+    if not gold_path.is_file():
+        raise FileNotFoundError(f"Không tìm thấy file --gold: {gold_path}")
+    p_root = PARSED_ROOT if parsed_root is None else parsed_root
+    c_root = config.CORPUS_ROOT if corpus_root is None else corpus_root
+
+    gold_entries: dict[tuple[str, str], str | None] = {}
+    gold_pubs_order: list[str] = []
+    seen_pubs: set[str] = set()
+    n_duplicate_keys = 0
+
+    for line_no, line in enumerate(gold_path.read_text(encoding="utf-8-sig").splitlines(), start=1):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if not isinstance(row, dict) or not row.get("arxiv_id") or not row.get("citation_key"):
+            raise ValueError(f"Dòng {line_no} trong {gold_path} thiếu arxiv_id hoặc citation_key")
+        pub_id = _normalize_raw_id(str(row["arxiv_id"]))
+        ckey = str(row["citation_key"])
+        raw_gt = row.get("groundtruth_arxiv_id")
+        gt_aid = _canon_arxiv(str(raw_gt)) if raw_gt else None
+
+        pair_key = (pub_id, ckey)
+        if pair_key in gold_entries:
+            n_duplicate_keys += 1
+        gold_entries[pair_key] = gt_aid
+        if pub_id not in seen_pubs:
+            seen_pubs.add(pub_id)
+            gold_pubs_order.append(pub_id)
+
+    n_gold_positive = sum(1 for v in gold_entries.values() if v is not None)
+    n_gold_null = len(gold_entries) - n_gold_positive
+
+    preds_by_key: dict[tuple[str, str], dict[str, Any]] = {}
+    evaluated_pubs: list[str] = []
+    missing_pubs: list[str] = []
+    total_pub_entries = 0
+
+    for pub_id in gold_pubs_order:
+        pred_rows = label_publication(pub_id, parsed_root=p_root, corpus_root=c_root)
+        if pred_rows is None:
+            missing_pubs.append(pub_id)
+            continue
+        evaluated_pubs.append(pub_id)
+        total_pub_entries += len(pred_rows)
+        for r in pred_rows:
+            preds_by_key[(r["arxiv_id"], r["citation_key"])] = r
+
+    auto_matched_on_gold = 0
+    correct_on_gold = 0
+    auto_matched_unlisted = 0
+    missing_entry_in_bibtex = 0
+    by_method_counts: dict[str, dict[str, int]] = {}
+
+    for (pub_id, ckey), pred in preds_by_key.items():
+        if pred["groundtruth_arxiv_id"] is None:
+            continue
+        if (pub_id, ckey) not in gold_entries:
+            auto_matched_unlisted += 1
+
+    for pair_key, gt_aid in gold_entries.items():
+        pred = preds_by_key.get(pair_key)
+        if pred is None:
+            if pair_key[0] in evaluated_pubs:
+                missing_entry_in_bibtex += 1
+            continue
+        pred_raw = pred["groundtruth_arxiv_id"]
+        if pred_raw is None:
+            continue
+
+        pred_aid = _canon_arxiv(str(pred_raw))
+        method = _method_key(pred["method"])
+        slot = by_method_counts.setdefault(method, {"matched": 0, "correct": 0})
+        slot["matched"] += 1
+        auto_matched_on_gold += 1
+        if gt_aid is not None and pred_aid == gt_aid:
+            slot["correct"] += 1
+            correct_on_gold += 1
+
+    by_method: dict[str, dict[str, Any]] = {}
+    for method, counts in sorted(by_method_counts.items()):
+        m = counts["matched"]
+        c = counts["correct"]
+        by_method[method] = {
+            "matched": m,
+            "correct": c,
+            "precision": _safe_ratio(c, m),
+            "recall_share": _safe_ratio(c, n_gold_positive),
+        }
+
+    return {
+        "gold_file": str(gold_path),
+        "n_gold_pubs": len(gold_pubs_order),
+        "n_evaluated_pubs": len(evaluated_pubs),
+        "missing_pubs": missing_pubs,
+        "n_gold_entries": len(gold_entries),
+        "n_gold_positive": n_gold_positive,
+        "n_gold_null": n_gold_null,
+        "n_duplicate_keys": n_duplicate_keys,
+        "total_pub_entries": total_pub_entries,
+        "missing_entry_in_bibtex": missing_entry_in_bibtex,
+        "auto_matched_on_gold": auto_matched_on_gold,
+        "correct_on_gold": correct_on_gold,
+        "auto_matched_unlisted": auto_matched_unlisted,
+        "precision": _safe_ratio(correct_on_gold, auto_matched_on_gold),
+        "recall": _safe_ratio(correct_on_gold, n_gold_positive),
+        "by_method": by_method,
+    }
+
+
+def _fmt_rate(correct: int, total: int) -> str:
+    if total == 0:
+        return f"N/A ({correct}/{total})"
+    return f"{correct / total:.2%} ({correct}/{total})"
+
+
+def _print_run_summary(res: dict[str, Any]) -> None:
+    if res.get("skipped"):
+        print(
+            f"Đã có sẵn {res['labels_path']} và/hoặc {res['pubs_path']}; "
+            "bỏ qua (dùng --overwrite để ghi đè)."
+        )
+        if res.get("existing_n_selected") is not None:
+            print(f"Lưu ý: file cũ chứa {res['existing_n_selected']} pub (có thể là bản chạy thử).")
+        return
+
+    meta = res["meta"]
+    elig = meta["eligibility"]
+    summ = meta["summary"]
+    tag = "[DRY-RUN] " if res.get("dry_run") else ""
+    print(
+        f"{tag}Chọn {meta['n_selected']}/{meta['n_requested']} pub "
+        f"(eligible={elig['eligible']}/{elig['total_ids']}, "
+        f"excluded={elig['excluded_manual']}, not_ok={elig['references_not_ok']}, "
+        f"no_cand={elig['no_arxiv_candidates']}, no_bib={elig['no_bibtex_entries']}, "
+        f">1000_entries={elig['too_many_bibtex_entries']})"
+    )
+    print(
+        f"{tag}Tổng entry: {summ['total_entries']} | "
+        f"Khớp: {summ['total_matched']} ({summ['match_rate']:.2%}) | "
+        f"Methods: {summ['methods']}"
+    )
+    if meta["n_selected"] < meta["n_requested"]:
+        print(
+            f"{tag}Cảnh báo: chỉ có {meta['n_selected']} pub đủ điều kiện "
+            f"(< --n {meta['n_requested']})."
+        )
+    matched_rows = [r for r in res.get("rows", []) if r["groundtruth_arxiv_id"] is not None]
+    samples: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str, str]] = set()
+    for method_name in ("arxiv_url", "doi", "title"):
+        for r in matched_rows:
+            if r["method"] == method_name:
+                samples.append(r)
+                seen_keys.add((r["arxiv_id"], r["citation_key"]))
+                break
+    for r in matched_rows:
+        if len(samples) >= 5:
+            break
+        key = (r["arxiv_id"], r["citation_key"])
+        if key not in seen_keys:
+            samples.append(r)
+            seen_keys.add(key)
+    if samples:
+        print(f"{tag}Vài cặp mẫu ({len(samples)}):")
+        for r in samples:
+            print(
+                f"  - {r['arxiv_id']} [{r['citation_key']}] -> "
+                f"{r['groundtruth_arxiv_id']} (method={r['method']}, score={r['score']})"
+            )
+    if not res.get("dry_run"):
+        print(f"Đã ghi: {res['labels_path']}")
+        print(f"Đã ghi: {res['pubs_path']}")
+
+
+def _print_eval_summary(ev: dict[str, Any]) -> None:
+    print(
+        f"Đánh giá trên {ev['n_evaluated_pubs']}/{ev['n_gold_pubs']} pub "
+        f"(gold entries={ev['n_gold_entries']}: positive={ev['n_gold_positive']}, "
+        f"null={ev['n_gold_null']})"
+    )
+    if ev["missing_pubs"]:
+        print(f"Cảnh báo thiếu dữ liệu pub: {ev['missing_pubs']}")
+    if ev["missing_entry_in_bibtex"]:
+        print(f"Cảnh báo entry có trong gold nhưng thiếu ở bibtex.jsonl: {ev['missing_entry_in_bibtex']}")
+    print(f"Precision (cặp matcher gán): {_fmt_rate(ev['correct_on_gold'], ev['auto_matched_on_gold'])}")
+    print(f"Recall    (cặp gold):        {_fmt_rate(ev['correct_on_gold'], ev['n_gold_positive'])}")
+    if ev["auto_matched_unlisted"]:
+        print(
+            f"Ghi chú: còn {ev['auto_matched_unlisted']} cặp trên cùng pub được matcher gán "
+            "nhưng không có trong danh sách entry của file gold."
+        )
+    print("Theo method:")
+    for method, stats in ev["by_method"].items():
+        prec = _fmt_rate(stats["correct"], stats["matched"])
+        rec = _fmt_rate(stats["correct"], ev["n_gold_positive"])
+        print(f"  - {method:10s} | precision={prec:20s} | recall_share={rec}")
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        description="Matcher tự động gán nhãn BibTeX entry <-> reference có arXiv ID (M3)"
+    )
+    p.add_argument("--ids", type=Path, help="File danh sách arXiv ID theo thành viên")
+    p.add_argument("--mssv", type=str, help="MSSV để đặt tên file output trong labels/auto/")
+    p.add_argument("--n", type=int, default=DEFAULT_SAMPLE_N, help="Số pub cần chọn (mặc định 500)")
+    p.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Seed chọn mẫu cố định (mặc định 42)")
+    p.add_argument("--exclude", type=Path, default=None, help="File các pub gán tay cần loại")
+    p.add_argument("--overwrite", action="store_true", help="Ghi đè file kết quả đã có")
+    p.add_argument("--dry-run", action="store_true", help="Chỉ chạy và in thống kê, không ghi file")
+    p.add_argument("--eval", action="store_true", help="Chế độ đánh giá precision/recall trên --gold")
+    p.add_argument("--gold", type=Path, default=None, help="File nhãn tay JSONL để đánh giá")
+    return p
+
+
+def main(argv: list[str] | None = None) -> None:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    try:
+        if args.eval:
+            if args.gold is None:
+                parser.error("--eval yêu cầu phải truyền --gold <file nhãn tay jsonl>")
+            ev = evaluate_gold(args.gold)
+            _print_eval_summary(ev)
+            return
+
+        if args.ids is None or not args.mssv:
+            parser.error("Cần truyền đủ --ids và --mssv (hoặc dùng --eval --gold)")
+        res = run_auto_label(
+            ids_path=args.ids,
+            mssv=args.mssv,
+            n=args.n,
+            seed=args.seed,
+            exclude_path=args.exclude,
+            overwrite=args.overwrite,
+            dry_run=args.dry_run,
+        )
+        _print_run_summary(res)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        parser.error(str(exc))
+
+
+if __name__ == "__main__":
+    main()

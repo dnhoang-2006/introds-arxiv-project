@@ -11,14 +11,20 @@ SRC_DIR = str(Path(__file__).resolve().parent.parent / "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
+import config  # noqa: E402
+import matching.auto_label as auto_label_mod  # noqa: E402
 from matching.auto_label import (  # noqa: E402
+    evaluate_gold,
     extract_arxiv_id_from_doi,
     extract_arxiv_id_from_url,
     label_entries,
     label_publication,
     load_arxiv_candidates,
     load_bibtex_entries,
+    load_exclude_ids,
+    main,
     match_entry,
+    run_auto_label,
     write_jsonl_atomic,
 )
 
@@ -558,3 +564,369 @@ class TestGarbledAuthors:
     def test_garbled_author_never_matches_short_title(self) -> None:
         res = match_entry(self._entry("Deep nets"), [self._ref("Deep nets")])
         assert res["method"] is None
+
+
+def _write_pub_fixture(
+    parsed_root: Path,
+    corpus_root: Path,
+    arxiv_id: str,
+    entries: list[dict[str, Any]],
+    refs: list[dict[str, Any]],
+    *,
+    status: str = "ok",
+) -> None:
+    pk = config.pub_key(arxiv_id)
+    (parsed_root / pk).mkdir(parents=True, exist_ok=True)
+    (corpus_root / pk).mkdir(parents=True, exist_ok=True)
+    (parsed_root / pk / "bibtex.jsonl").write_text(
+        "".join(json.dumps(e) + "\n" for e in entries),
+        encoding="utf-8",
+    )
+    (corpus_root / pk / "references.json").write_text(
+        json.dumps(
+            {
+                "arxiv_id": arxiv_id,
+                "crawled_at": "2026-10-29T17:45:25+07:00",
+                "status": status,
+                "n_total": len(refs),
+                "n_with_arxiv": sum(1 for r in refs if r.get("ref_arxiv_id")),
+                "references": refs,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+class TestCLIAndEval:
+    def test_sample_selection_filters_seed_dry_run_and_overwrite(self, tmp_path: Path) -> None:
+        parsed_root = tmp_path / "parsed"
+        corpus_root = tmp_path / "corpus"
+        out_dir = tmp_path / "labels" / "auto"
+
+        # 2 pub hợp lệ (giống mẫu nhỏ chuẩn + 1 bài vừa đúng 1000 entry)
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.00001",
+            [
+                _make_entry("k1", arxiv_id="2503.00001", url="https://arxiv.org/abs/1706.03762"),
+                _make_entry("k2", arxiv_id="2503.00001", title="No Match Title Here"),
+            ],
+            [_make_ref("1706.03762")],
+        )
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.00002",
+            [
+                _make_entry("k1", arxiv_id="2503.00002", doi="10.48550/ARXIV.2401.17991")
+                if i == 0
+                else _make_entry(f"extra_{i}", arxiv_id="2503.00002", title=f"Unmatched Paper {i}")
+                for i in range(1000)
+            ],
+            [_make_ref("2401.17991", ref_title="GPT Defeaters Analysis")],
+        )
+        # Pub bị loại do: excluded, not_ok, no_arxiv_cand, no_bibtex, >1000 entries
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.00003",
+            [_make_entry("k1", arxiv_id="2503.00003", url="https://arxiv.org/abs/1706.03762")],
+            [_make_ref("1706.03762")],
+        )
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.00004",
+            [_make_entry("k1", arxiv_id="2503.00004")],
+            [_make_ref("1706.03762")],
+            status="not_indexed",
+        )
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.00005",
+            [_make_entry("k1", arxiv_id="2503.00005")],
+            [_make_ref(None)],
+        )
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.00006",
+            [],
+            [_make_ref("1706.03762")],
+        )
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.00007",
+            [_make_entry(f"b_{i}", arxiv_id="2503.00007") for i in range(1001)],
+            [_make_ref("1706.03762")],
+        )
+
+        ids_file = tmp_path / "ids.txt"
+        ids_file.write_text(
+            "# comment\narXiv:2503.00001v2\n2503.00002\n2503.00003\n2503.00004\n"
+            "2503.00005\n2503.00006\n2503.00007\n2503.00008\n2503.00001\n",
+            encoding="utf-8",
+        )
+        exclude_file = tmp_path / "manual.jsonl"
+        exclude_file.write_text(
+            json.dumps({"arxiv_id": "2503.00003", "citation_key": "k1", "groundtruth_arxiv_id": "1706.03762"}) + "\n",
+            encoding="utf-8",
+        )
+
+        # --dry-run không ghi file ra đĩa
+        dry = run_auto_label(
+            ids_path=ids_file,
+            mssv="24120177",
+            n=5,
+            seed=42,
+            exclude_path=exclude_file,
+            dry_run=True,
+            parsed_root=parsed_root,
+            corpus_root=corpus_root,
+            out_dir=out_dir,
+        )
+        assert dry["skipped"] is False
+        assert dry["meta"]["n_selected"] == 2
+        assert dry["meta"]["eligibility"] == {
+            "total_ids": 8,
+            "excluded_manual": 1,
+            "references_missing": 1,
+            "references_not_ok": 1,
+            "no_arxiv_candidates": 1,
+            "bibtex_missing": 0,
+            "no_bibtex_entries": 1,
+            "too_many_bibtex_entries": 1,
+            "eligible": 2,
+        }
+        assert not (out_dir / "24120177.jsonl").exists()
+        assert not (out_dir / "24120177.pubs.json").exists()
+
+        # Chạy thật tạo .jsonl và .pubs.json, kiểm tra tính tất định và idempotent
+        real = run_auto_label(
+            ids_path=ids_file,
+            mssv="24120177",
+            n=5,
+            seed=42,
+            exclude_path=exclude_file,
+            parsed_root=parsed_root,
+            corpus_root=corpus_root,
+            out_dir=out_dir,
+        )
+        assert real["skipped"] is False
+        jsonl_lines = (out_dir / "24120177.jsonl").read_text(encoding="utf-8").splitlines()
+        pubs_json = json.loads((out_dir / "24120177.pubs.json").read_text(encoding="utf-8"))
+        assert len(jsonl_lines) == 1002
+        assert pubs_json["summary"]["total_entries"] == 1002
+        assert pubs_json["summary"]["total_matched"] == 2
+        assert {p["arxiv_id"] for p in pubs_json["publications"]} == {"2503.00001", "2503.00002"}
+        assert "2503.00003" not in {p["arxiv_id"] for p in pubs_json["publications"]}
+        assert [p["arxiv_id"] for p in pubs_json["publications"]] == [
+            p["arxiv_id"] for p in dry["meta"]["publications"]
+        ]
+
+        # Không có --overwrite phải bỏ qua và không ghi đè
+        (out_dir / "24120177.jsonl").write_text("SENTINEL\n", encoding="utf-8")
+        skipped = run_auto_label(
+            ids_path=ids_file,
+            mssv="24120177",
+            n=5,
+            seed=42,
+            exclude_path=exclude_file,
+            parsed_root=parsed_root,
+            corpus_root=corpus_root,
+            out_dir=out_dir,
+        )
+        assert skipped["skipped"] is True
+        assert (out_dir / "24120177.jsonl").read_text(encoding="utf-8") == "SENTINEL\n"
+
+        # Có --overwrite phải ghi đè lại đúng số dòng
+        overwritten = run_auto_label(
+            ids_path=ids_file,
+            mssv="24120177",
+            n=5,
+            seed=42,
+            exclude_path=exclude_file,
+            overwrite=True,
+            parsed_root=parsed_root,
+            corpus_root=corpus_root,
+            out_dir=out_dir,
+        )
+        assert overwritten["skipped"] is False
+        assert len((out_dir / "24120177.jsonl").read_text(encoding="utf-8").splitlines()) == 1002
+
+    def test_load_exclude_formats_and_missing_raises(self, tmp_path: Path) -> None:
+        txt_f = tmp_path / "ex.txt"
+        txt_f.write_text("# header\n2503.00001v2\narXiv:hep-th/9901001\n", encoding="utf-8")
+        assert load_exclude_ids(txt_f) == {"2503.00001", "hep-th/9901001"}
+
+        json_f = tmp_path / "ex.pubs.json"
+        json_f.write_text(json.dumps({"publications": [{"arxiv_id": "2503.00002"}]}), encoding="utf-8")
+        assert load_exclude_ids(json_f) == {"2503.00002"}
+
+        json_list_f = tmp_path / "ex_list.json"
+        json_list_f.write_text(json.dumps([{"arxiv_id": "2503.00003"}, {"arxiv_id": None}]), encoding="utf-8")
+        assert load_exclude_ids(json_list_f) == {"2503.00003"}
+
+        with pytest.raises(FileNotFoundError):
+            load_exclude_ids(tmp_path / "does_not_exist.txt")
+
+    def test_evaluate_gold_precision_recall_by_method_and_zero_division(self, tmp_path: Path) -> None:
+        parsed_root = tmp_path / "parsed"
+        corpus_root = tmp_path / "corpus"
+
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.10001",
+            [
+                _make_entry("e_url", arxiv_id="2503.10001", url="https://arxiv.org/abs/1706.03762"),
+                _make_entry("e_doi", arxiv_id="2503.10001", doi="10.48550/ARXIV.2401.17991"),
+                _make_entry(
+                    "e_title_ok",
+                    arxiv_id="2503.10001",
+                    title="Neural Radiance Fields for View Synthesis in Practice",
+                    authors=["Mildenhall, Ben"],
+                    year=2020,
+                ),
+                _make_entry(
+                    "e_title_fp",
+                    arxiv_id="2503.10001",
+                    title="Graph Representation Learning for Molecules",
+                    authors=["Smith, Alice"],
+                    year=2021,
+                ),
+                _make_entry("e_miss", arxiv_id="2503.10001", title="Completely Different Manual Entry"),
+                _make_entry("e_extra", arxiv_id="2503.10001", url="https://arxiv.org/abs/2001.00001"),
+            ],
+            [
+                _make_ref("1706.03762", ref_title="Attention"),
+                _make_ref("2401.17991", ref_title="GPT Defeaters"),
+                _make_ref(
+                    "2003.08934",
+                    ref_title="Neural Radiance Fields for View Synthesis in Practice",
+                    ref_authors=["Ben Mildenhall"],
+                    ref_year=2020,
+                ),
+                _make_ref(
+                    "2101.99999",
+                    ref_title="Graph Representation Learning for Molecules",
+                    ref_authors=["Alice Smith"],
+                    ref_year=2021,
+                ),
+                _make_ref("2001.00001", ref_title="Extra Unlisted Paper"),
+            ],
+        )
+
+        gold_file = tmp_path / "gold.jsonl"
+        gold_rows = [
+            {"arxiv_id": "2503.10001", "citation_key": "e_url", "groundtruth_arxiv_id": "1706.03762"},
+            {"arxiv_id": "2503.10001", "citation_key": "e_doi", "groundtruth_arxiv_id": "2401.17991"},
+            {"arxiv_id": "2503.10001", "citation_key": "e_title_ok", "groundtruth_arxiv_id": "2003.08934"},
+            {"arxiv_id": "2503.10001", "citation_key": "e_title_fp", "groundtruth_arxiv_id": "2101.11111"},  # FP
+            {"arxiv_id": "2503.10001", "citation_key": "e_miss", "groundtruth_arxiv_id": "1901.00001"},  # FN
+            {"arxiv_id": "2503.10001", "citation_key": "e_null_in_gold", "groundtruth_arxiv_id": None},  # không tính vào Q
+        ]
+        gold_file.write_text("".join(json.dumps(r) + "\n" for r in gold_rows), encoding="utf-8")
+
+        ev = evaluate_gold(gold_file, parsed_root=parsed_root, corpus_root=corpus_root)
+        assert ev["n_gold_pubs"] == 1
+        assert ev["n_evaluated_pubs"] == 1
+        assert ev["n_gold_positive"] == 5
+        assert ev["auto_matched_on_gold"] == 4
+        assert ev["correct_on_gold"] == 3
+        assert ev["auto_matched_unlisted"] == 1
+        assert ev["precision"] == 0.75
+        assert ev["recall"] == 0.6
+        assert ev["by_method"]["arxiv_url"] == {"matched": 1, "correct": 1, "precision": 1.0, "recall_share": 0.2}
+        assert ev["by_method"]["doi"] == {"matched": 1, "correct": 1, "precision": 1.0, "recall_share": 0.2}
+        assert ev["by_method"]["title"] == {"matched": 2, "correct": 1, "precision": 0.5, "recall_share": 0.2}
+
+        # Trường hợp không có cặp khớp nào -> precision là None, không chia cho 0
+        empty_gold = tmp_path / "empty_gold.jsonl"
+        empty_gold.write_text(
+            json.dumps({"arxiv_id": "2503.10001", "citation_key": "e_miss", "groundtruth_arxiv_id": "1901.00001"}) + "\n",
+            encoding="utf-8",
+        )
+        ev_zero = evaluate_gold(empty_gold, parsed_root=parsed_root, corpus_root=corpus_root)
+        assert ev_zero["auto_matched_on_gold"] == 0
+        assert ev_zero["precision"] is None
+        assert ev_zero["recall"] == 0.0
+
+        # Entry được gold đánh dấu null nhưng matcher gán nhầm -> tính vào mẫu số precision (FP)
+        null_fp_gold = tmp_path / "null_fp_gold.jsonl"
+        null_fp_gold.write_text(
+            json.dumps({"arxiv_id": "2503.10001", "citation_key": "e_url", "groundtruth_arxiv_id": None}) + "\n",
+            encoding="utf-8",
+        )
+        ev_null_fp = evaluate_gold(null_fp_gold, parsed_root=parsed_root, corpus_root=corpus_root)
+        assert ev_null_fp["n_gold_positive"] == 0
+        assert ev_null_fp["auto_matched_on_gold"] == 1
+        assert ev_null_fp["correct_on_gold"] == 0
+        assert ev_null_fp["precision"] == 0.0
+        assert ev_null_fp["recall"] is None
+
+    def test_cli_main_validation_and_eval_output(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        parsed_root = tmp_path / "parsed"
+        corpus_root = tmp_path / "corpus"
+        labels_root = tmp_path / "labels"
+
+        _write_pub_fixture(
+            parsed_root,
+            corpus_root,
+            "2503.20001",
+            [_make_entry("k1", arxiv_id="2503.20001", url="https://arxiv.org/abs/1706.03762")],
+            [_make_ref("1706.03762")],
+        )
+        ids_file = tmp_path / "ids.txt"
+        ids_file.write_text("2503.20001\n", encoding="utf-8")
+        gold_file = tmp_path / "gold.jsonl"
+        gold_file.write_text(
+            json.dumps({"arxiv_id": "2503.20001", "citation_key": "k1", "groundtruth_arxiv_id": "1706.03762"}) + "\n",
+            encoding="utf-8",
+        )
+
+        monkeypatch.setattr(auto_label_mod, "PARSED_ROOT", parsed_root)
+        monkeypatch.setattr(auto_label_mod, "LABELS_ROOT", labels_root)
+        monkeypatch.setattr(config, "CORPUS_ROOT", corpus_root)
+
+        main(["--ids", str(ids_file), "--mssv", "24120177", "--n", "1", "--seed", "42"])
+        out_run = capsys.readouterr().out
+        assert "Chọn 1/1 pub" in out_run
+        assert (labels_root / "auto" / "24120177.jsonl").is_file()
+        assert (labels_root / "auto" / "24120177.pubs.json").is_file()
+
+        main(["--eval", "--gold", str(gold_file)])
+        out_eval = capsys.readouterr().out
+        assert "Precision (cặp matcher gán): 100.00% (1/1)" in out_eval
+        assert "Recall    (cặp gold):        100.00% (1/1)" in out_eval
+        assert "arxiv_url" in out_eval
+
+        with pytest.raises(SystemExit):
+            main(["--eval"])
+        with pytest.raises(SystemExit):
+            main(["--ids", str(ids_file), "--mssv", "../bad", "--n", "1"])
+        with pytest.raises(SystemExit):
+            main(["--ids", str(ids_file), "--mssv", "24120177", "--exclude", str(tmp_path / "missing.txt")])
+
+
+class TestSkipReportsExistingSize:
+    def test_skip_returns_existing_n_selected(self, tmp_path: Path) -> None:
+        from matching.auto_label import run_auto_label
+        ids = tmp_path / "ids.txt"
+        ids.write_text("2503.11918", encoding="utf-8")
+        out = tmp_path / "out"
+        out.mkdir()
+        (out / "24120177.jsonl").write_text("", encoding="utf-8")
+        (out / "24120177.pubs.json").write_text('{"n_selected": 5}', encoding="utf-8")
+        res = run_auto_label(ids_path=ids, mssv="24120177", out_dir=out,
+                             parsed_root=tmp_path, corpus_root=tmp_path)
+        assert res["skipped"] is True
+        assert res["existing_n_selected"] == 5
