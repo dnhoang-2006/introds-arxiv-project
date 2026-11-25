@@ -44,6 +44,10 @@ SHORT_TITLE_MIN_CHARS = 20
 SHORT_TITLE_MIN_WORDS = 4
 _MIN_PARTIAL_SURNAME_LEN = 3
 _FLOAT_EPS = 1e-12
+# Tên tác giả còn rác từ .bbl (vd `ibfieldauthor`, `bibnamefont`): không dùng làm bằng chứng.
+_GARBLED_AUTHOR_PAT = re.compile(r"bfield|bfname|bibname|namefont|bibinfo|binfo", re.IGNORECASE)
+# Không có tác giả đáng tin để lọc nên đòi tiêu đề khớp chặt hơn.
+GARBLED_AUTHOR_TITLE_THRESHOLD = 0.95
 
 # ID mới (YYMM.NNNN hoặc YYMM.NNNNN) hoặc ID cũ (archive[.subcat]/NNNNNNN).
 _ARXIV_CORE = r"(\d{4}\.\d{4,5}|[a-z-]+(?:\.[a-z-]+)?/\d{7})"
@@ -165,23 +169,18 @@ class _PreparedCandidate:
 @dataclass(frozen=True, slots=True)
 class _CandidateIndex:
     by_arxiv: dict[str, dict[str, Any]]
-    by_doi: dict[str, dict[str, Any]]
     prepared: list[_PreparedCandidate]
 
 
 def _build_candidate_index(candidates: Iterable[dict[str, Any]]) -> _CandidateIndex:
     """Lập bảng tra cứu theo arXiv ID, DOI và thông tin đã chuẩn hóa của candidate."""
     by_arxiv: dict[str, dict[str, Any]] = {}
-    by_doi: dict[str, dict[str, Any]] = {}
     prepared: list[_PreparedCandidate] = []
     for ref in candidates:
         aid = _canon_arxiv(str(ref.get("ref_arxiv_id") or ""))
         if not aid:
             continue
         by_arxiv.setdefault(aid, ref)
-        ref_doi = norm_doi(ref.get("ref_doi") or ref.get("doi"))
-        if ref_doi:
-            by_doi.setdefault(ref_doi, ref)
         prepared.append(
             _PreparedCandidate(
                 ref=ref,
@@ -191,7 +190,7 @@ def _build_candidate_index(candidates: Iterable[dict[str, Any]]) -> _CandidateIn
                 year=clean_year(ref.get("ref_year")),
             )
         )
-    return _CandidateIndex(by_arxiv=by_arxiv, by_doi=by_doi, prepared=prepared)
+    return _CandidateIndex(by_arxiv=by_arxiv, prepared=prepared)
 
 
 def _surnames_match(a: str, b: str) -> bool:
@@ -241,7 +240,12 @@ def _match_by_title(
     if not entry_title or not prepared:
         return None, None
 
-    entry_surname = first_author_last_name(entry.get("authors"))
+    raw_authors = entry.get("authors")
+    first_raw = raw_authors[0] if isinstance(raw_authors, list) and raw_authors else raw_authors
+    garbled = bool(first_raw) and bool(_GARBLED_AUTHOR_PAT.search(str(first_raw)))
+    entry_surname = None if garbled else first_author_last_name(raw_authors)
+    if garbled:
+        title_threshold = max(title_threshold, GARBLED_AUTHOR_TITLE_THRESHOLD)
     short_title = _is_short_title(entry_title)
     if short_title and not entry_surname:
         return None, None
@@ -324,14 +328,10 @@ def _match_entry_indexed(
     if jr_aid and jr_aid in index.by_arxiv:
         return _label_record(entry_arxiv_id, citation_key, index.by_arxiv[jr_aid], "arxiv_url", 1.0)
 
-    # 2. Trường doi: tách 10.48550/arXiv.<id> (D4), hoặc khớp DOI nếu reference có
+    # 2. Trường doi: tách 10.48550/arXiv.<id> (D4); reference S2 không có DOI nên không đối sánh DOI thường
     doi_aid = extract_arxiv_id_from_doi(entry.get("doi"))
     if doi_aid and doi_aid in index.by_arxiv:
         return _label_record(entry_arxiv_id, citation_key, index.by_arxiv[doi_aid], "doi", 1.0)
-
-    clean_doi = norm_doi(entry.get("doi"))
-    if clean_doi and clean_doi in index.by_doi:
-        return _label_record(entry_arxiv_id, citation_key, index.by_doi[clean_doi], "doi", 1.0)
 
     # 3. Fallback khi doi trống/không khớp nhưng url lại là link doi.org/10.48550/arXiv.<id>
     url_doi_aid = _search_arxiv_patterns(raw_url, (_ARXIV_DOI_IN_URL_PAT,)) if raw_url else None

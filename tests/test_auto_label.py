@@ -172,28 +172,16 @@ class TestMatchByIdAndDoi:
         assert res["method"] == "arxiv_url"
         assert res["score"] == 1.0
 
-    def test_match_regular_doi_when_candidate_has_doi_and_noop_otherwise(self) -> None:
+    def test_regular_doi_is_noop_because_s2_refs_have_no_doi(self) -> None:
         entry = _make_entry(
             "iros24",
             doi="https://doi.org/10.1109/IROS.2024.10",
             title="Distinct Entry Title Without Title Match",
         )
-        with_ref_doi = [_make_ref("2408.04054", ref_doi="10.1109/iros.2024.10")]
-        without_ref_doi = [_make_ref("2408.04054")]
-
-        hit = match_entry(entry, with_ref_doi)
-        miss = match_entry(entry, without_ref_doi)
-
-        assert hit["groundtruth_arxiv_id"] == "2408.04054"
-        assert hit["method"] == "doi"
-        assert miss == {
-            "arxiv_id": "2503.11918",
-            "citation_key": "iros24",
-            "groundtruth_arxiv_id": None,
-            "method": None,
-            "score": None,
-            "labeler": "auto",
-        }
+        res = match_entry(entry, [_make_ref("2408.04054", ref_doi="10.1109/iros.2024.10")])
+        assert res["groundtruth_arxiv_id"] is None
+        assert res["method"] is None
+        assert res["score"] is None
 
     def test_non_arxiv_url_and_missing_candidate_return_null(self) -> None:
         candidates = [_make_ref("1706.03762"), _make_ref(None)]
@@ -537,3 +525,36 @@ class TestAuthorYearFilterAndTitleMatch:
         assert res_relaxed["groundtruth_arxiv_id"] == "2101.00002"
         assert res_relaxed["method"] == "title"
         assert 0.85 <= res_relaxed["score"] < 0.90
+
+
+class TestGarbledAuthors:
+    GARBLED = ["ibfieldauthor ibinfopersonNational Institute of Standards"]
+    TITLE = "Quantum sensitivity of parametric oscillators in noisy regimes"
+
+    def _ref(self, title: str, year: int = 2020, aid: str = "2001.00001") -> dict[str, Any]:
+        r = _make_ref(aid)
+        r["ref_title"] = title
+        r["ref_authors"] = ["Alice Smith"]
+        r["ref_year"] = year
+        return r
+
+    def _entry(self, title: str) -> dict[str, Any]:
+        e = _make_entry("g", title=title)
+        e["authors"] = self.GARBLED
+        e["year"] = 2020
+        return e
+
+    def test_garbled_author_still_matches_exact_long_title(self) -> None:
+        res = match_entry(self._entry(self.TITLE), [self._ref(self.TITLE)])
+        assert res["groundtruth_arxiv_id"] == "2001.00001"
+        assert res["method"] == "title"
+
+    def test_garbled_author_needs_stricter_threshold(self) -> None:
+        near = self.TITLE.replace("noisy regimes", "noisy regime")  # ~0.98 vs 0.90-0.95 vùng nhạy
+        weaker = "Quantum sensitivity of parametric oscillators"  # ratio < 0.95
+        assert match_entry(self._entry(self.TITLE), [self._ref(near)])["method"] == "title"
+        assert match_entry(self._entry(self.TITLE), [self._ref(weaker)])["method"] is None
+
+    def test_garbled_author_never_matches_short_title(self) -> None:
+        res = match_entry(self._entry("Deep nets"), [self._ref("Deep nets")])
+        assert res["method"] is None
