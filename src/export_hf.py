@@ -266,6 +266,21 @@ def _preflight(arxiv_ids: list[str], corpus_root: Path, parsed_root: Path) -> No
         )
 
 
+def _partition_parsed_ids(arxiv_ids: list[str], parsed_root: Path) -> tuple[list[str], list[str]]:
+    """Separate IDs with parsed directories from IDs that must be skipped."""
+    available: list[str] = []
+    skipped: list[str] = []
+    for arxiv_id in arxiv_ids:
+        parsed_dir = parsed_root / config.pub_key(arxiv_id)
+        (available if parsed_dir.is_dir() else skipped).append(arxiv_id)
+    if not available:
+        raise ExportError(
+            f"Không có bài nào trong {len(arxiv_ids)} ID được giao có thư mục trong {parsed_root}; "
+            "không tạo dataset rỗng."
+        )
+    return available, skipped
+
+
 def _table_schemas(pa: Any) -> dict[str, Any]:
     string = pa.string()
     string_list = pa.list_(string)
@@ -369,18 +384,31 @@ def _write_readme(root: Path) -> None:
         "Predictions will be added in a later release.\n\n"
         "Each table is a separate configuration: `papers`, `references`, "
         "`elements`, `hierarchy`, and `bibtex`. List-valued columns contain "
-        "one-level lists of strings; table rows contain no nested JSON objects.\n"
+        "one-level lists of strings; table rows contain no nested JSON objects. "
+        "Papers without a parsed directory are omitted from all five tables; "
+        "see the export manifest for the skipped IDs.\n"
     )
     (root / "README.md").write_text(readme, encoding="utf-8", newline="\n")
 
 
-def _write_manifest(root: Path, mssv: str, ids: list[str], results: dict[str, dict[str, Any]]) -> None:
+def _write_manifest(
+    root: Path,
+    mssv: str,
+    ids: list[str],
+    requested_ids: list[str],
+    skipped_ids: list[str],
+    results: dict[str, dict[str, Any]],
+) -> None:
     metadata_dir = root / "metadata"
     metadata_dir.mkdir(parents=True, exist_ok=True)
     manifest: dict[str, Any] = {
         "mssv": mssv,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "n_publications": len(ids),
+        "n_requested_publications": len(requested_ids),
+        "n_skipped_publications": len(skipped_ids),
+        "skipped_reason": "missing_parsed_directory",
+        "skipped_ids": skipped_ids,
         "predictions_included": False,
     }
     for table_name, result in results.items():
@@ -439,7 +467,7 @@ def export_dataset(
     output: Path,
     shard_rows: int,
     overwrite: bool = False,
-) -> dict[str, dict[str, Any]]:
+) -> tuple[dict[str, dict[str, Any]], list[str], list[str]]:
     try:
         import pyarrow as pa
         import pyarrow.parquet as pq
@@ -455,13 +483,15 @@ def export_dataset(
         raise ExportError(
             f"Thư mục xuất đã tồn tại: {output}. Dùng --overwrite để thay toàn bộ export của MSSV này."
         )
-    _preflight(arxiv_ids, corpus_root, parsed_root)
+    requested_ids = arxiv_ids
+    export_ids, skipped_ids = _partition_parsed_ids(requested_ids, parsed_root)
+    _preflight(export_ids, corpus_root, parsed_root)
 
     output.parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix=f".{output.name}.staging-", dir=output.parent))
     try:
         schemas = _table_schemas(pa)
-        iterators = _row_iterators(arxiv_ids, corpus_root, parsed_root)
+        iterators = _row_iterators(export_ids, corpus_root, parsed_root)
         results: dict[str, dict[str, Any]] = {}
         for table_name in TABLE_NAMES:
             results[table_name] = _write_shards(
@@ -476,9 +506,9 @@ def export_dataset(
             )
 
         _write_readme(stage)
-        _write_manifest(stage, mssv, arxiv_ids, results)
+        _write_manifest(stage, mssv, export_ids, requested_ids, skipped_ids, results)
         _replace_output(stage, output, overwrite)
-        return results
+        return results, export_ids, skipped_ids
     finally:
         if stage.exists():
             shutil.rmtree(stage, ignore_errors=True)
@@ -508,7 +538,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         arxiv_ids = _load_assigned_ids(ids_file)
-        results = export_dataset(
+        results, export_ids, skipped_ids = export_dataset(
             mssv=args.mssv,
             arxiv_ids=arxiv_ids,
             corpus_root=args.corpus,
@@ -522,7 +552,13 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(f"Hugging Face export cho MSSV {args.mssv}: {output.resolve()}")
-    print(f"Publication: {len(arxiv_ids)}")
+    print(f"Publication: {len(export_ids)} xuất / {len(arxiv_ids)} được giao")
+    if skipped_ids:
+        print(f"Bỏ qua {len(skipped_ids)} bài vì chưa có thư mục parsed:")
+        for arxiv_id in skipped_ids[:20]:
+            print(f"  - {arxiv_id}")
+        if len(skipped_ids) > 20:
+            print(f"  ... và {len(skipped_ids) - 20} bài khác; xem metadata export manifest")
     for table_name in TABLE_NAMES:
         result = results[table_name]
         print(f"{table_name:<12} {result['rows']:>10,} dòng  {len(result['shards']):>4} shard")
