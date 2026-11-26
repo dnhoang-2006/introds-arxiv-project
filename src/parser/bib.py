@@ -74,12 +74,28 @@ def _extract_bibinfo_title_span(raw: str) -> tuple[str, int, int] | None:
     return None
 
 
+# Lệnh định dạng chỉ bọc nội dung, phải GỠ trước khi xoá ngoặc nhọn.
+# Nếu xoá ngoặc trước thì \\text{Hermitian} thành \\textHermitian, rồi
+# bib_dedup.py (dòng 110, 123, 348) xoá nguyên cụm \\[a-zA-Z]+ -> mất chữ.
+# Đo 26/11: 1.637/1.692.998 title dính lỗi này (0,097%), chủ yếu \\mathrm trong công thức.
+_UNWRAP_CMD = (
+    "text|textrm|textbf|textit|texttt|textsc|textsf|textnormal|textup|"
+    "emph|mathrm|mathbf|mathit|mathsf|mathtt|mathcal|mbox|hbox|"
+    "ensuremath|boldsymbol|bm|uppercase|lowercase"
+)
+_UNWRAP_PAT = re.compile(r"\\(?:" + _UNWRAP_CMD + r")\s*\{([^{}]*)\}")
+
+
 def _clean_bib_text(val: str | None) -> str | None:
     if not val:
         return None
-    # Xóa ngoặc nhọn trước BibTex và chuẩn hóa khoảng trắng
-
-    cleaned = re.sub(r"[{}]", "", val)
+    cleaned = val
+    for _ in range(4):                      # lệnh có thể lồng vài lớp
+        new = _UNWRAP_PAT.sub(r"\1", cleaned)
+        if new == cleaned:
+            break
+        cleaned = new
+    cleaned = re.sub(r"[{}]", "", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned or None
 
@@ -375,6 +391,39 @@ def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
     }
 
 
+
+_CITE_PAT = re.compile(
+    r"\\[a-zA-Z]*[Cc]ite[a-zA-Z]*\s*(?:\[[^\]]*\]\s*)*\{([^{}]*)\}"
+)
+_NOCITE_ALL = re.compile(r"\\nocite\s*\{\s*\*\s*\}")
+
+
+def _collect_cited_keys(vdir: Path) -> set[str] | None:
+    """Khoá xuất hiện trong lệnh trích dẫn của các file .tex trong version.
+
+    Trả về None khi KHÔNG được lọc:
+      - gặp \\nocite{*}: bài cố ý in toàn bộ thư mục
+      - không tìm thấy lệnh trích dẫn nào: có thể do định dạng lạ, lọc sẽ xoá nhầm
+    """
+    keys: set[str] = set()
+    for p in sorted(vdir.rglob("*.tex")):
+        if not p.is_file() or p.name.startswith("."):
+            continue
+        try:
+            tex = p.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        tex = re.sub(r"(?<!\\)%.*", "", tex)        # bỏ comment
+        if _NOCITE_ALL.search(tex):
+            return None
+        for group in _CITE_PAT.findall(tex):
+            for k in group.split(","):
+                k = k.strip()
+                if k:
+                    keys.add(k)
+    return keys or None
+
+
 def collect_bib(
     vdir: Path | str,
     failed_blocks_out: list[Any] | None = None,
@@ -459,6 +508,22 @@ def collect_bib(
             key = entry.get("citation_key")
             if key:
                 collected[key] = entry
+
+    # 3. Chỉ giữ entry THỰC SỰ được trích dẫn.
+    # Nhiều bài đóng gói nguyên một cơ sở dữ liệu bibliography vào source
+    # (ví dụ anthology.bib của ACL, ~105.000 entry) rồi chỉ trích vài mục.
+    # Đo 26/11 trên dải 2507: 20 bài kiểu này chiếm 74,1% toàn bảng bibtex.
+    # Entry không được trích dẫn không phải tham khảo của bài, và ở M3 không
+    # bao giờ khớp được với reference nào.
+    cited = _collect_cited_keys(vdir)
+    if cited is not None:
+        kept = {k: v for k, v in collected.items() if k in cited}
+        if kept:                            # chốt chặn: không bao giờ trả về rỗng
+            n_drop = len(collected) - len(kept)
+            if n_drop:
+                logger.info("%s: bỏ %d entry không được trích dẫn, giữ %d",
+                            vdir, n_drop, len(kept))
+            collected = kept
 
     return list(collected.values())
 
