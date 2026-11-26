@@ -7,6 +7,7 @@
 # --- Dữ liệu crawl (TUYỆT ĐỐI không commit) ---
 corpus/
 parsed/
+hf_export/
 data/
 downloads/
 sources/
