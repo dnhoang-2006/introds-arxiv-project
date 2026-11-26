@@ -150,12 +150,15 @@ class TestMatchByIdAndDoi:
             "arxiv_id": "2503.11918",
             "citation_key": "vaswani",
             "groundtruth_arxiv_id": "1706.03762",
-            "method": "arxiv_url",
-            "score": 1.0,
             "labeler": "auto",
+            "method": "auto",
+            "rule": "arxiv_url",
+            "score": 1.0,
         }
         assert r2["groundtruth_arxiv_id"] == "hep-th/9901001"
-        assert r2["method"] == "arxiv_url"
+        assert r2["labeler"] == "auto"
+        assert r2["method"] == "auto"
+        assert r2["rule"] == "arxiv_url"
         assert r2["score"] == 1.0
 
     def test_match_doi_arxiv_uppercase_even_with_doi_url(self) -> None:
@@ -167,7 +170,8 @@ class TestMatchByIdAndDoi:
         )
         res = match_entry(entry, candidates)
         assert res["groundtruth_arxiv_id"] == "2401.17991"
-        assert res["method"] == "doi"
+        assert res["method"] == "auto"
+        assert res["rule"] == "doi"
         assert res["score"] == 1.0
 
     def test_match_doi_from_url_when_doi_field_empty(self) -> None:
@@ -175,7 +179,8 @@ class TestMatchByIdAndDoi:
         entry = _make_entry("aviation", doi=None, url="https://doi.org/10.48550/arXiv.2501.06210")
         res = match_entry(entry, candidates)
         assert res["groundtruth_arxiv_id"] == "2501.06210"
-        assert res["method"] == "arxiv_url"
+        assert res["method"] == "auto"
+        assert res["rule"] == "arxiv_url"
         assert res["score"] == 1.0
 
     def test_regular_doi_is_noop_because_s2_refs_have_no_doi(self) -> None:
@@ -186,7 +191,8 @@ class TestMatchByIdAndDoi:
         )
         res = match_entry(entry, [_make_ref("2408.04054", ref_doi="10.1109/iros.2024.10")])
         assert res["groundtruth_arxiv_id"] is None
-        assert res["method"] is None
+        assert res["method"] == "auto"
+        assert res["rule"] is None
         assert res["score"] is None
 
     def test_non_arxiv_url_and_missing_candidate_return_null(self) -> None:
@@ -207,7 +213,8 @@ class TestMatchByIdAndDoi:
         rows = label_entries(entries, candidates, pub_arxiv_id="2503.11918")
         assert len(rows) == 3
         assert rows[0]["groundtruth_arxiv_id"] is None
-        assert rows[0]["method"] is None
+        assert rows[0]["method"] == "auto"
+        assert rows[0]["rule"] is None
         assert rows[0]["score"] is None
         assert rows[1]["groundtruth_arxiv_id"] is None
         assert rows[2]["groundtruth_arxiv_id"] == "1706.03762"
@@ -302,12 +309,12 @@ class TestJournalAndOldIdFix:
         e["journal"] = "arXiv preprint arXiv:1706.03762"
         r = match_entry(e, [_make_ref("1706.03762")])
         assert r["groundtruth_arxiv_id"] == "1706.03762"
-        assert r["method"] == "arxiv_url"
+        assert r["rule"] == "arxiv_url"
 
     def test_journal_id_not_in_candidates_is_null(self) -> None:
         e = _make_entry("jr2", title="Completely Different Journal Paper")
         e["journal"] = "arXiv preprint arXiv:9999.99999"
-        assert match_entry(e, [_make_ref("1706.03762")])["method"] is None
+        assert match_entry(e, [_make_ref("1706.03762")])["rule"] is None
 
     def test_old_id_with_subcategory_matches_s2_form(self) -> None:
         e = _make_entry("old", url="https://arxiv.org/abs/math.GT/0309136")
@@ -333,7 +340,7 @@ class TestAuthorYearFilterAndTitleMatch:
         ]
         res = match_entry(entry, candidates)
         assert res["groundtruth_arxiv_id"] == "0201.1234"
-        assert res["method"] == "title"
+        assert res["rule"] == "title"
         assert res["score"] == 1.0
 
     @pytest.mark.parametrize(
@@ -357,10 +364,10 @@ class TestAuthorYearFilterAndTitleMatch:
         res = match_entry(entry, cands)
         if should_match:
             assert res["groundtruth_arxiv_id"] == "2408.06536"
-            assert res["method"] == "title"
+            assert res["rule"] == "title"
         else:
             assert res["groundtruth_arxiv_id"] is None
-            assert res["method"] is None
+            assert res["rule"] is None
 
     def test_short_title_requires_affirmative_first_author_match(self) -> None:
         cands_with_author = [
@@ -378,7 +385,7 @@ class TestAuthorYearFilterAndTitleMatch:
 
         hit = match_entry(e_with_author, cands_with_author)
         assert hit["groundtruth_arxiv_id"] == "1601.00001"
-        assert hit["method"] == "title"
+        assert hit["rule"] == "title"
 
         assert match_entry(e_with_author, cands_no_author)["groundtruth_arxiv_id"] is None
         assert match_entry(e_no_author, cands_with_author)["groundtruth_arxiv_id"] is None
@@ -425,7 +432,7 @@ class TestAuthorYearFilterAndTitleMatch:
         ]
         res = match_entry(entry, filtered_disambiguates)
         assert res["groundtruth_arxiv_id"] == "2301.00001"
-        assert res["method"] == "title"
+        assert res["rule"] == "title"
 
         # Khi khoảng cách đủ lớn (>= 0.03), vẫn chọn ứng viên tốt nhất
         clear_margin = [
@@ -455,7 +462,7 @@ class TestAuthorYearFilterAndTitleMatch:
         ]
         res = match_entry(entry, cands)
         assert res["groundtruth_arxiv_id"] == "1101.00001"
-        assert res["method"] == "title"
+        assert res["rule"] == "title"
 
     def test_year_delta_and_author_year_never_match_alone(self) -> None:
         title = "Scaling Learning Algorithms Towards Artificial Intelligence"
@@ -517,7 +524,8 @@ class TestAuthorYearFilterAndTitleMatch:
         )
         res_prio = match_entry(e_priority, [c_url, c_title])
         assert res_prio["groundtruth_arxiv_id"] == "2101.00001"
-        assert res_prio["method"] == "arxiv_url"
+        assert res_prio["method"] == "auto"
+        assert res_prio["rule"] == "arxiv_url"
 
         # Score ~0.87: bị loại ở ngưỡng mặc định 0.90, khớp khi hạ ngưỡng xuống 0.85
         e_near = _make_entry(
@@ -529,7 +537,8 @@ class TestAuthorYearFilterAndTitleMatch:
         assert match_entry(e_near, [c_title])["groundtruth_arxiv_id"] is None
         res_relaxed = match_entry(e_near, [c_title], title_threshold=0.85)
         assert res_relaxed["groundtruth_arxiv_id"] == "2101.00002"
-        assert res_relaxed["method"] == "title"
+        assert res_relaxed["method"] == "auto"
+        assert res_relaxed["rule"] == "title"
         assert 0.85 <= res_relaxed["score"] < 0.90
 
 
@@ -553,17 +562,17 @@ class TestGarbledAuthors:
     def test_garbled_author_still_matches_exact_long_title(self) -> None:
         res = match_entry(self._entry(self.TITLE), [self._ref(self.TITLE)])
         assert res["groundtruth_arxiv_id"] == "2001.00001"
-        assert res["method"] == "title"
+        assert res["rule"] == "title"
 
     def test_garbled_author_needs_stricter_threshold(self) -> None:
         near = self.TITLE.replace("noisy regimes", "noisy regime")  # ~0.98 vs 0.90-0.95 vùng nhạy
         weaker = "Quantum sensitivity of parametric oscillators"  # ratio < 0.95
-        assert match_entry(self._entry(self.TITLE), [self._ref(near)])["method"] == "title"
-        assert match_entry(self._entry(self.TITLE), [self._ref(weaker)])["method"] is None
+        assert match_entry(self._entry(self.TITLE), [self._ref(near)])["rule"] == "title"
+        assert match_entry(self._entry(self.TITLE), [self._ref(weaker)])["rule"] is None
 
     def test_garbled_author_never_matches_short_title(self) -> None:
         res = match_entry(self._entry("Deep nets"), [self._ref("Deep nets")])
-        assert res["method"] is None
+        assert res["rule"] is None
 
 
 def _write_pub_fixture(
@@ -719,13 +728,27 @@ class TestCLIAndEval:
         jsonl_lines = (out_dir / "24120177.jsonl").read_text(encoding="utf-8").splitlines()
         pubs_json = json.loads((out_dir / "24120177.pubs.json").read_text(encoding="utf-8"))
         assert len(jsonl_lines) == 1002
+        parsed_rows = [json.loads(ln) for ln in jsonl_lines]
+        assert all(r["method"] == "auto" and r["labeler"] == "24120177" for r in parsed_rows)
         assert pubs_json["summary"]["total_entries"] == 1002
         assert pubs_json["summary"]["total_matched"] == 2
+        assert pubs_json["summary"]["rules"] == {"arxiv_url": 1, "doi": 1, "null": 1000}
         assert {p["arxiv_id"] for p in pubs_json["publications"]} == {"2503.00001", "2503.00002"}
         assert "2503.00003" not in {p["arxiv_id"] for p in pubs_json["publications"]}
         assert [p["arxiv_id"] for p in pubs_json["publications"]] == [
             p["arxiv_id"] for p in dry["meta"]["publications"]
         ]
+
+        from matching.label_io import load_labels
+
+        loaded_labels = load_labels(out_dir.parent)
+        assert len(loaded_labels) == 1002
+        assert loaded_labels[("2503.00001", "k1")].method == "auto"
+        assert loaded_labels[("2503.00001", "k1")].labeler == "24120177"
+        assert loaded_labels[("2503.00001", "k1")].groundtruth_arxiv_id == "1706.03762"
+        assert loaded_labels[("2503.00001", "k2")].method == "auto"
+        assert loaded_labels[("2503.00001", "k2")].labeler == "24120177"
+        assert loaded_labels[("2503.00001", "k2")].groundtruth_arxiv_id is None
 
         # Không có --overwrite phải bỏ qua và không ghi đè
         (out_dir / "24120177.jsonl").write_text("SENTINEL\n", encoding="utf-8")
@@ -773,7 +796,7 @@ class TestCLIAndEval:
         with pytest.raises(FileNotFoundError):
             load_exclude_ids(tmp_path / "does_not_exist.txt")
 
-    def test_evaluate_gold_precision_recall_by_method_and_zero_division(self, tmp_path: Path) -> None:
+    def test_evaluate_gold_precision_recall_by_rule_and_zero_division(self, tmp_path: Path) -> None:
         parsed_root = tmp_path / "parsed"
         corpus_root = tmp_path / "corpus"
 
@@ -840,9 +863,9 @@ class TestCLIAndEval:
         assert ev["auto_matched_unlisted"] == 1
         assert ev["precision"] == 0.75
         assert ev["recall"] == 0.6
-        assert ev["by_method"]["arxiv_url"] == {"matched": 1, "correct": 1, "precision": 1.0, "recall_share": 0.2}
-        assert ev["by_method"]["doi"] == {"matched": 1, "correct": 1, "precision": 1.0, "recall_share": 0.2}
-        assert ev["by_method"]["title"] == {"matched": 2, "correct": 1, "precision": 0.5, "recall_share": 0.2}
+        assert ev["by_rule"]["arxiv_url"] == {"matched": 1, "correct": 1, "precision": 1.0, "recall_share": 0.2}
+        assert ev["by_rule"]["doi"] == {"matched": 1, "correct": 1, "precision": 1.0, "recall_share": 0.2}
+        assert ev["by_rule"]["title"] == {"matched": 2, "correct": 1, "precision": 0.5, "recall_share": 0.2}
 
         # Trường hợp không có cặp khớp nào -> precision là None, không chia cho 0
         empty_gold = tmp_path / "empty_gold.jsonl"
@@ -907,6 +930,7 @@ class TestCLIAndEval:
         out_eval = capsys.readouterr().out
         assert "Precision (cặp matcher gán): 100.00% (1/1)" in out_eval
         assert "Recall    (cặp gold):        100.00% (1/1)" in out_eval
+        assert "Theo rule:" in out_eval
         assert "arxiv_url" in out_eval
 
         with pytest.raises(SystemExit):
@@ -1024,7 +1048,7 @@ class TestZeroMatchedSummaryAndMissingGold:
         assert ev["n_gold_positive_evaluated"] == 1
         assert ev["precision"] == 1.0
         assert ev["recall"] == 1.0
-        assert ev["by_method"]["arxiv_url"]["recall_share"] == 1.0
+        assert ev["by_rule"]["arxiv_url"]["recall_share"] == 1.0
 
         # Kiểm tra CLI --parsed-root và --corpus-root trực tiếp
         main([

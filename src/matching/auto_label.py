@@ -304,8 +304,10 @@ def _label_record(
     arxiv_id: str,
     citation_key: str,
     ref: dict[str, Any] | None,
-    method: str | None,
+    rule: str | None,
     score: float | None,
+    *,
+    labeler: str = "auto",
 ) -> dict[str, Any]:
     groundtruth = (
         config.strip_version(str(ref["ref_arxiv_id"]).strip())
@@ -316,9 +318,10 @@ def _label_record(
         "arxiv_id": arxiv_id,
         "citation_key": citation_key,
         "groundtruth_arxiv_id": groundtruth,
-        "method": method,
+        "labeler": labeler,
+        "method": "auto",
+        "rule": rule,
         "score": score,
-        "labeler": "auto",
     }
 
 
@@ -327,6 +330,7 @@ def _match_entry_indexed(
     index: _CandidateIndex,
     *,
     pub_arxiv_id: str = "",
+    labeler: str = "auto",
     title_threshold: float = DEFAULT_TITLE_THRESHOLD,
     margin_threshold: float = DEFAULT_MARGIN_THRESHOLD,
     year_delta: int = DEFAULT_YEAR_DELTA,
@@ -339,23 +343,31 @@ def _match_entry_indexed(
     raw_url = str(entry.get("url") or "").strip()
     url_aid = _search_arxiv_patterns(raw_url, (_ARXIV_HOST_URL_PAT, _ARXIV_PREFIX_PAT)) if raw_url else None
     if url_aid and url_aid in index.by_arxiv:
-        return _label_record(entry_arxiv_id, citation_key, index.by_arxiv[url_aid], "arxiv_url", 1.0)
+        return _label_record(
+            entry_arxiv_id, citation_key, index.by_arxiv[url_aid], "arxiv_url", 1.0, labeler=labeler
+        )
 
     # 1b. Trường journal dạng "arXiv preprint arXiv:<id>" (ID tường minh)
     raw_journal = str(entry.get("journal") or "").strip()
     jr_aid = _search_arxiv_patterns(raw_journal, (_ARXIV_PREFIX_PAT,)) if raw_journal else None
     if jr_aid and jr_aid in index.by_arxiv:
-        return _label_record(entry_arxiv_id, citation_key, index.by_arxiv[jr_aid], "arxiv_url", 1.0)
+        return _label_record(
+            entry_arxiv_id, citation_key, index.by_arxiv[jr_aid], "arxiv_url", 1.0, labeler=labeler
+        )
 
     # 2. Trường doi: tách 10.48550/arXiv.<id> (D4); reference S2 không có DOI nên không đối sánh DOI thường
     doi_aid = extract_arxiv_id_from_doi(entry.get("doi"))
     if doi_aid and doi_aid in index.by_arxiv:
-        return _label_record(entry_arxiv_id, citation_key, index.by_arxiv[doi_aid], "doi", 1.0)
+        return _label_record(
+            entry_arxiv_id, citation_key, index.by_arxiv[doi_aid], "doi", 1.0, labeler=labeler
+        )
 
     # 3. Fallback khi doi trống/không khớp nhưng url lại là link doi.org/10.48550/arXiv.<id>
     url_doi_aid = _search_arxiv_patterns(raw_url, (_ARXIV_DOI_IN_URL_PAT,)) if raw_url else None
     if url_doi_aid and url_doi_aid in index.by_arxiv:
-        return _label_record(entry_arxiv_id, citation_key, index.by_arxiv[url_doi_aid], "arxiv_url", 1.0)
+        return _label_record(
+            entry_arxiv_id, citation_key, index.by_arxiv[url_doi_aid], "arxiv_url", 1.0, labeler=labeler
+        )
 
     # 4. Lọc tác giả+năm và khớp tiêu đề chuẩn hóa (difflib + margin)
     title_ref, title_score = _match_by_title(
@@ -366,9 +378,11 @@ def _match_entry_indexed(
         year_delta=year_delta,
     )
     if title_ref is not None:
-        return _label_record(entry_arxiv_id, citation_key, title_ref, "title", title_score)
+        return _label_record(
+            entry_arxiv_id, citation_key, title_ref, "title", title_score, labeler=labeler
+        )
 
-    return _label_record(entry_arxiv_id, citation_key, None, None, None)
+    return _label_record(entry_arxiv_id, citation_key, None, None, None, labeler=labeler)
 
 
 def match_entry(
@@ -376,6 +390,7 @@ def match_entry(
     candidates: list[dict[str, Any]],
     *,
     pub_arxiv_id: str = "",
+    labeler: str = "auto",
     title_threshold: float = DEFAULT_TITLE_THRESHOLD,
     margin_threshold: float = DEFAULT_MARGIN_THRESHOLD,
     year_delta: int = DEFAULT_YEAR_DELTA,
@@ -385,6 +400,7 @@ def match_entry(
         entry,
         _build_candidate_index(candidates),
         pub_arxiv_id=pub_arxiv_id,
+        labeler=labeler,
         title_threshold=title_threshold,
         margin_threshold=margin_threshold,
         year_delta=year_delta,
@@ -396,6 +412,7 @@ def label_entries(
     candidates: list[dict[str, Any]],
     *,
     pub_arxiv_id: str = "",
+    labeler: str = "auto",
     title_threshold: float = DEFAULT_TITLE_THRESHOLD,
     margin_threshold: float = DEFAULT_MARGIN_THRESHOLD,
     year_delta: int = DEFAULT_YEAR_DELTA,
@@ -407,6 +424,7 @@ def label_entries(
             entry,
             index,
             pub_arxiv_id=pub_arxiv_id,
+            labeler=labeler,
             title_threshold=title_threshold,
             margin_threshold=margin_threshold,
             year_delta=year_delta,
@@ -420,6 +438,7 @@ def label_publication(
     parsed_root: Path | None = None,
     corpus_root: Path | None = None,
     *,
+    labeler: str = "auto",
     title_threshold: float = DEFAULT_TITLE_THRESHOLD,
     margin_threshold: float = DEFAULT_MARGIN_THRESHOLD,
     year_delta: int = DEFAULT_YEAR_DELTA,
@@ -434,6 +453,7 @@ def label_publication(
         entries,
         candidates,
         pub_arxiv_id=base_id,
+        labeler=labeler,
         title_threshold=title_threshold,
         margin_threshold=margin_threshold,
         year_delta=year_delta,
@@ -623,8 +643,8 @@ def select_eligible_publications(
     return eligible, counts
 
 
-def _method_key(method: str | None) -> str:
-    return method if method is not None else "null"
+def _rule_key(rule: str | None) -> str:
+    return rule if rule is not None else "null"
 
 
 def run_auto_label(
@@ -685,16 +705,16 @@ def run_auto_label(
 
     all_rows: list[dict[str, Any]] = []
     pub_records: list[dict[str, Any]] = []
-    total_methods: Counter[str] = Counter()
+    total_rules: Counter[str] = Counter()
 
     for aid in selected:
         entries = load_bibtex_entries(aid, parsed_root=p_root) or []
         candidates = load_arxiv_candidates(aid, corpus_root=c_root) or []
-        rows = label_entries(entries, candidates, pub_arxiv_id=aid)
+        rows = label_entries(entries, candidates, pub_arxiv_id=aid, labeler=mssv)
         all_rows.extend(rows)
 
-        pub_methods: Counter[str] = Counter(_method_key(r["method"]) for r in rows)
-        total_methods.update(pub_methods)
+        pub_rules: Counter[str] = Counter(_rule_key(r["rule"]) for r in rows)
+        total_rules.update(pub_rules)
         n_matched = sum(1 for r in rows if r["groundtruth_arxiv_id"] is not None)
         n_unmatched = len(rows) - n_matched
         pub_records.append(
@@ -705,7 +725,7 @@ def run_auto_label(
                 "n_candidates": len(candidates),
                 "n_matched": n_matched,
                 "n_unmatched": n_unmatched,
-                "methods": dict(sorted(pub_methods.items())),
+                "rules": dict(sorted(pub_rules.items())),
             }
         )
 
@@ -745,7 +765,7 @@ def run_auto_label(
             "match_rate": match_rate,
             "n_pubs_with_matches": n_pubs_with_matches,
             "n_pubs_zero_matched": n_pubs_zero_matched,
-            "methods": dict(sorted(total_methods.items())),
+            "rules": dict(sorted(total_rules.items())),
         },
         "publications": pub_records,
     }
@@ -784,7 +804,7 @@ def evaluate_gold(
     parsed_root: Path | None = None,
     corpus_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Đánh giá matcher trên file nhãn tay JSONL: precision cặp gán, recall cặp gold, theo method."""
+    """Đánh giá matcher trên file nhãn tay JSONL: precision cặp gán, recall cặp gold, theo rule."""
     if not gold_path.is_file():
         raise FileNotFoundError(f"Không tìm thấy file --gold: {gold_path}")
     p_root = PARSED_ROOT if parsed_root is None else parsed_root
@@ -844,7 +864,7 @@ def evaluate_gold(
     correct_on_gold = 0
     auto_matched_unlisted = 0
     missing_entry_in_bibtex = 0
-    by_method_counts: dict[str, dict[str, int]] = {}
+    by_rule_counts: dict[str, dict[str, int]] = {}
 
     for (pub_id, ckey), pred in preds_by_key.items():
         if pred["groundtruth_arxiv_id"] is None:
@@ -863,19 +883,19 @@ def evaluate_gold(
             continue
 
         pred_aid = _canon_arxiv(str(pred_raw))
-        method = _method_key(pred["method"])
-        slot = by_method_counts.setdefault(method, {"matched": 0, "correct": 0})
+        rule = _rule_key(pred["rule"])
+        slot = by_rule_counts.setdefault(rule, {"matched": 0, "correct": 0})
         slot["matched"] += 1
         auto_matched_on_gold += 1
         if gt_aid is not None and pred_aid == gt_aid:
             slot["correct"] += 1
             correct_on_gold += 1
 
-    by_method: dict[str, dict[str, Any]] = {}
-    for method, counts in sorted(by_method_counts.items()):
+    by_rule: dict[str, dict[str, Any]] = {}
+    for rule, counts in sorted(by_rule_counts.items()):
         m = counts["matched"]
         c = counts["correct"]
-        by_method[method] = {
+        by_rule[rule] = {
             "matched": m,
             "correct": c,
             "precision": _safe_ratio(c, m),
@@ -901,7 +921,7 @@ def evaluate_gold(
         "auto_matched_unlisted": auto_matched_unlisted,
         "precision": _safe_ratio(correct_on_gold, auto_matched_on_gold),
         "recall": _safe_ratio(correct_on_gold, n_gold_positive_evaluated),
-        "by_method": by_method,
+        "by_rule": by_rule,
     }
 
 
@@ -942,7 +962,7 @@ def _print_run_summary(res: dict[str, Any]) -> None:
     print(
         f"{tag}Tổng entry: {summ['total_entries']} | "
         f"Khớp: {summ['total_matched']} ({summ['match_rate']:.2%}) | "
-        f"Methods: {summ['methods']}"
+        f"Rules: {summ['rules']}"
     )
     if meta["n_selected"] < meta["n_requested"]:
         print(
@@ -957,9 +977,9 @@ def _print_run_summary(res: dict[str, Any]) -> None:
     matched_rows = [r for r in res.get("rows", []) if r["groundtruth_arxiv_id"] is not None]
     samples: list[dict[str, Any]] = []
     seen_keys: set[tuple[str, str]] = set()
-    for method_name in ("arxiv_url", "doi", "title"):
+    for rule_name in ("arxiv_url", "doi", "title"):
         for r in matched_rows:
-            if r["method"] == method_name:
+            if r["rule"] == rule_name:
                 samples.append(r)
                 seen_keys.add((r["arxiv_id"], r["citation_key"]))
                 break
@@ -975,7 +995,7 @@ def _print_run_summary(res: dict[str, Any]) -> None:
         for r in samples:
             print(
                 f"  - {r['arxiv_id']} [{r['citation_key']}] -> "
-                f"{r['groundtruth_arxiv_id']} (method={r['method']}, score={r['score']})"
+                f"{r['groundtruth_arxiv_id']} (rule={r['rule']}, score={r['score']})"
             )
     if not res.get("dry_run"):
         print(f"Đã ghi: {res['labels_path']}")
@@ -1017,11 +1037,11 @@ def _print_eval_summary(ev: dict[str, Any]) -> None:
             f"Ghi chú: còn {ev['auto_matched_unlisted']} cặp trên cùng pub được matcher gán "
             "nhưng không có trong danh sách entry của file gold."
         )
-    print("Theo method:")
-    for method, stats in ev["by_method"].items():
+    print("Theo rule:")
+    for rule, stats in ev["by_rule"].items():
         prec = _fmt_rate(stats["correct"], stats["matched"])
         rec = _fmt_rate(stats["correct"], ev["n_gold_positive_evaluated"])
-        print(f"  - {method:10s} | precision={prec:20s} | recall_share={rec}")
+        print(f"  - {rule:10s} | precision={prec:20s} | recall_share={rec}")
 
 
 def _build_parser() -> argparse.ArgumentParser:
