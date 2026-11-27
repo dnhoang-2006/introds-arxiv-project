@@ -97,12 +97,37 @@ _FOLD = {
 }
 
 
-def fold_accents(s: str) -> str:
-    """``Müller`` -> ``Mueller``, ``Gödel`` -> ``Goedel``, ``é`` -> ``e``, ``α`` -> `` alpha ``."""
+#: Như _FOLD nhưng BỎ ä/ö/ü để NFKD hạ thẳng về a/o/u. Dùng cho khoá phụ.
+_FOLD_ALT = {k: v for k, v in _FOLD.items() if k not in "äöüÄÖÜ"}
+
+# Semantic Scholar đôi khi ghi dấu sắc bằng nháy đơn trần: "Cr'epel" = "Crépel".
+# Chỉ sửa khi nháy đứng trước chữ THƯỜNG. Nháy trước chữ HOA phần lớn là nháy thật
+# (O'Brien, D'Agostino) và hai phía vốn đã ghi giống nhau nên không cần đụng.
+# Đo 27/11: 3.891 chuỗi dạng nháy+thường, 2.935 chuỗi dạng nháy+hoa.
+_QUOTE_ACCENT_RE = re.compile(r"['’ʼ](?=[a-z])")
+
+
+def _fold(s: str, table: dict[str, str]) -> str:
     s = unicodedata.normalize("NFC", s)
-    s = "".join(_FOLD.get(ch) or (f" {_GREEK_UNICODE[ch]} " if ch in _GREEK_UNICODE else ch) for ch in s)
+    s = "".join(table.get(ch) or (f" {_GREEK_UNICODE[ch]} " if ch in _GREEK_UNICODE else ch) for ch in s)
     s = unicodedata.normalize("NFKD", s)  # NFKD cũng tách ligature: ﬁ -> fi
     return "".join(ch for ch in s if not unicodedata.combining(ch))
+
+
+def fold_accents(s: str) -> str:
+    """``Müller`` -> ``Mueller``, ``Gödel`` -> ``Goedel``, ``é`` -> ``e``, ``α`` -> `` alpha ``."""
+    return _fold(s, _FOLD)
+
+
+def strip_accents(s: str) -> str:
+    """Như ``fold_accents`` nhưng ``Müller`` -> ``Muller``, dùng cho khoá phụ.
+
+    Cần cả hai dạng vì hai nguồn ghi khác nhau: BibTeX giữ ``Blümlein`` (fold ra
+    ``bluemlein``) còn Semantic Scholar ghi sẵn ``Blumlein`` (ra ``blumlein``).
+    Đo 27/11 trên 217.892 khoá tác giả S2: fold khớp 2.329 tên, chỉ-bỏ-dấu khớp
+    338 tên. Fold thắng gấp 7 lần nên nó vẫn là khoá chính; đây chỉ là khoá phụ.
+    """
+    return _fold(s, _FOLD_ALT)
 
 
 # ============================================================ tiêu đề
@@ -115,12 +140,19 @@ STOPWORDS = frozenset([
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 
 
-def normalize_text(s: str | None) -> str:
-    """Bỏ LaTeX, bỏ dấu, chữ thường, bỏ dấu câu, gộp khoảng trắng."""
+def _normalize(s: str | None, *, fold: bool = True) -> str:
     if not s:
         return ""
-    s = fold_accents(strip_latex(s)).lower()
+    # KHÔNG sửa nháy-thành-dấu ở đây: hàm này chạy cho cả tiêu đề, mà nháy trong
+    # tiêu đề hầu hết là sở hữu cách ("survey's"). Việc sửa nháy chỉ làm ở
+    # _author_raw, tức chỉ cho tên tác giả.
+    s = (fold_accents if fold else strip_accents)(strip_latex(s)).lower()
     return _NON_ALNUM_RE.sub(" ", s).strip()
+
+
+def normalize_text(s: str | None) -> str:
+    """Bỏ LaTeX, bỏ dấu, chữ thường, bỏ dấu câu, gộp khoảng trắng."""
+    return _normalize(s)
 
 
 def clean_title(title: str | None) -> str:
@@ -141,15 +173,34 @@ _SUFFIXES = frozenset({"jr", "sr", "ii", "iii", "iv"})
 _NOT_A_PERSON = frozenset({"others", "et al", "et al."})
 _BIBTEX_AND_RE = re.compile(r"\s+and\s+", re.IGNORECASE)
 
+# "P. Moskal et al." -> nếu không cắt đuôi thì họ thành "al". _NOT_A_PERSON chỉ bắt
+# được khi CẢ chuỗi đúng bằng "et al". Đo 27/11: 8.081/1.390.019 chuỗi tác giả
+# BibTeX (0,581%) dính, phía Semantic Scholar chỉ có 2 chuỗi.
+_ET_AL_RE = re.compile(r"[\s,]*\bet\.?\s*al\.?\s*$", re.I)
+
 
 class Author(NamedTuple):
-    last: str      # "van der waals"
-    initials: str  # "jd"
+    last: str              # "van der waals"
+    initials: str          # "jd"
+    last_alt: str = ""     # họ theo kiểu bỏ dấu ("blumlein"); "" nếu trùng `last`
 
     @property
     def key(self) -> str:
         """Khoá so khớp: họ + chữ cái đầu tiên của tên, vd ``vaswani a``."""
         return f"{self.last} {self.initials[:1]}".strip()
+
+    @property
+    def alt_key(self) -> str:
+        """Khoá phụ, dùng khi hai nguồn ghi dấu khác nhau (``Blümlein``/``Blumlein``)."""
+        return f"{self.last_alt or self.last} {self.initials[:1]}".strip()
+
+    @property
+    def keys(self) -> frozenset[str]:
+        return frozenset({self.key, self.alt_key})
+
+    def matches(self, other: "Author") -> bool:
+        """Khớp khi trùng khoá chính HOẶC khoá phụ. Dùng hàm này, đừng so `key` trần."""
+        return bool(self.keys & other.keys)
 
 
 def _is_suffix(word: str) -> bool:
@@ -172,6 +223,15 @@ def _split_first_last(name: str) -> tuple[str, str]:
     return " ".join(words[:start]), " ".join(words[start:])
 
 
+def _author_raw(name: str, *, fold: bool) -> str:
+    """Chuỗi tên đã bỏ LaTeX, bỏ dấu và cắt đuôi ``et al.``, chưa tách họ/tên."""
+    s = strip_latex(name)
+    if fold:
+        s = _QUOTE_ACCENT_RE.sub("", s)
+    s = (fold_accents if fold else strip_accents)(s).strip()
+    return _ET_AL_RE.sub("", s).strip()
+
+
 @lru_cache(maxsize=200_000)  # tên tác giả lặp lại rất nhiều giữa 1,3 triệu entry
 def parse_author(name: str | None) -> Author | None:
     """``Vaswani, A.`` / ``A. Vaswani`` / ``Ashish Vaswani`` -> ``Author('vaswani', 'a')``."""
@@ -181,16 +241,21 @@ def parse_author(name: str | None) -> Author | None:
     if name.startswith("{") and name.endswith("}") and name.count("{") == 1:
         # BibTeX: {Google Research} là tên tổ chức, không tách họ/tên
         return Author(normalize_text(name), "") if normalize_text(name) else None
-    raw = fold_accents(strip_latex(name)).strip()
+    raw = _author_raw(name, fold=True)
     if not raw or raw.lower() in _NOT_A_PERSON:
         return None
 
     first, last = _split_first_last(raw)
-    last = normalize_text(last)
+    last = _normalize(last)
     if not last:
         return None
-    first = normalize_text(first.replace(".", " ").replace("-", " "))
-    return Author(last, "".join(w[0] for w in first.split()))
+    first = _normalize(first.replace(".", " ").replace("-", " "))
+    initials = "".join(w[0] for w in first.split())
+
+    # Khoá phụ: cùng cách tách họ/tên nhưng bỏ dấu thay vì fold ae/oe/ue.
+    raw_alt = _author_raw(name, fold=False)
+    last_alt = _normalize(_split_first_last(raw_alt)[1], fold=False) if raw_alt else ""
+    return Author(last, initials, last_alt if last_alt and last_alt != last else "")
 
 
 def split_bibtex_authors(field: str | None) -> list[str]:
@@ -219,16 +284,25 @@ def author_keys(authors: str | Iterable[str] | None) -> list[str]:
     return [a.key for a in parse_authors(authors)]
 
 
+def author_keys_alt(authors: str | Iterable[str] | None) -> list[str]:
+    """Khoá phụ, cùng thứ tự với ``author_keys``. So khớp phải nhận cả hai bộ."""
+    return [a.alt_key for a in parse_authors(authors)]
+
+
 def last_names(authors: str | Iterable[str] | None) -> set[str]:
     return {a.last for a in parse_authors(authors)}
 
 
 # ============================================================ một hàng dữ liệu
 def _cleaned_fields(title: str | None, authors: Any) -> dict[str, Any]:
+    parsed = parse_authors(authors)
     return {
         "title_clean": clean_title(title),
         "title_tokens": title_tokens(title),
-        "author_keys": author_keys(authors),
+        "author_keys": [a.key for a in parsed],
+        # Khoá phụ cho trường hợp hai nguồn ghi dấu khác nhau. Khi so khớp tác giả
+        # phải nhận cả hai bộ (hoặc dùng Author.matches), không chỉ author_keys.
+        "author_keys_alt": [a.alt_key for a in parsed],
     }
 
 

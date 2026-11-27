@@ -829,3 +829,45 @@ def test_unify_publication_dangling_cite_not_renamed_by_other_version():
     assert stats["n_cite_renamed"] == 0
 
 
+
+
+# ------------------------------------------------------------------ hồi quy 27/11
+def test_letter_accent_commands_do_not_eat_command_names():
+    """`\\bibnamefont` KHÔNG được đọc thành lệnh dấu `\\b` áp lên chữ "i".
+
+    Đo 27/11 trước khi vá: 76.387/1.390.019 chuỗi tác giả (5,5%) trên 277
+    publication ra dạng `i̱bnamefont`. Vì dấu `\\` đã bị nuốt nên bước xoá
+    `\\[a-zA-Z]+` không dọn được nữa, họ còn đúng nhưng chữ cái đầu của tên
+    luôn thành "i" — khoá `thomas i` không bao giờ khớp `thomas a`.
+    """
+    got = _clean_author_name(r"\bibfnamefont A. W.\ \bibnamefont Thomas")
+    assert "̱" not in got, got
+    assert "namefont" not in got, got
+    assert got.split()[-1] == "Thomas"
+
+
+@pytest.mark.parametrize(
+    ("raw", "expect"),
+    [
+        (r"\bibnamefont Acharya", "Acharya"),   # \b + "i"
+        (r"\citep{x} Smith", "x Smith"),        # \c + "i"
+        (r"\url{y} Jones", "y Jones"),          # \u + "r"
+        (r"\ref{z} Brown", "z Brown"),          # \r + "e"
+    ],
+)
+def test_command_names_not_mistaken_for_accents(raw, expect):
+    assert _clean_author_name(raw) == expect
+
+
+@pytest.mark.parametrize(
+    ("raw", "expect"),
+    [
+        (r"Bl\"umlein", "Blümlein"),
+        (r"Fran\c coise", "Françoise"),
+        (r"\v{S}tefan", "Štefan"),
+        (r"Erd\H{o}s", "Erdős"),
+        (r"{\"u}ber", "über"),
+    ],
+)
+def test_real_accents_still_expand(raw, expect):
+    assert _clean_author_name(raw) == expect
