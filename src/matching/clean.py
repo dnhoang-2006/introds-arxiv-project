@@ -209,7 +209,7 @@ class Author(NamedTuple):
         Vế sau xử lý tiền tố tách lệch giữa hai nguồn: ``G. Di Giulio`` ra họ
         ``giulio`` còn ``Di Giulio, Giuseppe`` ra ``di giulio``; ``S. von
         Buddenbrock`` ra ``von buddenbrock`` còn BibTeX ghi ``Buddenbrock,
-        Stefan``. Hữu Duy đo 27/11: bỏ qua là mất 77 cặp.
+        Stefan``. Hửu Duy đo 27/11: bỏ qua là mất 77 cặp.
 
         KHÔNG sửa bằng cách cho ``_split_first_last`` coi ``Di``/``Le`` viết hoa
         là tiền tố — ``Le Wang`` (tên Trung Quốc, ``Le`` là tên riêng) sẽ hỏng.
@@ -224,6 +224,39 @@ class Author(NamedTuple):
                     return True
         return False
 
+    def _org_words(self) -> list[str] | None:
+        """Dãy từ để so tên tổ chức, hoặc None nếu tên này không giống tổ chức.
+
+        Cùng một tổ chức có thể tới từ hai nguồn ở hai dạng rất khác nhau:
+
+            "ATLAS Collaboration"   -> giữ nguyên cụm  -> ['atlas', 'collaboration']
+            "A. Collaboration"      -> giữ nguyên cụm  -> ['a', 'collaboration']
+            "Collaboration, ATLAS"  -> bị tách họ/tên  -> ['a', 'collaboration']
+            "Team, Gemini"          -> bị tách họ/tên  -> ['g', 'team']
+
+        Quy về cùng một dãy từ rồi so từng từ, cho phép một chữ cái khớp với từ
+        đầy đủ. Nhờ vậy `A. Collaboration` gặp `ATLAS Collaboration` nhưng
+        `CMS Collaboration` thì không. Hửu Duy chỉ ra 27/11: thiếu nhánh này thì
+        riêng dải 24120177 đã mất 10 cặp đúng, và dạng `Team, Gemini` có 132 tên.
+        """
+        words = self.last.split()
+        if not self.initials and len(words) > 1 and words[-1] in _ORG_TAIL_WORDS:
+            return words
+        if self.initials and _all_generic(self.last):
+            return [*self.initials, *words]
+        return None
+
+    @staticmethod
+    def _word_agrees(a: str, b: str) -> bool:
+        """Hai từ trùng, hoặc một bên là chữ cái đầu viết tắt của bên kia."""
+        return a == b or (len(a) == 1 and b.startswith(a)) or (len(b) == 1 and a.startswith(b))
+
+    def _org_agrees(self, other: "Author") -> bool:
+        x, y = self._org_words(), other._org_words()
+        if x is None or y is None or len(x) != len(y):
+            return False
+        return all(self._word_agrees(p, q) for p, q in zip(x, y))
+
     def matches(self, other: "Author") -> bool:
         """Hai tên có thể là cùng một người không.
 
@@ -233,8 +266,10 @@ class Author(NamedTuple):
 
         Một bên thiếu chữ đầu tên thì chỉ so họ: ``He`` cho khoá ``he`` còn
         ``Kaiming He`` cho ``he k``, entry bóc từ `.bbl` rất hay chỉ ghi họ.
-        Hữu Duy đo 27/11: bỏ qua là mất 52 cặp.
+        Hửu Duy đo 27/11: bỏ qua là mất 52 cặp.
         """
+        if self._org_agrees(other):
+            return True
         if not self._surname_agrees(other):
             return False
         if not self.initials or not other.initials:
@@ -249,7 +284,7 @@ class Author(NamedTuple):
 #:      chỉ toàn từ chung — nếu không ``{ATLAS Collaboration}`` sẽ khớp
 #:      ``CMS Collaboration`` và ``{Google Research}`` khớp ``Microsoft Research``.
 #: Chính cặp ATLAS này là ví dụ mà schema_m3 mục 9 dùng để giải thích vì sao bỏ
-#: luật "họ tác giả đầu + năm". Hữu Duy chỉ ra 27/11.
+#: luật "họ tác giả đầu + năm". Hửu Duy chỉ ra 27/11.
 _ORG_TAIL_WORDS = frozenset({
     "collaboration", "collaborations", "consortium", "research", "group",
     "team", "project", "experiment", "committee",
@@ -296,7 +331,7 @@ def _author_raw(name: str, *, fold: bool) -> str:
     thì ``O'Brien`` đã thành ``o'brien``, nháy lúc đó đứng trước chữ thường nên bị
     xoá thành ``obrien`` — đúng cái lỗi mà bản vá muốn tránh. Nhìn regex thì tưởng
     an toàn vì nó "chỉ xoá trước chữ thường", nên chỗ này dễ sai.
-    Hữu Duy chỉ ra 27/11. ``test_quote_regex_runs_before_lowercasing`` chặn việc này.
+    Hửu Duy chỉ ra 27/11. ``test_quote_regex_runs_before_lowercasing`` chặn việc này.
     """
     s = strip_latex(name)
     if fold:
@@ -318,11 +353,16 @@ def parse_author(name: str | None) -> Author | None:
     if not raw or raw.lower() in _NOT_A_PERSON:
         return None
 
-    if _is_org_name(raw):
+    if "," not in raw and _is_org_name(raw):
         # Tên tổ chức KHÔNG có ngoặc nhọn: giữ nguyên cả cụm như nhánh trên.
         # Nếu tách họ/tên thì "ATLAS Collaboration" ra họ `collaboration`, tên
         # `ATLAS` chui vào initials — vừa không gặp được `{ATLAS Collaboration}`
         # của phía BibTeX, vừa gặp nhầm `CMS Collaboration`.
+        #
+        # Có dấu phẩy thì KHÔNG đi nhánh này: `Zhang, Research` là người tên
+        # Research họ Zhang chứ không phải tổ chức `zhang research`. Dạng tổ chức
+        # viết kèm phẩy (`Collaboration, ATLAS`) vẫn gặp nhau được nhờ
+        # `_org_words` ở dưới. Hửu Duy chỉ ra 27/11.
         whole = _normalize(raw)
         return Author(whole, "") if whole else None
 
@@ -412,7 +452,7 @@ def first_author_matches(
     không tự gán nhãn.
 
     ⚠️ Hàm này vẫn CHẶT HƠN bộ lọc chỉ-so-họ: khi cả hai bên đều có chữ đầu tên
-    mà chữ đó khác nhau thì nó trả về False. Hữu Duy đo 27/11: so với bộ lọc
+    mà chữ đó khác nhau thì nó trả về False. Hửu Duy đo 27/11: so với bộ lọc
     chỉ-so-họ, sau khi parse lại vẫn chênh khoảng 65 cặp (~0,9%). Nếu cần thiên
     về bắt sót nữa thì so ``parse_author(x).surnames`` trực tiếp.
 

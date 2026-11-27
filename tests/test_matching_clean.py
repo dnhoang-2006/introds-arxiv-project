@@ -4,7 +4,7 @@ Chạy từ thư mục gốc dự án:
     pytest tests/test_matching_clean.py -v
 
 Hai phía M2 (bibtex) và M1 (references) phải ra CÙNG một dạng; test đỏ nghĩa là
-matcher sẽ trượt, phải báo Hữu Duy và Anh Tuấn.
+matcher sẽ trượt, phải báo Hửu Duy và Anh Tuấn.
 """
 from __future__ import annotations
 
@@ -108,7 +108,7 @@ def test_bibtex_and_reference_sides_agree():
     assert bib["citation_key"] == "vaswani2017"  # giữ nguyên trường gốc
 
 # ------------------------------------------------------------------ hồi quy 27/11
-# Bốn lỗi do Hữu Duy báo + đo lại trên dải 24120053. Test đỏ ở đây nghĩa là
+# Bốn lỗi do Hửu Duy báo + đo lại trên dải 24120053. Test đỏ ở đây nghĩa là
 # matcher trượt đúng những ca đã biết, xem docs/schema_m3.md mục 9.
 @pytest.mark.parametrize(
     ("s2_side", "bibtex_side"),
@@ -207,7 +207,7 @@ def test_first_author_matches_only_looks_at_first():
 
 
 def test_quote_regex_runs_before_lowercasing():
-    """Bẫy Hữu Duy chỉ ra 27/11: dời regex xuống sau .lower() là hỏng O'Brien.
+    """Bẫy Hửu Duy chỉ ra 27/11: dời regex xuống sau .lower() là hỏng O'Brien.
 
     Gộp từ test_quote_accent_only_before_lowercase cũ.
     """
@@ -220,7 +220,7 @@ def test_quote_regex_runs_before_lowercasing():
     assert "crepel v" in parse_author("Valentin Cr'epel").keys
 
 
-# ------------------------------------------------------------------ Hữu Duy soát 27/11
+# ------------------------------------------------------------------ Hửu Duy soát 27/11
 @pytest.mark.parametrize(
     ("left", "right"),
     [
@@ -314,3 +314,30 @@ def test_person_whose_surname_resembles_org_word_is_unaffected():
     assert parse_author("Group").last == "group"
     a, b = parse_author("K. Grouper"), parse_author("Kevin Grouper")
     assert a.matches(b)
+
+
+# ------------------------------------------------------------------ Hửu Duy soát #2
+@pytest.mark.parametrize(
+    ("left", "right", "expect"),
+    [
+        # Cùng tổ chức, một bên viết tắt tên riêng của tổ chức
+        ("ATLAS Collaboration", "A. Collaboration", True),
+        ("CMS Collaboration", "C. Collaboration", True),
+        # Cùng tổ chức, một bên viết kèm dấu phẩy nên bị tách họ/tên
+        ("Collaboration, ATLAS", "ATLAS Collaboration", True),
+        ("Team, Gemini", "Gemini Team", True),
+        # Khác tổ chức thì vẫn phải loại, kể cả khi đuôi giống nhau
+        ("{ATLAS Collaboration}", "CMS Collaboration", False),
+        ("ATLAS Collaboration", "C. Collaboration", False),
+        ("{Google Research}", "Microsoft Research", False),
+    ],
+)
+def test_abbreviated_and_comma_written_organisations(left, right, expect):
+    assert parse_author(left).matches(parse_author(right)) is expect
+
+
+def test_comma_name_is_not_mistaken_for_organisation():
+    """`Zhang, Research` là người tên Research họ Zhang, không phải tổ chức."""
+    a = parse_author("Zhang, Research")
+    assert (a.last, a.initials) == ("zhang", "r")
+    assert a.matches(parse_author("Zhang, R."))

@@ -125,7 +125,7 @@ Tùy chọn:
 |---|---|---|
 | 2. Tải source mọi version | `python src/downloader.py --ids ids/<mssv>.txt` | Minh Thư |
 | 3. Giải nén + dựng corpus | `python src/corpus_builder.py --ids ids/<mssv>.txt` | Thanh Tú |
-| 4. Crawl reference | `python src/semantic_scholar.py --ids ids/<mssv>.txt` | Hữu Duy |
+| 4. Crawl reference | `python src/semantic_scholar.py --ids ids/<mssv>.txt` | Hửu Duy |
 | 5. Đo hiệu năng | `python src/benchmark.py` | Anh Tuấn |
 | 6. Chạy cả pipeline | `python src/main.py --ids ids/<mssv>.txt` | Nhóm trưởng (tuần 2) |
 
@@ -137,6 +137,44 @@ Có thể chạy thử một phần trước:
 ```bash
 python src/corpus_builder.py --ids ids/<mssv>.txt --limit 5
 ```
+
+### Bước 7 — Parse (Milestone 2)
+
+Bọc bằng `benchmark.py` để lần parse này ghi luôn một dòng hiệu năng, khỏi phải
+chạy lại lần nữa chỉ để đo:
+
+```bash
+python src/benchmark.py --stage parse --paper-id all_5000_papers \
+  --disk-path parsed --csv book/data/benchmark_runs.csv \
+  -- python src/parse_main.py --ids ids/<mssv>.txt --workers 4
+```
+
+Thầy chốt ở Q&A Milestone 1 câu 16: **final benchmark phải chạy trên trọn bộ dữ
+liệu của tất cả thành viên**, không phải trên mẫu. Câu 9 và câu 22.3: các số đo
+phải lấy trên **Google Colab**, không phải máy cá nhân. Nên mỗi người chạy lệnh
+trên cho dải của mình trên Colab rồi gộp `benchmark_runs.csv` lại.
+
+### Bước 8 — Xuất và đẩy dataset lên Hugging Face (Milestone 3)
+
+```bash
+# 1. Xuất Parquet ra hf_export/<MSSV>/
+python src/export_hf.py --mssv <MSSV> --overwrite --shard-rows 500000
+
+# 2. Đăng nhập một lần (token loại write, lấy ở huggingface.co/settings/tokens)
+hf auth login
+
+# 3. Kiểm trước khi đẩy
+python scripts/upload_hf.py --mssv <MSSV> --dry-run
+
+# 4. Đẩy lên và lấy link
+python scripts/upload_hf.py --mssv <MSSV>
+```
+
+`--shard-rows 500000` cho ra khoảng 10 file thay vì 200; mặc định 25.000 dòng
+mỗi shard chỉ nặng ~1,6 MB, quá vụn nên upload chậm vì phí gọi API.
+
+Mỗi thành viên **tự host dataset của mình và tự nộp link riêng** — thầy chốt ở
+Q&A Milestone 3 câu 2 và câu 5.
 
 Chạy lại lệnh không giải nén lại version đã dựng; dùng `--force` nếu cần dựng lại.
 
@@ -276,5 +314,5 @@ Thư mục sinh ra lúc chạy (**không commit**): `corpus/`, `logs/`, `reports
 | 24120053 | Đặng Ngọc Hoàng (nhóm trưởng) | Entry Discovery + Tích hợp | A3 — OAI-PMH + Kaggle Cross-Validation |
 | 24120144 | Dương Ngọc Minh Thư | Full-text Source Download | A1 — Tối ưu hiệu năng |
 | 24120152 | Trần Ngọc Thanh Tú | Extract + Corpus Builder | A2 — Data Validation Suite |
-| 24120177 | Cáp Hữu Duy | Semantic Scholar References | C — Tiền xử lý bắc cầu M2/M3 |
+| 24120177 | Cáp Hửu Duy | Semantic Scholar References | C — Tiền xử lý bắc cầu M2/M3 |
 | 24120153 | Nguyễn Lê Anh Tuấn | Benchmark + Jupyter Book | B — Phân tích mở rộng |

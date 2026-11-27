@@ -59,3 +59,59 @@ Tài liệu được biên soạn dưới dạng sách tương tác (Jupyter Boo
 Dự án duy trì hai kho lưu trữ tách biệt theo nguyên tắc phân tách trách nhiệm:
 - **Kho lưu trữ mã nguồn (Code Repository):** Chứa mã nguồn quy trình thu thập, công cụ đo kiểm hiệu năng, kịch bản bóc tách và các ca kiểm thử tự động.
 - **Kho lưu trữ tài liệu (Documentation Repository):** Chứa cấu hình Jupyter Book, các sổ tay phân tích thực nghiệm, dữ liệu đối soát và kịch bản tự động xuất bản lên GitHub Pages.
+
+---
+
+## 5. Nguồn gốc và giới hạn của dữ liệu
+
+### 5.1 Thời điểm thu thập
+
+arXiv liên tục nhận phiên bản mới, nên mọi số liệu trong báo cáo này là ảnh chụp
+tại thời điểm thu thập chứ không phải trạng thái hiện tại của kho.
+
+| Dải ID | Siêu dữ liệu và mã nguồn | Trích dẫn (Semantic Scholar) |
+|---|---|---|
+| 2507.06659 – 2507.11658 | 25/10/2026 – 02/11/2026 | 29/10/2026 (4.875 bài), 02/11/2026 (125 bài chạy lại) |
+
+> Bốn thành viên còn lại bổ sung dòng của mình vào bảng trên, lấy từ trường
+> `crawled_at` trong `corpus/<pub>/references.json` của dải mình.
+
+### 5.2 Tệp `.bbl` và các trường hợp không chuyển đổi được
+
+Một số phiên bản không kèm `.bib` lẫn `\bibitem` trong `.tex`, chỉ còn `.bbl` —
+là bản đã dàn trang, sinh ra từ `.bib` lúc biên dịch. Nhóm giữ lại `.bbl` trong
+kho dữ liệu và bóc trực tiếp các mục `\bibitem` từ đó.
+
+Kết quả: số publication không có mục trích dẫn nào giảm từ **1.190 (23,8%)**
+xuống **449 (9,0%)**, khôi phục được 741 bài.
+
+Trong 449 bài còn lại:
+
+| Nguyên nhân | Tỉ lệ |
+|---|---|
+| Phiên bản không có mã nguồn TeX (`_EMPTY`) | 76% |
+| Bài không có mục tài liệu tham khảo | 11% |
+| `.bbl` sinh bởi **biber**, dùng cú pháp `\entry` thay cho `\bibitem` | 12% |
+
+Nhóm **chưa xử lý được** nhóm thứ ba, khoảng 1,1% toàn bộ kho. Cú pháp `\entry`
+của biber lồng nhiều cấp và tách trường theo cách khác hẳn `\bibitem`, nên bộ bóc
+tách hiện tại không dùng lại được. Hai hướng đã thử và lý do dừng:
+
+1. **Chuyển ngược `.bbl` về `.bib`** — không khả thi vì `.bbl` đã mất cấu trúc
+   trường gốc, chỉ còn chuỗi đã định dạng để in.
+2. **Viết bộ bóc tách riêng cho cú pháp `\entry`** — khả thi nhưng chi phí không
+   tương xứng với 1,1% dữ liệu, nên nhóm ghi nhận thay vì làm.
+
+Mục trích dẫn bóc từ `.bbl` kém chính xác hơn bóc từ `.bib`, vì `.bbl` không còn
+ranh giới trường. Trường `title` và `authors` dễ thiếu hoặc lẫn vào nhau.
+
+### 5.3 Bài không bóc tách được
+
+Bốn publication không dựng được cây cấu trúc:
+
+| arXiv ID | Nguyên nhân |
+|---|---|
+| `2507.10483` | plain TeX, không có `\documentclass` lẫn `\begin{document}` |
+| `2507.08666` | tệp `main.tex` thực chất là một trang HTML |
+| `2507.08667` | tệp `main.tex` thực chất là một trang HTML |
+| `2507.09585` | tệp `main.tex` thực chất là một trang HTML |
