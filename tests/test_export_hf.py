@@ -290,3 +290,154 @@ def test_manifest_records_no_skips_when_everything_is_present(tmp_path):
     )
     assert manifest["n_skipped_publications"] == 0
     assert manifest["skipped"] == [] and manifest["n_skipped_by_reason"] == {}
+
+
+def _rewrite_json(path: Path, **changes) -> None:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data.update(changes)
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "break_it",
+    [
+        # n_total lệch số dòng references
+        lambda c, p: _rewrite_json(c / config.pub_key("2504.12524") / "references.json", n_total=99),
+        # một dòng JSONL hỏng
+        lambda c, p: (p / config.pub_key("2504.12524") / "elements.jsonl").write_text(
+            "{bad\n", encoding="utf-8"),
+        # cột sai kiểu trong paper_meta
+        lambda c, p: _rewrite_json(c / config.pub_key("2504.12524") / "paper_meta.json", title=None),
+        # references.json không phải JSON
+        lambda c, p: (c / config.pub_key("2504.12524") / "references.json").write_text(
+            "not json", encoding="utf-8"),
+        # byte không phải UTF-8 (file lưu nhầm bằng cp1252...)
+        lambda c, p: (p / config.pub_key("2504.12524") / "elements.jsonl").write_bytes(
+            b'{"x": "\xff"}\n'),
+        lambda c, p: (c / config.pub_key("2504.12524") / "paper_meta.json").write_bytes(
+            b'{"title": "\xe9"}'),
+        # surrogate lẻ: JSON hợp lệ nhưng pyarrow không ghi được
+        lambda c, p: _rewrite_json(c / config.pub_key("2504.12524") / "paper_meta.json",
+                                   title="Paper \ud835 1"),
+    ],
+    ids=["n_total", "bad_jsonl_line", "null_title", "broken_references_json",
+         "non_utf8_jsonl", "non_utf8_json", "lone_surrogate"],
+)
+def test_invalid_content_skips_paper_from_all_tables(tmp_path, break_it):
+    """File có đủ nhưng nội dung hỏng ở 1 bài: bỏ bài đó khỏi cả năm bảng, không dừng cả lần xuất."""
+    pytest.importorskip("pyarrow")
+    import pyarrow.parquet as pq
+
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    break_it(corpus, parsed)
+    out = tmp_path / "hf_invalid"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+    ]) == 0
+
+    manifest = json.loads(
+        (out / "metadata" / "export-manifest-24120152.json").read_text(encoding="utf-8")
+    )
+    assert manifest["n_publications"] == 1
+    assert manifest["skipped_ids"] == ["2504.12524"]
+    assert manifest["skipped"][0]["detail"]
+    for name in export_hf.TABLE_NAMES:
+        ids_in_table = {
+            a for shard in (out / "data" / name).glob("*.parquet")
+            for a in pq.read_table(shard).column("arxiv_id").to_pylist()
+        }
+        assert "2504.12524" not in ids_in_table, name
+    # Bài lành vẫn đủ dòng như khi không có bài hỏng
+    assert manifest["n_rows_elements"] == 3
+    assert manifest["n_rows_references"] == 1
+
+
+def test_invalid_content_with_strict_stops_and_leaves_no_output(tmp_path):
+    pytest.importorskip("pyarrow")
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    _rewrite_json(corpus / config.pub_key("2504.12524") / "references.json", n_total=99)
+    out = tmp_path / "hf_invalid_strict"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out), "--strict",
+    ]) == 1
+    assert not out.exists()
+    assert not list(tmp_path.glob(".hf_invalid_strict.staging-*"))
+
+
+def test_all_papers_invalid_still_refuses_empty_dataset(tmp_path):
+    pytest.importorskip("pyarrow")
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    for arxiv_id in ("2504.12523", "2504.12524"):
+        _rewrite_json(corpus / config.pub_key(arxiv_id) / "paper_meta.json", title=None)
+    out = tmp_path / "hf_all_invalid"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+    ]) == 1
+    assert not out.exists()
+
+
+def test_references_table_matches_spec_and_keeps_only_arxiv_refs(tmp_path):
+    """Đề M1: chỉ reference có arXiv ID thành dòng; đúng 6 cột, ref_arxiv_id non-null."""
+    pytest.importorskip("pyarrow")
+    import pyarrow.parquet as pq
+
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    path = corpus / config.pub_key("2504.12523") / "references.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["references"].append({
+        "arxiv_id": "2504.12523", "ref_s2_id": "s2-2", "ref_title": "A Book",
+        "ref_authors": ["Eve"], "ref_submission_date": None, "ref_arxiv_id": None,
+        "has_arxiv_id": False, "ref_venue": None, "ref_year": 1999,
+    })
+    data["n_total"] = 2
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+    out = tmp_path / "hf_refs"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+    ]) == 0
+    table = pq.read_table(next((out / "data" / "references").glob("*.parquet")))
+    assert table.column_names == [
+        "arxiv_id", "ref_arxiv_id", "ref_title", "ref_authors",
+        "ref_submission_date", "ref_s2_id",
+    ]
+    assert table.schema.field("ref_arxiv_id").nullable is False
+    assert table.column("ref_arxiv_id").to_pylist() == ["2301.00001"]
+
+
+def test_schema_matches_spec_columns_and_dictionary_types(tmp_path):
+    """Cột, thứ tự cột và kiểu dictionary đúng như đề M1/M2."""
+    pa = pytest.importorskip("pyarrow")
+    import pyarrow.parquet as pq
+
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    out = tmp_path / "hf_schema"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+    ]) == 0
+    expected = {
+        "papers": ["arxiv_id", "title", "authors", "submission_date", "revised_dates", "venue"],
+        "references": ["arxiv_id", "ref_arxiv_id", "ref_title", "ref_authors",
+                       "ref_submission_date", "ref_s2_id"],
+        "elements": ["element_id", "arxiv_id", "kind", "content"],
+        "hierarchy": ["arxiv_id", "version", "element_id", "parent_id"],
+        "bibtex": ["arxiv_id", "citation_key", "entry_type", "title", "authors",
+                   "year", "doi", "journal", "url"],
+    }
+    tables = {
+        name: pq.read_table(next((out / "data" / name).glob("*.parquet")))
+        for name in export_hf.TABLE_NAMES
+    }
+    for name, columns in expected.items():
+        assert tables[name].column_names == columns, name
+    assert pa.types.is_dictionary(tables["elements"].schema.field("kind").type)
+    assert pa.types.is_dictionary(tables["bibtex"].schema.field("entry_type").type)
+    assert tables["elements"].column("kind").to_pylist() == [
+        "document", "sentence", "sentence", "document", "sentence"]
+    # authors / revised_dates là list[string] một cấp, không lồng object
+    assert tables["papers"].schema.field("authors").type == pa.list_(pa.string())

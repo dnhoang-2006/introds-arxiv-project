@@ -50,6 +50,13 @@ def test_crash_while_writing_elements_is_not_marked_done(tmp_path):
     assert not already_done("2310-12345", tmp_path)
 
 
+def test_missing_sibling_file_is_not_marked_done(tmp_path):
+    """Có elements.jsonl nhưng mất hierarchy/bibtex -> phải parse lại, không được bỏ qua."""
+    d = write_outputs("2310-12345", tmp_path, elements=[{"x": 1}], hierarchy=[], bibtex=[])
+    (d / "bibtex.jsonl").unlink()
+    assert not already_done("2310-12345", tmp_path)
+
+
 def test_rerun_skips_done_publications(tmp_path):
     out, log = tmp_path / "parsed", tmp_path / "parse.csv"
     calls: list[str] = []
