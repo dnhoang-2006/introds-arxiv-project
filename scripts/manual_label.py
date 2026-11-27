@@ -48,9 +48,7 @@ MIN_LABELS_PER_PUB = 20      # schema_m3 mục 4
 N_SHOWN = 5
 
 
-# --------------------------------------------------------------------------- #
 #  Phần thuần (có test): xếp hạng gợi ý, đọc/ghi tiến độ, gợi ý publication
-# --------------------------------------------------------------------------- #
 
 def rank_candidates(entry: dict[str, Any], refs: list[dict[str, Any]], k: int = N_SHOWN) -> list[int]:
     """Chỉ số k reference có tiêu đề giống tiêu đề entry nhất (giữ thứ tự gốc khi hoà)."""
@@ -119,10 +117,7 @@ def suggest_pubs(
             out.append((aid, n_ent, len(refs)))
     return out
 
-
-# --------------------------------------------------------------------------- #
 #  Phần tương tác
-# --------------------------------------------------------------------------- #
 
 def _fmt_authors(a: Any, n: int = 3) -> str:
     if not a:
