@@ -240,6 +240,10 @@ class Author(NamedTuple):
         riêng dải 24120177 đã mất 10 cặp đúng, và dạng `Team, Gemini` có 132 tên.
         """
         words = self.last.split()
+        if words[:1] == ["the"]:
+            # "{The ATLAS Collaboration}" phải gặp được "A. Collaboration"; giữ
+            # "the" thì hai dãy lệch độ dài nên không bao giờ so được.
+            words = words[1:]
         if not self.initials and len(words) > 1 and words[-1] in _ORG_TAIL_WORDS:
             return words
         if self.initials and _all_generic(self.last):

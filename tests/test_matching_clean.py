@@ -341,3 +341,37 @@ def test_comma_name_is_not_mistaken_for_organisation():
     a = parse_author("Zhang, Research")
     assert (a.last, a.initials) == ("zhang", "r")
     assert a.matches(parse_author("Zhang, R."))
+
+
+@pytest.mark.parametrize(
+    ("left", "right", "expect"),
+    [
+        ("{The ATLAS Collaboration}", "A. Collaboration", True),
+        ("{The ATLAS Collaboration}", "ATLAS Collaboration", True),
+        ("The CMS Collaboration", "{CMS Collaboration}", True),
+        # "the" không được làm mất khả năng loại tổ chức khác
+        ("{The ATLAS Collaboration}", "CMS Collaboration", False),
+        ("{The ATLAS Collaboration}", "C. Collaboration", False),
+    ],
+)
+def test_leading_the_is_ignored_for_organisations(left, right, expect):
+    assert parse_author(left).matches(parse_author(right)) is expect
+
+
+def test_org_written_as_name_comma_generic_is_a_known_limitation():
+    """`Gemini, Team` KHÔNG gặp `Gemini Team` — cố ý, đừng "sửa".
+
+    Ca này cùng dạng hệt `Zhang, Research`: đều là "<từ thường>, <từ chung>".
+    Luật nào cứu được cái trên cũng sẽ lại biến `Zhang, Research` thành tổ chức
+    `zhang research`, đúng lỗi vừa vá ở commit trước. Phân biệt hai cái đòi phải
+    biết `Gemini` là tên tổ chức còn `Zhang` là họ người — cần từ điển, không
+    phải việc của một luật chuỗi.
+
+    Hửu Duy đo 27/11: khoảng 20 tên kiểu này trên `parsed/`, 0 cặp bị ảnh hưởng.
+    Ghi ở `docs/schema_m3.md` mục 9.
+    """
+    assert not parse_author("Gemini, Team").matches(parse_author("Gemini Team"))
+    # ...và đây là cái phải giữ, lý do của việc không sửa ở trên
+    assert parse_author("Zhang, Research").matches(parse_author("Zhang, R."))
+    # thứ tự ngược lại thì vẫn gặp nhau bình thường
+    assert parse_author("Team, Gemini").matches(parse_author("Gemini Team"))
