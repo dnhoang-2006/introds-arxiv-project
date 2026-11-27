@@ -37,7 +37,7 @@ class ExportError(RuntimeError):
 def _load_json(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8-sig"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ExportError(f"Không đọc được JSON {path}: {exc}") from exc
     if not isinstance(value, dict):
         raise ExportError(f"JSON gốc phải là object: {path}")
@@ -61,6 +61,8 @@ def _iter_jsonl(path: Path) -> Iterator[dict[str, Any]]:
                         f"{path}, dòng {line_number}: mỗi dòng phải là object JSON"
                     )
                 yield value
+    except UnicodeDecodeError as exc:
+        raise ExportError(f"{path}: không phải UTF-8 hợp lệ ({exc.reason})") from exc
     except OSError as exc:
         raise ExportError(f"Không đọc được JSONL {path}: {exc}") from exc
 
@@ -71,12 +73,23 @@ def _field(row: dict[str, Any], name: str, where: str) -> Any:
     return row[name]
 
 
+def _check_utf8(value: str, name: str, where: str) -> None:
+    """JSON cho phép escape surrogate lẻ (\\ud835) nhưng Parquet thì không: pyarrow
+    sẽ ném UnicodeEncodeError lúc ghi shard, làm văng cả lần xuất. Bắt sớm ở đây để
+    chỉ bỏ qua bài chứa chuỗi đó."""
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise ExportError(f"{where}: {name} chứa ký tự không mã hoá được UTF-8 ({exc.reason})") from exc
+
+
 def _string(row: dict[str, Any], name: str, where: str, *, nullable: bool = False) -> str | None:
     value = _field(row, name, where)
     if value is None and nullable:
         return None
     if not isinstance(value, str):
         raise ExportError(f"{where}: {name} phải là chuỗi" + (" hoặc null" if nullable else ""))
+    _check_utf8(value, name, where)
     return value
 
 
@@ -88,6 +101,8 @@ def _string_list(
         return None
     if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
         raise ExportError(f"{where}: {name} phải là list[string] cấp một" + (" hoặc null" if nullable else ""))
+    for item in value:
+        _check_utf8(item, name, where)
     return value
 
 
@@ -127,23 +142,28 @@ def _paper_row(meta: dict[str, Any], arxiv_id: str, path: Path) -> dict[str, Any
     }
 
 
-def _reference_row(row: dict[str, Any], arxiv_id: str, where: str) -> dict[str, Any]:
+def _reference_row(row: dict[str, Any], arxiv_id: str, where: str) -> dict[str, Any] | None:
+    """Một dòng bảng `references`, hoặc None nếu reference này không có arXiv ID.
+
+    Đề M1: *"only the references carrying an arXiv ID become rows of the published
+    references table"*, `ref_arxiv_id` non-null, đúng 6 cột theo thứ tự của đề.
+    references.json vẫn giữ mọi reference (docs/schema.md mục 4); việc lọc chỉ xảy
+    ra ở đây. Các trường khác vẫn được validate để file hỏng không lọt qua im lặng.
+    """
     _check_arxiv_id(row, arxiv_id, where)
     ref_arxiv_id = _string(row, "ref_arxiv_id", where, nullable=True)
     has_arxiv_id = _boolean(row, "has_arxiv_id", where)
     if has_arxiv_id != bool(ref_arxiv_id):
         raise ExportError(f"{where}: has_arxiv_id không khớp ref_arxiv_id")
-    return {
+    out = {
         "arxiv_id": arxiv_id,
-        "ref_s2_id": _string(row, "ref_s2_id", where, nullable=True),
+        "ref_arxiv_id": ref_arxiv_id,
         "ref_title": _string(row, "ref_title", where, nullable=True),
         "ref_authors": _string_list(row, "ref_authors", where),
         "ref_submission_date": _string(row, "ref_submission_date", where, nullable=True),
-        "ref_arxiv_id": ref_arxiv_id,
-        "has_arxiv_id": has_arxiv_id,
-        "ref_venue": _string(row, "ref_venue", where, nullable=True),
-        "ref_year": _integer(row, "ref_year", where, nullable=True),
+        "ref_s2_id": _string(row, "ref_s2_id", where, nullable=True),
     }
+    return out if ref_arxiv_id else None
 
 
 def _element_row(row: dict[str, Any], arxiv_id: str, where: str) -> dict[str, Any]:
@@ -184,63 +204,61 @@ def _bibtex_row(row: dict[str, Any], arxiv_id: str, where: str) -> dict[str, Any
     }
 
 
-def _row_iterators(
-    arxiv_ids: list[str], corpus_root: Path, parsed_root: Path
-) -> dict[str, Iterator[dict[str, Any]]]:
-    def papers() -> Iterator[dict[str, Any]]:
-        for arxiv_id in arxiv_ids:
-            path = corpus_root / config.pub_key(arxiv_id) / "paper_meta.json"
-            yield _paper_row(_load_json(path), arxiv_id, path)
+def _publication_rows(
+    arxiv_id: str, corpus_root: Path, parsed_root: Path
+) -> dict[str, list[dict[str, Any]]]:
+    """Đọc và validate toàn bộ dòng của MỘT publication cho cả năm bảng.
 
-    def references() -> Iterator[dict[str, Any]]:
-        for arxiv_id in arxiv_ids:
-            path = corpus_root / config.pub_key(arxiv_id) / "references.json"
-            document = _load_json(path)
-            _check_arxiv_id(document, arxiv_id, str(path))
-            status = document.get("status")
-            if status not in {"ok", "not_indexed"}:
-                raise ExportError(
-                    f"{path}: status={status!r}; xử lý references lỗi/rate-limited trước khi xuất"
-                )
-            refs = document.get("references")
-            if not isinstance(refs, list):
-                raise ExportError(f"{path}: references phải là danh sách")
-            if type(document.get("n_total")) is not int or document["n_total"] != len(refs):
-                raise ExportError(f"{path}: n_total không khớp số dòng references")
-            n_with_arxiv = sum(
-                isinstance(row, dict) and bool(row.get("ref_arxiv_id")) for row in refs
-            )
-            if type(document.get("n_with_arxiv")) is not int or document["n_with_arxiv"] != n_with_arxiv:
-                raise ExportError(f"{path}: n_with_arxiv không khớp references")
-            for index, row in enumerate(refs, 1):
-                if not isinstance(row, dict):
-                    raise ExportError(f"{path}, reference {index}: phải là object")
-                yield _reference_row(row, arxiv_id, f"{path}, reference {index}")
+    Gom theo bài (không theo bảng) để một bài có nội dung hỏng — JSON lỗi,
+    n_total lệch, cột sai kiểu — bị loại khỏi cả năm bảng cùng lúc thay vì làm
+    văng cả lần xuất giữa chừng. Ném ExportError nếu bài này không xuất được.
+    """
+    folder = config.pub_key(arxiv_id)
+    corpus_dir = corpus_root / folder
+    parsed_dir = parsed_root / folder
 
-    def elements() -> Iterator[dict[str, Any]]:
-        for arxiv_id in arxiv_ids:
-            path = parsed_root / config.pub_key(arxiv_id) / "elements.jsonl"
-            for index, row in enumerate(_iter_jsonl(path), 1):
-                yield _element_row(row, arxiv_id, f"{path}, dòng {index}")
+    meta_path = corpus_dir / "paper_meta.json"
+    papers = [_paper_row(_load_json(meta_path), arxiv_id, meta_path)]
 
-    def hierarchy() -> Iterator[dict[str, Any]]:
-        for arxiv_id in arxiv_ids:
-            path = parsed_root / config.pub_key(arxiv_id) / "hierarchy.jsonl"
-            for index, row in enumerate(_iter_jsonl(path), 1):
-                yield _hierarchy_row(row, arxiv_id, f"{path}, dòng {index}")
+    refs_path = corpus_dir / "references.json"
+    document = _load_json(refs_path)
+    _check_arxiv_id(document, arxiv_id, str(refs_path))
+    status = document.get("status")
+    if status not in {"ok", "not_indexed"}:
+        raise ExportError(
+            f"{refs_path}: status={status!r}; xử lý references lỗi/rate-limited trước khi xuất"
+        )
+    refs = document.get("references")
+    if not isinstance(refs, list):
+        raise ExportError(f"{refs_path}: references phải là danh sách")
+    if type(document.get("n_total")) is not int or document["n_total"] != len(refs):
+        raise ExportError(f"{refs_path}: n_total không khớp số dòng references")
+    n_with_arxiv = sum(
+        isinstance(row, dict) and bool(row.get("ref_arxiv_id")) for row in refs
+    )
+    if type(document.get("n_with_arxiv")) is not int or document["n_with_arxiv"] != n_with_arxiv:
+        raise ExportError(f"{refs_path}: n_with_arxiv không khớp references")
+    references: list[dict[str, Any]] = []
+    for index, row in enumerate(refs, 1):
+        if not isinstance(row, dict):
+            raise ExportError(f"{refs_path}, reference {index}: phải là object")
+        ref_row = _reference_row(row, arxiv_id, f"{refs_path}, reference {index}")
+        if ref_row is not None:
+            references.append(ref_row)
 
-    def bibtex() -> Iterator[dict[str, Any]]:
-        for arxiv_id in arxiv_ids:
-            path = parsed_root / config.pub_key(arxiv_id) / "bibtex.jsonl"
-            for index, row in enumerate(_iter_jsonl(path), 1):
-                yield _bibtex_row(row, arxiv_id, f"{path}, dòng {index}")
+    def jsonl_rows(name: str, build: Any) -> list[dict[str, Any]]:
+        path = parsed_dir / name
+        return [
+            build(row, arxiv_id, f"{path}, dòng {index}")
+            for index, row in enumerate(_iter_jsonl(path), 1)
+        ]
 
     return {
-        "papers": papers(),
-        "references": references(),
-        "elements": elements(),
-        "hierarchy": hierarchy(),
-        "bibtex": bibtex(),
+        "papers": papers,
+        "references": references,
+        "elements": jsonl_rows("elements.jsonl", _element_row),
+        "hierarchy": jsonl_rows("hierarchy.jsonl", _hierarchy_row),
+        "bibtex": jsonl_rows("bibtex.jsonl", _bibtex_row),
     }
 
 
@@ -249,6 +267,9 @@ SKIP_MISSING_PARSED_DIR = "missing_parsed_directory"
 SKIP_MISSING_INPUT_FILE = "missing_input_file"
 SKIP_UNREADABLE_REFERENCES = "unreadable_references"
 SKIP_BAD_REFERENCES_STATUS = "bad_references_status"
+#: File đủ và đọc được nhưng nội dung sai schema/không nhất quán (JSONL hỏng một
+#: dòng, n_total lệch, cột sai kiểu...). Phát hiện lúc đọc từng bài để xuất.
+SKIP_INVALID_CONTENT = "invalid_content"
 
 
 def _skip_reason(
@@ -329,6 +350,9 @@ def _partition_ids(
 def _table_schemas(pa: Any) -> dict[str, Any]:
     string = pa.string()
     string_list = pa.list_(string)
+    # Đề ghi "string, dictionary" cho cột phân loại (elements.kind, bibtex.entry_type,
+    # sau này predictions.partition): lưu dạng dictionary-encoded string.
+    dictionary = pa.dictionary(pa.int32(), string)
     return {
         "papers": pa.schema([
             pa.field("arxiv_id", string, nullable=False),
@@ -339,20 +363,18 @@ def _table_schemas(pa: Any) -> dict[str, Any]:
             pa.field("venue", string, nullable=True),
         ]),
         "references": pa.schema([
+            # Đúng 6 cột, đúng thứ tự bảng `references` trong đề M1.
             pa.field("arxiv_id", string, nullable=False),
-            pa.field("ref_s2_id", string, nullable=True),
+            pa.field("ref_arxiv_id", string, nullable=False),
             pa.field("ref_title", string, nullable=True),
             pa.field("ref_authors", string_list, nullable=False),
             pa.field("ref_submission_date", string, nullable=True),
-            pa.field("ref_arxiv_id", string, nullable=True),
-            pa.field("has_arxiv_id", pa.bool_(), nullable=False),
-            pa.field("ref_venue", string, nullable=True),
-            pa.field("ref_year", pa.int64(), nullable=True),
+            pa.field("ref_s2_id", string, nullable=True),
         ]),
         "elements": pa.schema([
             pa.field("element_id", string, nullable=False),
             pa.field("arxiv_id", string, nullable=False),
-            pa.field("kind", string, nullable=False),
+            pa.field("kind", dictionary, nullable=False),
             pa.field("content", string, nullable=False),
         ]),
         "hierarchy": pa.schema([
@@ -364,7 +386,7 @@ def _table_schemas(pa: Any) -> dict[str, Any]:
         "bibtex": pa.schema([
             pa.field("arxiv_id", string, nullable=False),
             pa.field("citation_key", string, nullable=False),
-            pa.field("entry_type", string, nullable=False),
+            pa.field("entry_type", dictionary, nullable=False),
             pa.field("title", string, nullable=True),
             pa.field("authors", string_list, nullable=True),
             pa.field("year", pa.int64(), nullable=True),
@@ -375,40 +397,39 @@ def _table_schemas(pa: Any) -> dict[str, Any]:
     }
 
 
-def _write_shards(
-    table_name: str,
-    rows: Iterable[dict[str, Any]],
-    root: Path,
-    schema: Any,
-    mssv: str,
-    shard_rows: int,
-    pa: Any,
-    pq: Any,
-) -> dict[str, Any]:
-    table_dir = root / "data" / table_name
-    table_dir.mkdir(parents=True, exist_ok=True)
-    shard_paths: list[str] = []
-    row_count = 0
-    buffer: list[dict[str, Any]] = []
+class _ShardWriter:
+    """Ghi một bảng thành các shard Parquet, nhận dòng dần dần theo từng bài."""
 
-    def write_buffer(index: int) -> None:
-        table = pa.Table.from_pylist(buffer, schema=schema)
-        file_name = f"train-{mssv}-{index:05d}.parquet"
-        path = table_dir / file_name
-        pq.write_table(table, path, compression="zstd")
-        shard_paths.append(path.relative_to(root).as_posix())
+    def __init__(
+        self, table_name: str, root: Path, schema: Any, mssv: str, shard_rows: int,
+        pa: Any, pq: Any,
+    ) -> None:
+        self.table_dir = root / "data" / table_name
+        self.table_dir.mkdir(parents=True, exist_ok=True)
+        self.root, self.schema, self.mssv, self.shard_rows = root, schema, mssv, shard_rows
+        self.pa, self.pq = pa, pq
+        self.shard_paths: list[str] = []
+        self.row_count = 0
+        self.buffer: list[dict[str, Any]] = []
 
-    for row in rows:
-        buffer.append(row)
-        row_count += 1
-        if len(buffer) >= shard_rows:
-            write_buffer(len(shard_paths))
-            buffer.clear()
+    def _flush(self) -> None:
+        table = self.pa.Table.from_pylist(self.buffer, schema=self.schema)
+        path = self.table_dir / f"train-{self.mssv}-{len(self.shard_paths):05d}.parquet"
+        self.pq.write_table(table, path, compression="zstd")
+        self.shard_paths.append(path.relative_to(self.root).as_posix())
+        self.buffer.clear()
 
-    if buffer or not shard_paths:
-        write_buffer(len(shard_paths))
+    def add(self, rows: Iterable[dict[str, Any]]) -> None:
+        for row in rows:
+            self.buffer.append(row)
+            self.row_count += 1
+            if len(self.buffer) >= self.shard_rows:
+                self._flush()
 
-    return {"rows": row_count, "shards": shard_paths}
+    def close(self) -> dict[str, Any]:
+        if self.buffer or not self.shard_paths:
+            self._flush()
+        return {"rows": self.row_count, "shards": self.shard_paths}
 
 
 def _write_readme(root: Path) -> None:
@@ -430,8 +451,11 @@ def _write_readme(root: Path) -> None:
         "Each table is a separate configuration: `papers`, `references`, "
         "`elements`, `hierarchy`, and `bibtex`. List-valued columns contain "
         "one-level lists of strings; table rows contain no nested JSON objects. "
+        "`kind` and `entry_type` are dictionary-encoded strings. "
+        "The `references` table keeps only crawled references that carry an arXiv "
+        "ID, as the matching pool keys on arXiv identifiers. "
         "A paper missing any required input — parsed output, `paper_meta.json`, or "
-        "usable `references.json` — is omitted from all five tables rather than "
+        "usable `references.json` — or whose input fails validation is omitted from all five tables rather than "
         "from just one, so the tables stay consistent with each other. The export "
         "manifest lists every skipped ID with its reason; read it before treating "
         "this dataset as complete.\n"
@@ -477,7 +501,11 @@ def _load_assigned_ids(ids_file: Path) -> list[str]:
         raise ExportError(f"Không tìm thấy file ID được giao: {ids_file}")
     result: list[str] = []
     seen: set[str] = set()
-    for line_number, raw in enumerate(ids_file.read_text(encoding="utf-8-sig").splitlines(), 1):
+    try:
+        lines = ids_file.read_text(encoding="utf-8-sig").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ExportError(f"Không đọc được file ID {ids_file}: {exc}") from exc
+    for line_number, raw in enumerate(lines, 1):
         value = raw.strip()
         if not value or value.startswith("#"):
             continue
@@ -539,7 +567,7 @@ def export_dataset(
             f"Thư mục xuất đã tồn tại: {output}. Dùng --overwrite để thay toàn bộ export của MSSV này."
         )
     requested_ids = arxiv_ids
-    export_ids, skipped = _partition_ids(
+    candidate_ids, skipped = _partition_ids(
         requested_ids, corpus_root, parsed_root, strict=strict
     )
 
@@ -547,19 +575,33 @@ def export_dataset(
     stage = Path(tempfile.mkdtemp(prefix=f".{output.name}.staging-", dir=output.parent))
     try:
         schemas = _table_schemas(pa)
-        iterators = _row_iterators(export_ids, corpus_root, parsed_root)
-        results: dict[str, dict[str, Any]] = {}
-        for table_name in TABLE_NAMES:
-            results[table_name] = _write_shards(
-                table_name=table_name,
-                rows=iterators[table_name],
-                root=stage,
-                schema=schemas[table_name],
-                mssv=mssv,
-                shard_rows=shard_rows,
-                pa=pa,
-                pq=pq,
+        writers = {
+            name: _ShardWriter(name, stage, schemas[name], mssv, shard_rows, pa, pq)
+            for name in TABLE_NAMES
+        }
+        exported: list[str] = []
+        for arxiv_id in candidate_ids:
+            try:
+                rows = _publication_rows(arxiv_id, corpus_root, parsed_root)
+            except ExportError as exc:
+                if strict:
+                    raise ExportError(f"--strict: {arxiv_id}: {exc}") from exc
+                skipped.append(
+                    {"arxiv_id": arxiv_id, "reason": SKIP_INVALID_CONTENT, "detail": str(exc)}
+                )
+                continue
+            for name in TABLE_NAMES:
+                writers[name].add(rows[name])
+            exported.append(arxiv_id)
+        if not exported:
+            raise ExportError(
+                f"Không bài nào trong {len(requested_ids)} ID được giao có dữ liệu hợp lệ; "
+                "không tạo dataset rỗng."
             )
+        export_ids = exported
+        order = {arxiv_id: i for i, arxiv_id in enumerate(requested_ids)}
+        skipped.sort(key=lambda item: order[item["arxiv_id"]])
+        results = {name: writers[name].close() for name in TABLE_NAMES}
 
         _write_readme(stage)
         _write_manifest(stage, mssv, export_ids, requested_ids, skipped, results)
@@ -636,3 +678,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+    
