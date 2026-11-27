@@ -240,6 +240,10 @@ class Author(NamedTuple):
         riêng dải 24120177 đã mất 10 cặp đúng, và dạng `Team, Gemini` có 132 tên.
         """
         words = self.last.split()
+        if words[:1] == ["the"]:
+            # "{The ATLAS Collaboration}" phải gặp được "A. Collaboration"; giữ
+            # "the" thì hai dãy lệch độ dài nên không bao giờ so được.
+            words = words[1:]
         if not self.initials and len(words) > 1 and words[-1] in _ORG_TAIL_WORDS:
             return words
         if self.initials and _all_generic(self.last):
@@ -371,6 +375,16 @@ def parse_author(name: str | None) -> Author | None:
     if not last:
         return None
     first = _normalize(first.replace(".", " ").replace("-", " "))
+    if _all_generic(last):
+        # "Collaboration, The ATLAS": `The` là mạo từ của tên tổ chức, không phải
+        # tên riêng, nên không được sinh ra chữ đầu `t`. Nếu để lại thì dãy thành
+        # ['t','a','collaboration'], lệch độ dài với ['atlas','collaboration'] của
+        # "The ATLAS Collaboration" và hai bên không gặp nhau. Hửu Duy chỉ ra
+        # 27/11: 8 tên kiểu này trên parsed/.
+        #
+        # Chỉ làm khi HỌ là từ chung chỉ tổ chức. Ngoài nhánh đó, `The` có thể là
+        # tên người thật — `Nguyen, The Anh` (Nguyễn Thế Anh) phải giữ nguyên `ta`.
+        first = re.sub(r"^the\s+", "", first)
     initials = "".join(w[0] for w in first.split())
 
     # Khoá phụ: cùng cách tách họ/tên nhưng bỏ dấu thay vì fold ae/oe/ue.

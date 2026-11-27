@@ -237,6 +237,18 @@ Hai điểm Hửu Duy soát lại ngày 27/11:
 hơn là đếm tên): umlaut chỉ chiếm ~10/70 cặp mất, nên là mục thấp nhất. Thứ tự
 thi công: `\bibnamefont` → `et al.` → nháy đơn → umlaut.
 
+Hai ca biên còn lại, Hửu Duy soát 27/11 (0 cặp bị ảnh hưởng trên dải 24120177):
+
+- **`"Tên tổ chức, Generic"` vẫn trượt**: `Gemini, Team` không gặp `Gemini Team`,
+  `GLM, Team` không gặp `GLM Team`. Khoảng 20 tên kiểu này trên `parsed/`.
+  **Cố ý không sửa.** Ca này cùng dạng hệt `Zhang, Research` — đều là
+  `"<từ thường>, <từ chung>"` — nên bất kỳ luật nào cứu được `Gemini, Team` cũng
+  sẽ lại biến `Zhang, Research` thành tổ chức `zhang research`. Phân biệt hai cái
+  đó đòi phải biết `Gemini` là tên tổ chức còn `Zhang` là họ người, tức cần từ
+  điển, không phải việc của một luật chuỗi. Đổi lấy 20 tên thì không đáng.
+- `{The ATLAS Collaboration}` với `A. Collaboration`: **đã sửa**, `_org_words` bỏ
+  `the` ở đầu trước khi so, vì giữ lại thì hai dãy từ lệch độ dài.
+
 Còn lại chưa xử lý:
 
 - Nháy đơn đứng trước chữ **hoa** mà thật ra là dấu (`'Swierczewska` = `Świerczewska`)
