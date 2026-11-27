@@ -566,7 +566,7 @@
 {"arxiv_id": "2503.12791", "citation_key": "im1", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.12791", "citation_key": "im2", "groundtruth_arxiv_id": "2312.08716", "labeler": "24120177", "method": "auto", "rule": "title", "score": 0.9943}
 {"arxiv_id": "2503.12791", "citation_key": "km1", "groundtruth_arxiv_id": "cond-mat/0411737", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
-{"arxiv_id": "2503.12791", "citation_key": "km2", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.12791", "citation_key": "km2", "groundtruth_arxiv_id": "cond-mat/0607699", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.12791", "citation_key": "lawson2016spin", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.12791", "citation_key": "moore", "groundtruth_arxiv_id": "cond-mat/0607314", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.12791", "citation_key": "pan", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -1320,7 +1320,7 @@
 {"arxiv_id": "2503.12948", "citation_key": "van19932", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.12948", "citation_key": "vorlander2020auralization", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.12948", "citation_key": "webb2011computing", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.16754", "citation_key": "ALADIN2023learning", "groundtruth_arxiv_id": "2308.05548", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
+{"arxiv_id": "2503.16754", "citation_key": "ALADIN2023learning", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16754", "citation_key": "Andersson2019", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16754", "citation_key": "Du2019", "groundtruth_arxiv_id": "1903.08956", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16754", "citation_key": "Du2023B", "groundtruth_arxiv_id": "2309.02660", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -1753,7 +1753,7 @@
 {"arxiv_id": "2503.13551", "citation_key": "qwen25", "groundtruth_arxiv_id": "2412.15115", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13551", "citation_key": "rest_mcts", "groundtruth_arxiv_id": "2406.03816", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13551", "citation_key": "reward_hacking1", "groundtruth_arxiv_id": "1606.06565", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
-{"arxiv_id": "2503.13551", "citation_key": "reward_hacking2", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.13551", "citation_key": "reward_hacking2", "groundtruth_arxiv_id": "2105.14111", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13551", "citation_key": "reward_hacking3", "groundtruth_arxiv_id": "1705.08417", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13551", "citation_key": "reward_hacking_in_llm1", "groundtruth_arxiv_id": "2305.17926", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13551", "citation_key": "reward_hacking_in_llm2", "groundtruth_arxiv_id": "2409.12822", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -3536,7 +3536,7 @@
 {"arxiv_id": "2503.13321", "citation_key": "niepceHighKineticInductance2019", "groundtruth_arxiv_id": "1802.01723", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13321", "citation_key": "scigliuzzo_2020", "groundtruth_arxiv_id": "1912.09119", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13321", "citation_key": "tinkham2004introduction", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.13321", "citation_key": "wallraff_2004", "groundtruth_arxiv_id": "cond-mat/0407325", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
+{"arxiv_id": "2503.13321", "citation_key": "wallraff_2004", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13321", "citation_key": "winkel_2020", "groundtruth_arxiv_id": "1911.02333", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13321", "citation_key": "zimmer_1967", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.15615", "citation_key": "E2GN2", "groundtruth_arxiv_id": "2410.02581", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -3962,7 +3962,7 @@
 {"arxiv_id": "2503.13374", "citation_key": "tomlin2017", "groundtruth_arxiv_id": "1703.07373", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13374", "citation_key": "tomlin2018", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13429", "citation_key": "Boehle2022CVPR", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.13429", "citation_key": "alvarez2018towards", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.13429", "citation_key": "alvarez2018towards", "groundtruth_arxiv_id": "1806.07538", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13429", "citation_key": "ancona2017towards", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13429", "citation_key": "anders2021software", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13429", "citation_key": "bach2015pixel", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -4964,7 +4964,7 @@
 {"arxiv_id": "2503.15351", "citation_key": "huang2014deep", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.15351", "citation_key": "jiang2023scaling", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.15351", "citation_key": "larson2019evaluation", "groundtruth_arxiv_id": "1909.02027", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
-{"arxiv_id": "2503.15351", "citation_key": "le2020contrastive", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.15351", "citation_key": "le2020contrastive", "groundtruth_arxiv_id": "2010.10144", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.15351", "citation_key": "lei2024meta", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.15351", "citation_key": "lei2024meta_v2", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.15351", "citation_key": "liang2023clusterprompt", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -5042,7 +5042,7 @@
 {"arxiv_id": "2503.13163", "citation_key": "jin2023lighting", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13163", "citation_key": "kerepecky2021d3net", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13163", "citation_key": "lecouat2022high", "groundtruth_arxiv_id": "2207.14671", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
-{"arxiv_id": "2503.13163", "citation_key": "lei2016layer", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.13163", "citation_key": "lei2016layer", "groundtruth_arxiv_id": "1607.06450", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13163", "citation_key": "li2022dn", "groundtruth_arxiv_id": "2203.01305", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13163", "citation_key": "liang2020raw", "groundtruth_arxiv_id": "2012.04264", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13163", "citation_key": "lin2014microsoft", "groundtruth_arxiv_id": "1405.0312", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -5448,7 +5448,7 @@
 {"arxiv_id": "2503.13304", "citation_key": "gorishniy_revisiting_2023", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13304", "citation_key": "guyon_gene_2002", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13304", "citation_key": "guyon_introduction_nodate", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.13304", "citation_key": "ho_adaptive_2021", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.13304", "citation_key": "ho_adaptive_2021", "groundtruth_arxiv_id": "2108.10825", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13304", "citation_key": "jain-wallace-2019-attention", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13304", "citation_key": "jang2017categorical", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13304", "citation_key": "jang2017categoricalreparameterizationgumbelsoftmax", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -6926,7 +6926,7 @@
 {"arxiv_id": "2503.16452", "citation_key": "agarwal2022rethinking", "groundtruth_arxiv_id": "2203.06877", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
 {"arxiv_id": "2503.16452", "citation_key": "aizawa2021general", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16452", "citation_key": "alvarez2018robustness", "groundtruth_arxiv_id": "1806.08049", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
-{"arxiv_id": "2503.16452", "citation_key": "alvarez2018towards", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.16452", "citation_key": "alvarez2018towards", "groundtruth_arxiv_id": "1806.07538", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16452", "citation_key": "bertoncelli2024motor", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16452", "citation_key": "bruggink2009early", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16452", "citation_key": "cans2000surveillance", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -7332,7 +7332,7 @@
 {"arxiv_id": "2503.13068", "citation_key": "gupta2019lvis", "groundtruth_arxiv_id": "1908.03195", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13068", "citation_key": "he2024multi", "groundtruth_arxiv_id": "2403.02969", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13068", "citation_key": "hou2024toward", "groundtruth_arxiv_id": "2306.09431", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
-{"arxiv_id": "2503.13068", "citation_key": "hu2020discriminative", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.13068", "citation_key": "hu2020discriminative", "groundtruth_arxiv_id": "2010.05466", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13068", "citation_key": "hu2021lora", "groundtruth_arxiv_id": "2106.09685", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
 {"arxiv_id": "2503.13068", "citation_key": "huang2023lorahub", "groundtruth_arxiv_id": "2307.13269", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
 {"arxiv_id": "2503.13068", "citation_key": "jiang2022dhhn", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -9485,7 +9485,7 @@
 {"arxiv_id": "2503.14897", "citation_key": "closedDG1", "groundtruth_arxiv_id": "2104.02008", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
 {"arxiv_id": "2503.14897", "citation_key": "closedDG2", "groundtruth_arxiv_id": "2007.01434", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14897", "citation_key": "closedDG3", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.14897", "citation_key": "closedDG4", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.14897", "citation_key": "closedDG4", "groundtruth_arxiv_id": "1710.03463", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14897", "citation_key": "closedDG5", "groundtruth_arxiv_id": "1301.2115", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14897", "citation_key": "closedDG6", "groundtruth_arxiv_id": "2007.03304", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14897", "citation_key": "da-survey", "groundtruth_arxiv_id": "1802.03601", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -9505,7 +9505,7 @@
 {"arxiv_id": "2503.14897", "citation_key": "hsu2017learning", "groundtruth_arxiv_id": "1711.10125", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14897", "citation_key": "hu2021lora", "groundtruth_arxiv_id": "2106.09685", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
 {"arxiv_id": "2503.14897", "citation_key": "kuhn1955hungarian", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.14897", "citation_key": "li2017deeper", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.14897", "citation_key": "li2017deeper", "groundtruth_arxiv_id": "1710.03077", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14897", "citation_key": "li2019convergence", "groundtruth_arxiv_id": "1907.02189", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14897", "citation_key": "ma1", "groundtruth_arxiv_id": "2203.05482", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14897", "citation_key": "ma2", "groundtruth_arxiv_id": "2109.01903", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -13834,7 +13834,7 @@
 {"arxiv_id": "2503.16755", "citation_key": "bojchevski2020scaling", "groundtruth_arxiv_id": "2007.01570", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16755", "citation_key": "deerwester1990indexing", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16755", "citation_key": "fountoulakis2019variational", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.16755", "citation_key": "garcia2017learning", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.16755", "citation_key": "garcia2017learning", "groundtruth_arxiv_id": "1710.03059", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16755", "citation_key": "grover2016node2vec", "groundtruth_arxiv_id": "1607.00653", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16755", "citation_key": "guo2024fast", "groundtruth_arxiv_id": "2411.07123", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
 {"arxiv_id": "2503.16755", "citation_key": "herbster2005online", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -14429,7 +14429,7 @@
 {"arxiv_id": "2503.12169", "citation_key": "fleishauer_05", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.12169", "citation_key": "glorieux_23", "groundtruth_arxiv_id": "2209.04622", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.12169", "citation_key": "hau_99", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.12169", "citation_key": "he_23", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.12169", "citation_key": "he_23", "groundtruth_arxiv_id": "2308.14676", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.12169", "citation_key": "kala_22", "groundtruth_arxiv_id": "2107.06036", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.12169", "citation_key": "kang_03", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.12169", "citation_key": "kawasaki_24", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -15203,7 +15203,7 @@
 {"arxiv_id": "2503.13907", "citation_key": "ref35", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13907", "citation_key": "ref36", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13907", "citation_key": "ref37", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.13907", "citation_key": "ref38", "groundtruth_arxiv_id": "1604.03689", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
+{"arxiv_id": "2503.13907", "citation_key": "ref38", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13907", "citation_key": "ref39", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13907", "citation_key": "ref4", "groundtruth_arxiv_id": "2404.18436", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13907", "citation_key": "ref40", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -15230,7 +15230,7 @@
 {"arxiv_id": "2503.15434", "citation_key": "bouwmeester_photonic_1997", "groundtruth_arxiv_id": "1901.11004", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.15434", "citation_key": "bravyi_high-threshold_2024", "groundtruth_arxiv_id": "2308.07915", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.15434", "citation_key": "degli_esposti_low_2024", "groundtruth_arxiv_id": "2309.02832", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
-{"arxiv_id": "2503.15434", "citation_key": "degli_esposti_wafer-scale_2022", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.15434", "citation_key": "degli_esposti_wafer-scale_2022", "groundtruth_arxiv_id": "2202.08090", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.15434", "citation_key": "desmet_highfidelityshuttle_2024", "groundtruth_arxiv_id": "2406.07267", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
 {"arxiv_id": "2503.15434", "citation_key": "gatefidelityexpect_2019", "groundtruth_arxiv_id": "1803.06176", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.15434", "citation_key": "george_12spin_2024", "groundtruth_arxiv_id": "2410.16583", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
@@ -18855,7 +18855,7 @@
 {"arxiv_id": "2503.16802", "citation_key": "stenseng2025bi", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16802", "citation_key": "vila2019role", "groundtruth_arxiv_id": "1810.04711", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16802", "citation_key": "wang2020tunable", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.16802", "citation_key": "wu2018tuning", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.16802", "citation_key": "wu2018tuning", "groundtruth_arxiv_id": "2107.11115", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16802", "citation_key": "xiu2023synthetically", "groundtruth_arxiv_id": "2207.09273", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16802", "citation_key": "yi2024", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16802", "citation_key": "yuan2024nonreciprocal", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -19028,7 +19028,7 @@
 {"arxiv_id": "2503.13792", "citation_key": "lu2022learn", "groundtruth_arxiv_id": "2209.09513", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13792", "citation_key": "lu2024chameleon", "groundtruth_arxiv_id": "2304.09842", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13792", "citation_key": "marino2019ok", "groundtruth_arxiv_id": "1906.00067", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
-{"arxiv_id": "2503.13792", "citation_key": "mh2024lvm", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.13792", "citation_key": "mh2024lvm", "groundtruth_arxiv_id": "2306.11925", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13792", "citation_key": "mosaicml2023introducing", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13792", "citation_key": "murdock1962serial", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13792", "citation_key": "ouali2024clip", "groundtruth_arxiv_id": "2408.10433", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -20340,7 +20340,7 @@
 {"arxiv_id": "2503.14526", "citation_key": "nasiriany2024robocasa", "groundtruth_arxiv_id": "2406.02523", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
 {"arxiv_id": "2503.14526", "citation_key": "o2023open", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.14526", "citation_key": "objaverse", "groundtruth_arxiv_id": "2212.08051", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
-{"arxiv_id": "2503.14526", "citation_key": "octo_2023", "groundtruth_arxiv_id": "2405.12213", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
+{"arxiv_id": "2503.14526", "citation_key": "octo_2023", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.14526", "citation_key": "ravi2024sam2segmentimages", "groundtruth_arxiv_id": "2408.00714", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
 {"arxiv_id": "2503.14526", "citation_key": "ravichandar2020recent", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.14526", "citation_key": "ren2024grounded", "groundtruth_arxiv_id": "2401.14159", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -21418,7 +21418,7 @@
 {"arxiv_id": "2503.13617", "citation_key": "lee2022wildnet", "groundtruth_arxiv_id": "2204.01446", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13617", "citation_key": "lee2024object", "groundtruth_arxiv_id": "2312.12133", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13617", "citation_key": "li2017demystifying", "groundtruth_arxiv_id": "1701.01036", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
-{"arxiv_id": "2503.13617", "citation_key": "li2018learning", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.13617", "citation_key": "li2018learning", "groundtruth_arxiv_id": "1710.03463", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13617", "citation_key": "li2021simple", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.13617", "citation_key": "li2023AdvGRL", "groundtruth_arxiv_id": "2210.15176", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.13617", "citation_key": "li2024godiff", "groundtruth_arxiv_id": "2412.13815", "labeler": "24120177", "method": "auto", "rule": "arxiv_url", "score": 1.0}
@@ -21924,7 +21924,7 @@
 {"arxiv_id": "2503.11980", "citation_key": "Das2019Nat", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11980", "citation_key": "Diouf22SA", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11980", "citation_key": "Dorrah22ScienceRev", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.11980", "citation_key": "Du2019NP", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.11980", "citation_key": "Du2019NP", "groundtruth_arxiv_id": "1806.04827", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.11980", "citation_key": "Fert2013NatNano", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11980", "citation_key": "Fert2017NatRevMat", "groundtruth_arxiv_id": "1712.07236", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.11980", "citation_key": "Gao2018NP", "groundtruth_arxiv_id": "1706.04731", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -26321,7 +26321,7 @@
 {"arxiv_id": "2503.12898", "citation_key": "Ho&Kim2015", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.12898", "citation_key": "Ho1997", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.12898", "citation_key": "Ho1997a", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.12898", "citation_key": "Ho2008", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.12898", "citation_key": "Ho2008", "groundtruth_arxiv_id": "0803.2268", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.12898", "citation_key": "Ho2009", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.12898", "citation_key": "Inayoshi2020", "groundtruth_arxiv_id": "1911.05791", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.12898", "citation_key": "Kauffmann03a", "groundtruth_arxiv_id": "astro-ph/0204055", "labeler": "24120177", "method": "auto", "rule": "title", "score": 0.9947}
@@ -26358,7 +26358,7 @@
 {"arxiv_id": "2503.12898", "citation_key": "heckman1980", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.12898", "citation_key": "highz-agn", "groundtruth_arxiv_id": "2305.15458", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.12898", "citation_key": "ho+1996", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.12898", "citation_key": "ho1997c", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.12898", "citation_key": "ho1997c", "groundtruth_arxiv_id": "astro-ph/9704108", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.12898", "citation_key": "j0838", "groundtruth_arxiv_id": "1702.01033", "labeler": "24120177", "method": "auto", "rule": "title", "score": 0.9646}
 {"arxiv_id": "2503.12898", "citation_key": "kauffmann03b", "groundtruth_arxiv_id": "astro-ph/0304239", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.12898", "citation_key": "kewley01", "groundtruth_arxiv_id": "astro-ph/0106324", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -26544,14 +26544,14 @@
 {"arxiv_id": "2503.11973", "citation_key": "bib22", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib24", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib25", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.11973", "citation_key": "bib26", "groundtruth_arxiv_id": "1705.07874", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
+{"arxiv_id": "2503.11973", "citation_key": "bib26", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib27", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib28", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib29", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib3", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib30", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib31", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.11973", "citation_key": "bib32", "groundtruth_arxiv_id": "2502.17978", "labeler": "24120177", "method": "auto", "rule": "title", "score": 0.932}
+{"arxiv_id": "2503.11973", "citation_key": "bib32", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib33", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib34", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.11973", "citation_key": "bib35", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}

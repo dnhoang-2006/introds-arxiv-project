@@ -32,16 +32,16 @@
   },
   "summary": {
     "total_entries": 27390,
-    "total_matched": 11620,
-    "total_unmatched": 15770,
-    "match_rate": 0.4242,
-    "n_pubs_with_matches": 458,
-    "n_pubs_zero_matched": 42,
+    "total_matched": 11633,
+    "total_unmatched": 15757,
+    "match_rate": 0.4247,
+    "n_pubs_with_matches": 457,
+    "n_pubs_zero_matched": 43,
     "rules": {
       "arxiv_url": 3384,
       "doi": 121,
-      "null": 15770,
-      "title": 8115
+      "null": 15757,
+      "title": 8128
     }
   },
   "publications": [
@@ -176,12 +176,12 @@
       "pub_key": "2503-12791",
       "n_entries": 55,
       "n_candidates": 43,
-      "n_matched": 41,
-      "n_unmatched": 14,
+      "n_matched": 42,
+      "n_unmatched": 13,
       "rules": {
         "arxiv_url": 12,
-        "null": 14,
-        "title": 29
+        "null": 13,
+        "title": 30
       }
     },
     {
@@ -377,12 +377,12 @@
       "pub_key": "2503-16754",
       "n_entries": 23,
       "n_candidates": 16,
-      "n_matched": 15,
-      "n_unmatched": 8,
+      "n_matched": 14,
+      "n_unmatched": 9,
       "rules": {
         "arxiv_url": 2,
-        "null": 8,
-        "title": 13
+        "null": 9,
+        "title": 12
       }
     },
     {
@@ -501,12 +501,12 @@
       "pub_key": "2503-13551",
       "n_entries": 36,
       "n_candidates": 32,
-      "n_matched": 30,
-      "n_unmatched": 6,
+      "n_matched": 31,
+      "n_unmatched": 5,
       "rules": {
         "arxiv_url": 8,
-        "null": 6,
-        "title": 22
+        "null": 5,
+        "title": 23
       }
     },
     {
@@ -910,12 +910,12 @@
       "pub_key": "2503-13321",
       "n_entries": 63,
       "n_candidates": 47,
-      "n_matched": 45,
-      "n_unmatched": 18,
+      "n_matched": 44,
+      "n_unmatched": 19,
       "rules": {
         "arxiv_url": 2,
-        "null": 18,
-        "title": 43
+        "null": 19,
+        "title": 42
       }
     },
     {
@@ -1038,12 +1038,12 @@
       "pub_key": "2503-13429",
       "n_entries": 55,
       "n_candidates": 35,
-      "n_matched": 34,
-      "n_unmatched": 21,
+      "n_matched": 35,
+      "n_unmatched": 20,
       "rules": {
         "arxiv_url": 3,
-        "null": 21,
-        "title": 31
+        "null": 20,
+        "title": 32
       }
     },
     {
@@ -1254,12 +1254,12 @@
       "pub_key": "2503-15351",
       "n_entries": 41,
       "n_candidates": 20,
-      "n_matched": 17,
-      "n_unmatched": 24,
+      "n_matched": 18,
+      "n_unmatched": 23,
       "rules": {
         "arxiv_url": 7,
-        "null": 24,
-        "title": 10
+        "null": 23,
+        "title": 11
       }
     },
     {
@@ -1280,12 +1280,12 @@
       "pub_key": "2503-13163",
       "n_entries": 55,
       "n_candidates": 35,
-      "n_matched": 33,
-      "n_unmatched": 22,
+      "n_matched": 34,
+      "n_unmatched": 21,
       "rules": {
         "arxiv_url": 8,
-        "null": 22,
-        "title": 25
+        "null": 21,
+        "title": 26
       }
     },
     {
@@ -1378,12 +1378,12 @@
       "pub_key": "2503-13304",
       "n_entries": 59,
       "n_candidates": 24,
-      "n_matched": 17,
-      "n_unmatched": 42,
+      "n_matched": 18,
+      "n_unmatched": 41,
       "rules": {
         "arxiv_url": 5,
-        "null": 42,
-        "title": 12
+        "null": 41,
+        "title": 13
       }
     },
     {
@@ -1740,12 +1740,12 @@
       "pub_key": "2503-16452",
       "n_entries": 43,
       "n_candidates": 14,
-      "n_matched": 10,
-      "n_unmatched": 33,
+      "n_matched": 11,
+      "n_unmatched": 32,
       "rules": {
         "arxiv_url": 4,
-        "null": 33,
-        "title": 6
+        "null": 32,
+        "title": 7
       }
     },
     {
@@ -1840,12 +1840,12 @@
       "pub_key": "2503-13068",
       "n_entries": 74,
       "n_candidates": 57,
-      "n_matched": 54,
-      "n_unmatched": 20,
+      "n_matched": 55,
+      "n_unmatched": 19,
       "rules": {
         "arxiv_url": 21,
-        "null": 20,
-        "title": 33
+        "null": 19,
+        "title": 34
       }
     },
     {
@@ -2297,12 +2297,12 @@
       "pub_key": "2503-14897",
       "n_entries": 79,
       "n_candidates": 64,
-      "n_matched": 61,
-      "n_unmatched": 18,
+      "n_matched": 63,
+      "n_unmatched": 16,
       "rules": {
         "arxiv_url": 8,
-        "null": 18,
-        "title": 53
+        "null": 16,
+        "title": 55
       }
     },
     {
@@ -3008,12 +3008,12 @@
       "pub_key": "2503-16755",
       "n_entries": 32,
       "n_candidates": 14,
-      "n_matched": 10,
-      "n_unmatched": 22,
+      "n_matched": 11,
+      "n_unmatched": 21,
       "rules": {
         "arxiv_url": 1,
-        "null": 22,
-        "title": 9
+        "null": 21,
+        "title": 10
       }
     },
     {
@@ -3157,12 +3157,12 @@
       "pub_key": "2503-12169",
       "n_entries": 52,
       "n_candidates": 29,
-      "n_matched": 27,
-      "n_unmatched": 25,
+      "n_matched": 28,
+      "n_unmatched": 24,
       "rules": {
         "arxiv_url": 2,
-        "null": 25,
-        "title": 25
+        "null": 24,
+        "title": 26
       }
     },
     {
@@ -3346,11 +3346,11 @@
       "pub_key": "2503-13907",
       "n_entries": 44,
       "n_candidates": 9,
-      "n_matched": 9,
-      "n_unmatched": 35,
+      "n_matched": 8,
+      "n_unmatched": 36,
       "rules": {
-        "null": 35,
-        "title": 9
+        "null": 36,
+        "title": 8
       }
     },
     {
@@ -3358,13 +3358,13 @@
       "pub_key": "2503-15434",
       "n_entries": 55,
       "n_candidates": 49,
-      "n_matched": 45,
-      "n_unmatched": 10,
+      "n_matched": 46,
+      "n_unmatched": 9,
       "rules": {
         "arxiv_url": 6,
         "doi": 2,
-        "null": 10,
-        "title": 37
+        "null": 9,
+        "title": 38
       }
     },
     {
@@ -4285,11 +4285,11 @@
       "pub_key": "2503-16802",
       "n_entries": 57,
       "n_candidates": 21,
-      "n_matched": 19,
-      "n_unmatched": 38,
+      "n_matched": 20,
+      "n_unmatched": 37,
       "rules": {
-        "null": 38,
-        "title": 19
+        "null": 37,
+        "title": 20
       }
     },
     {
@@ -4336,12 +4336,12 @@
       "pub_key": "2503-13792",
       "n_entries": 73,
       "n_candidates": 60,
-      "n_matched": 57,
-      "n_unmatched": 16,
+      "n_matched": 58,
+      "n_unmatched": 15,
       "rules": {
         "arxiv_url": 17,
-        "null": 16,
-        "title": 40
+        "null": 15,
+        "title": 41
       }
     },
     {
@@ -4641,12 +4641,12 @@
       "pub_key": "2503-14526",
       "n_entries": 46,
       "n_candidates": 41,
-      "n_matched": 41,
-      "n_unmatched": 5,
+      "n_matched": 40,
+      "n_unmatched": 6,
       "rules": {
         "arxiv_url": 23,
-        "null": 5,
-        "title": 18
+        "null": 6,
+        "title": 17
       }
     },
     {
@@ -4890,12 +4890,12 @@
       "pub_key": "2503-13617",
       "n_entries": 101,
       "n_candidates": 65,
-      "n_matched": 57,
-      "n_unmatched": 44,
+      "n_matched": 58,
+      "n_unmatched": 43,
       "rules": {
         "arxiv_url": 3,
-        "null": 44,
-        "title": 54
+        "null": 43,
+        "title": 55
       }
     },
     {
@@ -5028,12 +5028,12 @@
       "pub_key": "2503-11980",
       "n_entries": 65,
       "n_candidates": 42,
-      "n_matched": 31,
-      "n_unmatched": 34,
+      "n_matched": 32,
+      "n_unmatched": 33,
       "rules": {
         "arxiv_url": 1,
-        "null": 34,
-        "title": 30
+        "null": 33,
+        "title": 31
       }
     },
     {
@@ -6086,12 +6086,12 @@
       "pub_key": "2503-12898",
       "n_entries": 77,
       "n_candidates": 54,
-      "n_matched": 49,
-      "n_unmatched": 28,
+      "n_matched": 51,
+      "n_unmatched": 26,
       "rules": {
         "doi": 1,
-        "null": 28,
-        "title": 48
+        "null": 26,
+        "title": 50
       }
     },
     {
@@ -6162,11 +6162,10 @@
       "pub_key": "2503-11973",
       "n_entries": 28,
       "n_candidates": 4,
-      "n_matched": 2,
-      "n_unmatched": 26,
+      "n_matched": 0,
+      "n_unmatched": 28,
       "rules": {
-        "null": 26,
-        "title": 2
+        "null": 28
       }
     },
     {

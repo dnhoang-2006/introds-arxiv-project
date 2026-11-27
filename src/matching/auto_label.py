@@ -30,11 +30,13 @@ if SRC_DIR not in sys.path:
 
 import config  # noqa: E402
 from matching.textnorm import (  # noqa: E402
+    Author,
     clean_year,
-    first_author_last_name,
+    first_author,
     norm_arxiv,
     norm_doi,
     norm_title,
+    same_first_author,
 )
 
 PARSED_ROOT = Path(os.environ.get("PARSED_ROOT", config.PROJECT_ROOT / "parsed"))
@@ -49,7 +51,6 @@ DEFAULT_SAMPLE_N = 500
 DEFAULT_SEED = 42
 SHORT_TITLE_MIN_CHARS = 20
 SHORT_TITLE_MIN_WORDS = 4
-_MIN_PARTIAL_SURNAME_LEN = 3
 _FLOAT_EPS = 1e-12
 _MSSV_PAT = re.compile(r"^[A-Za-z0-9_-]+$")
 # Tên tác giả còn rác từ .bbl (vd `ibfieldauthor`, `bibnamefont`): không dùng làm bằng chứng.
@@ -181,7 +182,7 @@ class _PreparedCandidate:
     ref: dict[str, Any]
     canon_arxiv: str
     title: str | None
-    surname: str | None
+    first_author: Author | None
     year: int | None
 
 
@@ -205,19 +206,11 @@ def _build_candidate_index(candidates: Iterable[dict[str, Any]]) -> _CandidateIn
                 ref=ref,
                 canon_arxiv=aid,
                 title=norm_title(ref.get("ref_title")),
-                surname=first_author_last_name(ref.get("ref_authors")),
+                first_author=first_author(ref.get("ref_authors")),
                 year=clean_year(ref.get("ref_year")),
             )
         )
     return _CandidateIndex(by_arxiv=by_arxiv, prepared=prepared)
-
-
-def _surnames_match(a: str, b: str) -> bool:
-    """So họ tác giả đầu, xử lý trường hợp bất đối xứng kiểu `benamor` vs `amor`."""
-    if a == b:
-        return True
-    shorter, longer = (a, b) if len(a) <= len(b) else (b, a)
-    return len(shorter) >= _MIN_PARTIAL_SURNAME_LEN and longer.endswith(shorter)
 
 
 def _is_short_title(normed_title: str) -> bool:
@@ -228,15 +221,15 @@ def _is_short_title(normed_title: str) -> bool:
 
 
 def _passes_author_year_filter(
-    entry_surname: str | None,
+    entry_author: Author | None,
     entry_year: int | None,
     cand: _PreparedCandidate,
     *,
     require_author: bool,
     year_delta: int,
 ) -> bool:
-    if entry_surname and cand.surname:
-        if not _surnames_match(entry_surname, cand.surname):
+    if entry_author and cand.first_author:
+        if not same_first_author(entry_author, cand.first_author):
             return False
     elif require_author:
         return False
@@ -262,11 +255,11 @@ def _match_by_title(
     raw_authors = entry.get("authors")
     first_raw = raw_authors[0] if isinstance(raw_authors, list) and raw_authors else raw_authors
     garbled = bool(first_raw) and bool(_GARBLED_AUTHOR_PAT.search(str(first_raw)))
-    entry_surname = None if garbled else first_author_last_name(raw_authors)
+    entry_author = None if garbled else first_author(raw_authors)
     if garbled:
         title_threshold = max(title_threshold, GARBLED_AUTHOR_TITLE_THRESHOLD)
     short_title = _is_short_title(entry_title)
-    if short_title and not entry_surname:
+    if short_title and not entry_author:
         return None, None
 
     entry_year = clean_year(entry.get("year"))
@@ -275,7 +268,7 @@ def _match_by_title(
         if not cand.title:
             continue
         if not _passes_author_year_filter(
-            entry_surname,
+            entry_author,
             entry_year,
             cand,
             require_author=short_title,

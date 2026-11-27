@@ -1085,8 +1085,18 @@ class TestTextnormUsesClean:
         assert norm_title(r"Effect at NO$\nu$A") == norm_title("Effect at NOνA")
         assert norm_title("") is None and norm_title(None) is None
 
-    def test_surname_keeps_bib_dedup_for_et_al(self) -> None:
-        from matching.textnorm import first_author_last_name
+    def test_first_author_uses_clean_and_ignores_initials(self) -> None:
+        from matching.textnorm import first_author, same_first_author
 
-        # clean.parse_author cho họ "al"; bib_dedup bỏ "et al." nên giữ đúng họ
-        assert first_author_last_name(["P. Moskal et al."]) == "moskal"
+        assert first_author(["P. Moskal et al."]).last == "moskal"
+        assert first_author([]) is None and first_author(None) is None
+
+        def same(a: str, b: str) -> bool:
+            return same_first_author(first_author([a]), first_author([b]))
+
+        assert same("Böttcher, Fabian", "F. Bottcher")                 # khoá phụ umlaut
+        assert same("ATLAS Collaboration", "A. Collaboration")         # tên tổ chức
+        assert not same("{ATLAS Collaboration}", "CMS Collaboration")
+        assert same("Tong, Peter", "Shengbang Tong")                   # chỉ lọc theo họ
+        assert same("L. Wu", "Le-Yun Wu")                              # bib_dedup ra "lwu"
+        assert not same("Li, Wei", "Reza Ali")
