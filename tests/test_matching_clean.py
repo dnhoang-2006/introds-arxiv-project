@@ -106,3 +106,68 @@ def test_bibtex_and_reference_sides_agree():
     for field in ("title_clean", "title_tokens", "author_keys"):
         assert bib[field] == ref[field]
     assert bib["citation_key"] == "vaswani2017"  # giữ nguyên trường gốc
+
+# ------------------------------------------------------------------ hồi quy 27/11
+# Bốn lỗi do Hửu Duy báo + đo lại trên dải 24120053. Test đỏ ở đây nghĩa là
+# matcher trượt đúng những ca đã biết, xem docs/schema_m3.md mục 9.
+@pytest.mark.parametrize(
+    ("s2_side", "bibtex_side"),
+    [
+        # 1. "et al." nuốt họ: trước khi vá ra Author(last='al')
+        ("P. Moskal et al.", "Moskal, Pawel"),
+        ("Bian, Y. et al.", "Yong Bian"),
+        # 2. S2 ghi dấu sắc bằng nháy đơn trần
+        ("Valentin Cr'epel", "Crépel, Valentin"),
+        ("Delphin S'enizergues", "Sénizergues, Delphin"),
+        # 3. umlaut lệch hai phía -> cần khoá phụ
+        ("Blumlein, J.", "Blümlein, J."),
+        ("Niemela, M.", "Niemelä, M."),
+        ("Lu, Linyuan", "Lü, Linyuan"),      # pinyin, không phải tiếng Đức
+        # ...nhưng fold ae/oe/ue vẫn phải giữ được
+        ("Mueller, H.", "Müller, H."),
+        # nháy đơn THẬT: không được xoá, và hai cách viết hoa vẫn phải gặp nhau
+        ("T. O'Brien", "O'brien, Thomas"),
+        ("Marcelo D'Agostino", "D'Agostino, Marcelo"),
+    ],
+)
+def test_two_sides_match_after_27_11_fixes(s2_side, bibtex_side):
+    a, b = parse_author(s2_side), parse_author(bibtex_side)
+    assert a is not None and b is not None
+    assert a.matches(b), (a, b)
+
+
+def test_et_al_does_not_become_surname():
+    assert parse_author("P. Moskal et al.").last == "moskal"
+
+
+def test_quote_accent_only_before_lowercase():
+    assert parse_author("Valentin Cr'epel").last == "crepel"
+    assert parse_author("T. O'Brien").last == "o brien"   # nháy thật, giữ nguyên
+
+
+def test_fold_stays_primary_key_alt_is_extra():
+    """Khoá chính vẫn là dạng fold (ü->ue); bỏ dấu chỉ là khoá phụ.
+
+    Đo 27/11 trên 217.892 khoá S2: fold khớp 2.329 tên, bỏ-dấu khớp 338.
+    Đảo hai cái này là mất nhiều hơn được.
+    """
+    a = parse_author("Blümlein, J.")
+    assert a.key == "bluemlein j"
+    assert a.alt_key == "blumlein j"
+    assert a.keys == frozenset({"bluemlein j", "blumlein j"})
+
+
+def test_author_without_accent_has_single_key():
+    a = parse_author("Vaswani, Ashish")
+    assert a.last_alt == "" and a.keys == frozenset({"vaswani a"})
+
+
+def test_cleaned_rows_expose_alt_keys():
+    row = clean_reference_row({"ref_title": "x", "ref_authors": ["Blümlein, J."]})
+    assert row["author_keys"] == ["bluemlein j"]
+    assert row["author_keys_alt"] == ["blumlein j"]
+
+
+def test_possessive_apostrophe_in_title_unchanged():
+    """Nháy trong tiêu đề hầu hết là sở hữu cách, không được coi là dấu."""
+    assert clean_title("a survey's view") == "a survey s view"
