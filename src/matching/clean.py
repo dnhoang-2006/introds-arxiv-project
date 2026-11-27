@@ -97,12 +97,37 @@ _FOLD = {
 }
 
 
-def fold_accents(s: str) -> str:
-    """``Müller`` -> ``Mueller``, ``Gödel`` -> ``Goedel``, ``é`` -> ``e``, ``α`` -> `` alpha ``."""
+#: Như _FOLD nhưng BỎ ä/ö/ü để NFKD hạ thẳng về a/o/u. Dùng cho khoá phụ.
+_FOLD_ALT = {k: v for k, v in _FOLD.items() if k not in "äöüÄÖÜ"}
+
+# Semantic Scholar đôi khi ghi dấu sắc bằng nháy đơn trần: "Cr'epel" = "Crépel".
+# Chỉ sửa khi nháy đứng trước chữ THƯỜNG. Nháy trước chữ HOA phần lớn là nháy thật
+# (O'Brien, D'Agostino) và hai phía vốn đã ghi giống nhau nên không cần đụng.
+# Đo 27/11: 3.891 chuỗi dạng nháy+thường, 2.935 chuỗi dạng nháy+hoa.
+_QUOTE_ACCENT_RE = re.compile(r"['’ʼ](?=[a-z])")
+
+
+def _fold(s: str, table: dict[str, str]) -> str:
     s = unicodedata.normalize("NFC", s)
-    s = "".join(_FOLD.get(ch) or (f" {_GREEK_UNICODE[ch]} " if ch in _GREEK_UNICODE else ch) for ch in s)
+    s = "".join(table.get(ch) or (f" {_GREEK_UNICODE[ch]} " if ch in _GREEK_UNICODE else ch) for ch in s)
     s = unicodedata.normalize("NFKD", s)  # NFKD cũng tách ligature: ﬁ -> fi
     return "".join(ch for ch in s if not unicodedata.combining(ch))
+
+
+def fold_accents(s: str) -> str:
+    """``Müller`` -> ``Mueller``, ``Gödel`` -> ``Goedel``, ``é`` -> ``e``, ``α`` -> `` alpha ``."""
+    return _fold(s, _FOLD)
+
+
+def strip_accents(s: str) -> str:
+    """Như ``fold_accents`` nhưng ``Müller`` -> ``Muller``, dùng cho khoá phụ.
+
+    Cần cả hai dạng vì hai nguồn ghi khác nhau: BibTeX giữ ``Blümlein`` (fold ra
+    ``bluemlein``) còn Semantic Scholar ghi sẵn ``Blumlein`` (ra ``blumlein``).
+    Đo 27/11 trên 217.892 khoá tác giả S2: fold khớp 2.329 tên, chỉ-bỏ-dấu khớp
+    338 tên. Fold thắng gấp 7 lần nên nó vẫn là khoá chính; đây chỉ là khoá phụ.
+    """
+    return _fold(s, _FOLD_ALT)
 
 
 # ============================================================ tiêu đề
@@ -115,12 +140,19 @@ STOPWORDS = frozenset([
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 
 
-def normalize_text(s: str | None) -> str:
-    """Bỏ LaTeX, bỏ dấu, chữ thường, bỏ dấu câu, gộp khoảng trắng."""
+def _normalize(s: str | None, *, fold: bool = True) -> str:
     if not s:
         return ""
-    s = fold_accents(strip_latex(s)).lower()
+    # KHÔNG sửa nháy-thành-dấu ở đây: hàm này chạy cho cả tiêu đề, mà nháy trong
+    # tiêu đề hầu hết là sở hữu cách ("survey's"). Việc sửa nháy chỉ làm ở
+    # _author_raw, tức chỉ cho tên tác giả.
+    s = (fold_accents if fold else strip_accents)(strip_latex(s)).lower()
     return _NON_ALNUM_RE.sub(" ", s).strip()
+
+
+def normalize_text(s: str | None) -> str:
+    """Bỏ LaTeX, bỏ dấu, chữ thường, bỏ dấu câu, gộp khoảng trắng."""
+    return _normalize(s)
 
 
 def clean_title(title: str | None) -> str:
@@ -141,15 +173,138 @@ _SUFFIXES = frozenset({"jr", "sr", "ii", "iii", "iv"})
 _NOT_A_PERSON = frozenset({"others", "et al", "et al."})
 _BIBTEX_AND_RE = re.compile(r"\s+and\s+", re.IGNORECASE)
 
+# "P. Moskal et al." -> nếu không cắt đuôi thì họ thành "al". _NOT_A_PERSON chỉ bắt
+# được khi CẢ chuỗi đúng bằng "et al". Đo 27/11: 8.081/1.390.019 chuỗi tác giả
+# BibTeX (0,581%) dính, phía Semantic Scholar chỉ có 2 chuỗi.
+_ET_AL_RE = re.compile(r"[\s,]*\bet\.?\s*al\.?\s*$", re.I)
+
 
 class Author(NamedTuple):
-    last: str      # "van der waals"
-    initials: str  # "jd"
+    last: str              # "van der waals"
+    initials: str          # "jd"
+    last_alt: str = ""     # họ theo kiểu bỏ dấu ("blumlein"); "" nếu trùng `last`
 
     @property
     def key(self) -> str:
         """Khoá so khớp: họ + chữ cái đầu tiên của tên, vd ``vaswani a``."""
         return f"{self.last} {self.initials[:1]}".strip()
+
+    @property
+    def alt_key(self) -> str:
+        """Khoá phụ, dùng khi hai nguồn ghi dấu khác nhau (``Blümlein``/``Blumlein``)."""
+        return f"{self.last_alt or self.last} {self.initials[:1]}".strip()
+
+    @property
+    def keys(self) -> frozenset[str]:
+        return frozenset({self.key, self.alt_key})
+
+    @property
+    def surnames(self) -> frozenset[str]:
+        """Họ ở cả hai dạng dấu, không kèm chữ đầu tên."""
+        return frozenset({self.last, self.last_alt or self.last})
+
+    def _surname_agrees(self, other: "Author") -> bool:
+        """Họ trùng, hoặc họ ngắn hơn là ĐUÔI TRỌN TỪ của họ dài hơn.
+
+        Vế sau xử lý tiền tố tách lệch giữa hai nguồn: ``G. Di Giulio`` ra họ
+        ``giulio`` còn ``Di Giulio, Giuseppe`` ra ``di giulio``; ``S. von
+        Buddenbrock`` ra ``von buddenbrock`` còn BibTeX ghi ``Buddenbrock,
+        Stefan``. Hửu Duy đo 27/11: bỏ qua là mất 77 cặp.
+
+        KHÔNG sửa bằng cách cho ``_split_first_last`` coi ``Di``/``Le`` viết hoa
+        là tiền tố — ``Le Wang`` (tên Trung Quốc, ``Le`` là tên riêng) sẽ hỏng.
+        """
+        for a in self.surnames:
+            for b in other.surnames:
+                if a == b:
+                    return True
+                if a.endswith(f" {b}") and not _all_generic(b):
+                    return True
+                if b.endswith(f" {a}") and not _all_generic(a):
+                    return True
+        return False
+
+    def _org_words(self) -> list[str] | None:
+        """Dãy từ để so tên tổ chức, hoặc None nếu tên này không giống tổ chức.
+
+        Cùng một tổ chức có thể tới từ hai nguồn ở hai dạng rất khác nhau:
+
+            "ATLAS Collaboration"   -> giữ nguyên cụm  -> ['atlas', 'collaboration']
+            "A. Collaboration"      -> giữ nguyên cụm  -> ['a', 'collaboration']
+            "Collaboration, ATLAS"  -> bị tách họ/tên  -> ['a', 'collaboration']
+            "Team, Gemini"          -> bị tách họ/tên  -> ['g', 'team']
+
+        Quy về cùng một dãy từ rồi so từng từ, cho phép một chữ cái khớp với từ
+        đầy đủ. Nhờ vậy `A. Collaboration` gặp `ATLAS Collaboration` nhưng
+        `CMS Collaboration` thì không. Hửu Duy chỉ ra 27/11: thiếu nhánh này thì
+        riêng dải 24120177 đã mất 10 cặp đúng, và dạng `Team, Gemini` có 132 tên.
+        """
+        words = self.last.split()
+        if words[:1] == ["the"]:
+            # "{The ATLAS Collaboration}" phải gặp được "A. Collaboration"; giữ
+            # "the" thì hai dãy lệch độ dài nên không bao giờ so được.
+            words = words[1:]
+        if not self.initials and len(words) > 1 and words[-1] in _ORG_TAIL_WORDS:
+            return words
+        if self.initials and _all_generic(self.last):
+            return [*self.initials, *words]
+        return None
+
+    @staticmethod
+    def _word_agrees(a: str, b: str) -> bool:
+        """Hai từ trùng, hoặc một bên là chữ cái đầu viết tắt của bên kia."""
+        return a == b or (len(a) == 1 and b.startswith(a)) or (len(b) == 1 and a.startswith(b))
+
+    def _org_agrees(self, other: "Author") -> bool:
+        x, y = self._org_words(), other._org_words()
+        if x is None or y is None or len(x) != len(y):
+            return False
+        return all(self._word_agrees(p, q) for p, q in zip(x, y))
+
+    def matches(self, other: "Author") -> bool:
+        """Hai tên có thể là cùng một người không.
+
+        Thiên về **bắt sót hơn là bắt nhầm**, vì theo `docs/schema_m3.md` mục 5
+        tác giả chỉ dùng để LỌC ỨNG VIÊN, còn nhãn do độ giống tiêu đề quyết định.
+        Chặt tay ở đây là mất cặp thật mà không được gì.
+
+        Một bên thiếu chữ đầu tên thì chỉ so họ: ``He`` cho khoá ``he`` còn
+        ``Kaiming He`` cho ``he k``, entry bóc từ `.bbl` rất hay chỉ ghi họ.
+        Hửu Duy đo 27/11: bỏ qua là mất 52 cặp.
+        """
+        if self._org_agrees(other):
+            return True
+        if not self._surname_agrees(other):
+            return False
+        if not self.initials or not other.initials:
+            return True
+        return self.initials[0] == other.initials[0]
+
+
+#: Từ chung kết thúc tên tổ chức. Dùng cho hai việc, cùng một lý do:
+#:   1. ``_is_org_name``: "ATLAS Collaboration" là tổ chức, giữ nguyên cả cụm chứ
+#:      không tách họ/tên, để nó gặp được ``{ATLAS Collaboration}`` phía BibTeX.
+#:   2. ``_surname_agrees``: luật "họ là đuôi của nhau" không được nổ khi phần đuôi
+#:      chỉ toàn từ chung — nếu không ``{ATLAS Collaboration}`` sẽ khớp
+#:      ``CMS Collaboration`` và ``{Google Research}`` khớp ``Microsoft Research``.
+#: Chính cặp ATLAS này là ví dụ mà schema_m3 mục 9 dùng để giải thích vì sao bỏ
+#: luật "họ tác giả đầu + năm". Hửu Duy chỉ ra 27/11.
+_ORG_TAIL_WORDS = frozenset({
+    "collaboration", "collaborations", "consortium", "research", "group",
+    "team", "project", "experiment", "committee",
+})
+
+
+def _is_org_name(raw: str) -> bool:
+    """Tên kết thúc bằng từ chung chỉ tổ chức, và có từ hai từ trở lên."""
+    words = _normalize(raw).split()
+    return len(words) > 1 and words[-1] in _ORG_TAIL_WORDS
+
+
+def _all_generic(surname: str) -> bool:
+    """Họ chỉ gồm toàn từ chung — không đủ để kết luận cùng một tổ chức."""
+    words = surname.split()
+    return bool(words) and all(w in _ORG_TAIL_WORDS for w in words)
 
 
 def _is_suffix(word: str) -> bool:
@@ -172,6 +327,23 @@ def _split_first_last(name: str) -> tuple[str, str]:
     return " ".join(words[:start]), " ".join(words[start:])
 
 
+def _author_raw(name: str, *, fold: bool) -> str:
+    """Chuỗi tên đã bỏ LaTeX, bỏ dấu và cắt đuôi ``et al.``, chưa tách họ/tên.
+
+    ⚠️ THỨ TỰ QUAN TRỌNG: ``_QUOTE_ACCENT_RE`` phải chạy khi chuỗi **còn nguyên
+    hoa thường**. Nếu dời nó xuống sau bước ``.lower()`` (nằm trong ``_normalize``)
+    thì ``O'Brien`` đã thành ``o'brien``, nháy lúc đó đứng trước chữ thường nên bị
+    xoá thành ``obrien`` — đúng cái lỗi mà bản vá muốn tránh. Nhìn regex thì tưởng
+    an toàn vì nó "chỉ xoá trước chữ thường", nên chỗ này dễ sai.
+    Hửu Duy chỉ ra 27/11. ``test_quote_regex_runs_before_lowercasing`` chặn việc này.
+    """
+    s = strip_latex(name)
+    if fold:
+        s = _QUOTE_ACCENT_RE.sub("", s)
+    s = (fold_accents if fold else strip_accents)(s).strip()
+    return _ET_AL_RE.sub("", s).strip()
+
+
 @lru_cache(maxsize=200_000)  # tên tác giả lặp lại rất nhiều giữa 1,3 triệu entry
 def parse_author(name: str | None) -> Author | None:
     """``Vaswani, A.`` / ``A. Vaswani`` / ``Ashish Vaswani`` -> ``Author('vaswani', 'a')``."""
@@ -181,16 +353,44 @@ def parse_author(name: str | None) -> Author | None:
     if name.startswith("{") and name.endswith("}") and name.count("{") == 1:
         # BibTeX: {Google Research} là tên tổ chức, không tách họ/tên
         return Author(normalize_text(name), "") if normalize_text(name) else None
-    raw = fold_accents(strip_latex(name)).strip()
+    raw = _author_raw(name, fold=True)
     if not raw or raw.lower() in _NOT_A_PERSON:
         return None
 
+    if "," not in raw and _is_org_name(raw):
+        # Tên tổ chức KHÔNG có ngoặc nhọn: giữ nguyên cả cụm như nhánh trên.
+        # Nếu tách họ/tên thì "ATLAS Collaboration" ra họ `collaboration`, tên
+        # `ATLAS` chui vào initials — vừa không gặp được `{ATLAS Collaboration}`
+        # của phía BibTeX, vừa gặp nhầm `CMS Collaboration`.
+        #
+        # Có dấu phẩy thì KHÔNG đi nhánh này: `Zhang, Research` là người tên
+        # Research họ Zhang chứ không phải tổ chức `zhang research`. Dạng tổ chức
+        # viết kèm phẩy (`Collaboration, ATLAS`) vẫn gặp nhau được nhờ
+        # `_org_words` ở dưới. Hửu Duy chỉ ra 27/11.
+        whole = _normalize(raw)
+        return Author(whole, "") if whole else None
+
     first, last = _split_first_last(raw)
-    last = normalize_text(last)
+    last = _normalize(last)
     if not last:
         return None
-    first = normalize_text(first.replace(".", " ").replace("-", " "))
-    return Author(last, "".join(w[0] for w in first.split()))
+    first = _normalize(first.replace(".", " ").replace("-", " "))
+    if _all_generic(last):
+        # "Collaboration, The ATLAS": `The` là mạo từ của tên tổ chức, không phải
+        # tên riêng, nên không được sinh ra chữ đầu `t`. Nếu để lại thì dãy thành
+        # ['t','a','collaboration'], lệch độ dài với ['atlas','collaboration'] của
+        # "The ATLAS Collaboration" và hai bên không gặp nhau. Hửu Duy chỉ ra
+        # 27/11: 8 tên kiểu này trên parsed/.
+        #
+        # Chỉ làm khi HỌ là từ chung chỉ tổ chức. Ngoài nhánh đó, `The` có thể là
+        # tên người thật — `Nguyen, The Anh` (Nguyễn Thế Anh) phải giữ nguyên `ta`.
+        first = re.sub(r"^the\s+", "", first)
+    initials = "".join(w[0] for w in first.split())
+
+    # Khoá phụ: cùng cách tách họ/tên nhưng bỏ dấu thay vì fold ae/oe/ue.
+    raw_alt = _author_raw(name, fold=False)
+    last_alt = _normalize(_split_first_last(raw_alt)[1], fold=False) if raw_alt else ""
+    return Author(last, initials, last_alt if last_alt and last_alt != last else "")
 
 
 def split_bibtex_authors(field: str | None) -> list[str]:
@@ -219,16 +419,79 @@ def author_keys(authors: str | Iterable[str] | None) -> list[str]:
     return [a.key for a in parse_authors(authors)]
 
 
+def author_keys_alt(authors: str | Iterable[str] | None) -> list[str]:
+    """Khoá phụ, cùng thứ tự với ``author_keys``. So khớp phải nhận cả hai bộ."""
+    return [a.alt_key for a in parse_authors(authors)]
+
+
+def author_key_set(authors: str | Iterable[str] | None) -> frozenset[str]:
+    """Hợp của khoá chính và khoá phụ, dạng tập hợp — **dùng cái này để so khớp**.
+
+    ``set(author_keys(x)) & set(author_keys(y))`` là sai: nó bỏ khoá phụ nên
+    ``Blümlein`` (``bluemlein j``) không gặp ``Blumlein`` (``blumlein j``), và
+    khoá phụ coi như không tồn tại.
+    """
+    return frozenset().union(*(a.keys for a in parse_authors(authors))) if authors else frozenset()
+
+
+#: Số tác giả đầu danh sách đem ra so từng cặp trong ``authors_match``. Bài
+#: collaboration có hàng nghìn tác giả nên so hết là O(n·m) không chấp nhận được;
+#: tác giả đầu danh sách cũng là nhóm phân biệt được nhiều nhất.
+_PAIRWISE_LIMIT = 25
+
+
+def authors_match(
+    left: str | Iterable[str] | None,
+    right: str | Iterable[str] | None,
+) -> bool:
+    """Hai danh sách tác giả có chung ít nhất một người không.
+
+    Trùng khoá thì xét hết danh sách; các ca lệch (thiếu chữ đầu tên, tiền tố
+    tách lệch) chỉ xét trong ``_PAIRWISE_LIMIT`` tác giả đầu của mỗi bên.
+    """
+    if author_key_set(left) & author_key_set(right):
+        return True
+    a = parse_authors(_as_name_list(left)[:_PAIRWISE_LIMIT])
+    b = parse_authors(_as_name_list(right)[:_PAIRWISE_LIMIT])
+    return any(x.matches(y) for x in a for y in b)
+
+
+def first_author_matches(
+    left: str | Iterable[str] | None,
+    right: str | Iterable[str] | None,
+) -> bool:
+    """Tác giả ĐẦU của hai bên có thể là cùng một người không.
+
+    `docs/schema_m3.md` mục 5: họ tác giả đầu + năm chỉ để **lọc ứng viên**,
+    không tự gán nhãn.
+
+    ⚠️ Hàm này vẫn CHẶT HƠN bộ lọc chỉ-so-họ: khi cả hai bên đều có chữ đầu tên
+    mà chữ đó khác nhau thì nó trả về False. Hửu Duy đo 27/11: so với bộ lọc
+    chỉ-so-họ, sau khi parse lại vẫn chênh khoảng 65 cặp (~0,9%). Nếu cần thiên
+    về bắt sót nữa thì so ``parse_author(x).surnames`` trực tiếp.
+
+    Chỉ parse tác giả đầu, không parse cả danh sách — bài collaboration có hàng
+    nghìn tên.
+    """
+    a = parse_authors(_as_name_list(left)[:1])
+    b = parse_authors(_as_name_list(right)[:1])
+    return bool(a and b and a[0].matches(b[0]))
+
+
 def last_names(authors: str | Iterable[str] | None) -> set[str]:
     return {a.last for a in parse_authors(authors)}
 
 
 # ============================================================ một hàng dữ liệu
 def _cleaned_fields(title: str | None, authors: Any) -> dict[str, Any]:
+    parsed = parse_authors(authors)
     return {
         "title_clean": clean_title(title),
         "title_tokens": title_tokens(title),
-        "author_keys": author_keys(authors),
+        "author_keys": [a.key for a in parsed],
+        # Khoá phụ cho trường hợp hai nguồn ghi dấu khác nhau. Khi so khớp tác giả
+        # phải nhận cả hai bộ (hoặc dùng Author.matches), không chỉ author_keys.
+        "author_keys_alt": [a.alt_key for a in parsed],
     }
 
 

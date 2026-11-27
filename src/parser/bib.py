@@ -295,6 +295,9 @@ def _extract_authors(clean_raw: str, title_match: re.Match | None) -> list[str] 
     # Làm sạch các macro LaTeX thường gặp trong \\bibitem như \\bibinfo{author}, \\newblock
     prefix = re.sub(r"\\newblock\s*", " ", prefix)
     prefix = re.sub(r"\\bibinfo\s*\{author\}\s*", " ", prefix)
+    # REVTeX: `\bibfield author` — nhãn `author` KHÔNG nằm trong ngoặc nên phải
+    # xoá cả cụm, nếu không chữ "author" ở lại và thành một tác giả giả.
+    prefix = re.sub(r"\\bibfield\s*\{?\s*author\s*\}?\s*", " ", prefix)
 
     # Tách theo 'and' hoặc '&' (kể cả dạng LaTeX '\&') trước nếu có
     if re.search(r"\band\b|\\?&", prefix, re.IGNORECASE):

@@ -83,6 +83,16 @@ _TEX_SPECIAL_LETTERS = [
 ]
 
 
+# ⚠️ Lệnh dấu viết bằng CHỮ CÁI (\b, \c, \v, \u, \d, \r, \k, \H) phải có chốt
+# (?![a-zA-Z]), nếu không `\bibnamefont` bị đọc thành `\b` + "i" -> "i̱bnamefont".
+# Đo 27/11 trước khi vá: 76.387/1.390.019 chuỗi tác giả (5,5%) trên 277 publication
+# dính lỗi này, và vì dấu `\` đã bị nuốt nên bước xoá `\\[a-zA-Z]+` ở dưới không
+# dọn được nữa — họ còn đúng nhưng chữ cái đầu của tên luôn thành "i".
+# Lệnh dấu viết bằng KÝ HIỆU (\" \' \^ \~ \= \. \`) không cần chốt vì không thể
+# nhầm với tên lệnh. cross_validate.py đã có chốt này từ đầu; chép cho khớp.
+_ACC_CMD = r"[\"'^~=.`]|[uvHcdbrk](?![a-zA-Z])"
+
+
 def _tex_to_unicode(text: str) -> str:
     """Chuyển đổi các macro ký tự và dấu TeX sang dạng Unicode chuẩn (NFC)."""
     s = str(text)
@@ -94,9 +104,9 @@ def _tex_to_unicode(text: str) -> str:
         comb = _TEX_ACCENT_COMBINING.get(cmd)
         return ch + comb if comb else ch
 
-    s = re.sub(r"\{\\([\"'^~=.`]|u|v|H|c|d|b|r|k)\s*([a-zA-Z\u0131\u0237])\}", _repl_accent, s)
-    s = re.sub(r"\\([\"'^~=.`]|u|v|H|c|d|b|r|k)\s*\{([a-zA-Z\u0131\u0237])\}", _repl_accent, s)
-    s = re.sub(r"\\([\"'^~=.`]|u|v|H|c|d|b|r|k)\s*([a-zA-Z\u0131\u0237])", _repl_accent, s)
+    s = re.sub(r"\{\\(" + _ACC_CMD + r")\s*([a-zA-Zıȷ])\}", _repl_accent, s)
+    s = re.sub(r"\\(" + _ACC_CMD + r")\s*\{([a-zA-Zıȷ])\}", _repl_accent, s)
+    s = re.sub(r"\\(" + _ACC_CMD + r")\s*([a-zA-Zıȷ])", _repl_accent, s)
     s = re.sub(r'\{([\"\'^~=.`])([a-zA-Z\u0131\u0237])\}', _repl_accent, s)
     s = re.sub(r'([\"\'^~=.`])\{([a-zA-Z\u0131\u0237])\}', _repl_accent, s)
 

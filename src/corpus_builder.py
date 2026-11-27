@@ -4,7 +4,7 @@ Theo docs/schema.md (chốt 21/10/2026):
   * Tên thư mục bài = config.pub_key(arxiv_id)  (KHÔNG tự viết lại quy tắc đổi dấu)
   * Giá trị `arxiv_id` trong file JSON giữ nguyên bản gốc (vd hep-th/9901001)
   * Version không có TeX source -> vẫn có thư mục vN/, bên trong có _EMPTY.json
-  * references.json / prescan.json do Hữu Duy ghi -> module này KHÔNG tạo
+  * references.json / prescan.json do Hửu Duy ghi -> module này KHÔNG tạo
 """
 
 from __future__ import annotations

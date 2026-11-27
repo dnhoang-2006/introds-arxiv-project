@@ -94,7 +94,24 @@ Thứ tự ưu tiên trong matcher, dừng ở luật đầu tiên khớp:
 1. `doi` trùng
 2. arXiv ID xuất hiện trong trường `url`
 3. Độ tương đồng tiêu đề vượt ngưỡng
-4. Họ tác giả đầu trùng **và** năm trùng
+
+Không luật nào khớp → `groundtruth_arxiv_id: null`.
+
+**Họ tác giả đầu + năm chỉ dùng để LỌC ỨNG VIÊN trước khi so tiêu đề, không tự
+gán nhãn.** Sửa ngày 27/11 sau khi Hửu Duy đo trên 500 publication dải 24120177
+(27.342 entry): bật luật này sinh thêm 1.160 nhãn, mà trong 730 nhãn so được tiêu
+đề thì 638 nhãn (87%) có độ giống tiêu đề < 0,5. Chi tiết ở mục 9.
+
+So khớp tác giả **đừng tự viết** `set(a["author_keys"]) & set(b["author_keys"])`:
+cách đó bỏ mất khoá phụ nên `Blümlein` (`bluemlein j`) không gặp `Blumlein`
+(`blumlein j`). Dùng `clean.author_key_set()`, hoặc `clean.authors_match()` /
+`clean.first_author_matches()` nếu phù hợp.
+
+`first_author_matches()` **có thể dùng** cho bước lọc ứng viên, nhưng nó chặt hơn
+một bộ lọc chỉ-so-họ: khi cả hai bên đều có chữ đầu tên mà khác nhau thì nó loại.
+Hửu Duy đo 27/11, sau khi parse lại vẫn chênh khoảng 65 cặp (~0,9%) so với
+chỉ-so-họ. Matcher được phép dùng bộ lọc lỏng hơn (so `Author.surnames` trực tiếp)
+— tài liệu không bắt buộc hàm nào, chỉ bắt buộc **không** so `author_keys` trần.
 
 ---
 
@@ -157,3 +174,88 @@ Ghi vào đây để đưa lên poster, đừng giấu.
   không còn cấu trúc trường. Trường `title` và `authors` dễ thiếu hoặc lẫn.
 - **Bộ tách câu cắt nhầm** chữ ký tên tác giả (`J. A. Aguilar` thành ba câu) và hàng
   ma trận.
+
+### Vì sao bỏ luật "họ tác giả đầu + năm" khỏi matcher (27/11)
+
+Hửu Duy đo trên 500 publication dải 24120177, 27.342 entry:
+
+| | |
+|---|---|
+| Nhãn luật này sinh thêm | 1.160 |
+| Trong 730 nhãn so được tiêu đề, số nhãn có độ giống < 0,5 | **638 (87%)** |
+| Entry có ≥ 2 ứng viên cùng họ cùng năm | 216 |
+
+Phản ví dụ: hai bài ATLAS khác nhau, cùng "ATLAS Collaboration", cùng năm.
+
+Ba lý do, không chỉ một:
+
+1. **87% là cận dưới.** 430 nhãn không so được tiêu đề vì một bên thiếu `title` —
+   đúng loại entry dễ khớp bừa nhất, nên tỉ lệ thật có thể cao hơn.
+2. **216 entry ≥ 2 ứng viên khiến luật không xác định**, không chỉ thiếu chính xác:
+   nhãn phụ thuộc thứ tự duyệt, chạy máy khác ra khác. Trái với M3 câu 4 ý 4
+   ("thuật toán mà nhóm định ra trước").
+3. **Hỏng cả hai đầu.** Nhãn tự động phủ cả train lẫn test, nên 1.160 nhãn sai mỗi
+   người (≈ 5.800 cả nhóm) vừa là đầu vào sai vừa là đáp án sai.
+
+Bỏ luật này **không ảnh hưởng chỉ tiêu**: mục 4 đếm 500 *publication* gán tự động
+mỗi người chứ không đếm 500 nhãn, và mục 2 đã chốt entry không khớp vẫn có dòng
+với `null`. Kết quả chỉ là nhiều dòng `null` hơn.
+
+### Chuẩn hoá tên tác giả: bốn lỗi đã vá ngày 27/11
+
+Đo trên dải 24120053 — 1.390.019 chuỗi tác giả BibTeX, 1.352.172 chuỗi Semantic
+Scholar, 217.892 khoá tác giả S2 khác nhau.
+
+| lỗi | mức trước khi vá | cách vá |
+|---|---|---|
+| `\bibnamefont` bị đọc thành lệnh dấu `\b` | **76.387 (5,5%)** trên 277 publication | thêm chốt `(?![a-zA-Z])` cho lệnh dấu viết bằng chữ cái, `bib_dedup.py` |
+| `et al.` nuốt họ tác giả | 8.081 (0,581%), gần như chỉ ở phía BibTeX | cắt đuôi `et al.` trước khi tách họ/tên |
+| S2 ghi dấu sắc bằng nháy đơn trần (`Cr'epel`) | 3.891 | xoá nháy khi đứng trước chữ **thường** |
+| Umlaut lệch hai phía (`Blümlein`/`Blumlein`) | 338 tên | thêm **khoá phụ**, giữ nguyên khoá chính |
+
+Ba điểm cần nhớ khi đụng lại `src/matching/clean.py`:
+
+- **Đừng xoá hết nháy đơn.** 2.935 chuỗi có nháy đơn là tên thật (`O'Brien`,
+  `D'Agostino`); hai phía vốn đã ghi giống nhau nên xoá là phá chúng.
+- **Đừng bỏ fold ae/oe/ue.** Đo trên 217.892 khoá S2: fold khớp 2.329 tên, chỉ bỏ
+  dấu khớp 338. Fold vẫn là khoá chính, bỏ dấu chỉ là khoá phụ.
+- **Nháy trong tiêu đề là sở hữu cách**, không phải dấu. Việc sửa nháy chỉ áp dụng
+  cho tên tác giả, không áp dụng cho `clean_title`.
+
+Hai điểm Hửu Duy soát lại ngày 27/11:
+
+- **Thứ tự quan trọng.** `_QUOTE_ACCENT_RE` phải chạy khi chuỗi còn nguyên hoa
+  thường. Dời xuống sau `.lower()` thì `O'Brien` đã thành `o'brien`, nháy đứng
+  trước chữ thường nên bị xoá — đúng lỗi bản vá muốn tránh. Nhìn regex tưởng an
+  toàn vì nó "chỉ xoá trước chữ thường", nên chỗ này rất dễ sai.
+  `test_quote_regex_runs_before_lowercasing` chặn.
+- **Thêm `Author.matches()` thôi chưa đủ**, chỗ gọi phải dùng nó. Vì vậy
+  `clean.py` cung cấp sẵn `author_key_set()`, `authors_match()` và
+  `first_author_matches()` — matcher gọi thẳng, không tự ghép khoá.
+
+Ưu tiên theo số của Hửu Duy (đếm *cặp entry–reference thật sự trượt*, sát với MRR
+hơn là đếm tên): umlaut chỉ chiếm ~10/70 cặp mất, nên là mục thấp nhất. Thứ tự
+thi công: `\bibnamefont` → `et al.` → nháy đơn → umlaut.
+
+Hai ca biên còn lại, Hửu Duy soát 27/11 (0 cặp bị ảnh hưởng trên dải 24120177):
+
+- **`"Tên tổ chức, Generic"` vẫn trượt**: `Gemini, Team` không gặp `Gemini Team`,
+  `GLM, Team` không gặp `GLM Team`. Khoảng 20 tên kiểu này trên `parsed/`.
+  **Cố ý không sửa.** Ca này cùng dạng hệt `Zhang, Research` — đều là
+  `"<từ thường>, <từ chung>"` — nên bất kỳ luật nào cứu được `Gemini, Team` cũng
+  sẽ lại biến `Zhang, Research` thành tổ chức `zhang research`. Phân biệt hai cái
+  đó đòi phải biết `Gemini` là tên tổ chức còn `Zhang` là họ người, tức cần từ
+  điển, không phải việc của một luật chuỗi. Đổi lấy 20 tên thì không đáng.
+- `{The ATLAS Collaboration}` với `A. Collaboration`: **đã sửa**, `_org_words` bỏ
+  `the` ở đầu trước khi so, vì giữ lại thì hai dãy từ lệch độ dài.
+
+Còn lại chưa xử lý:
+
+- Nháy đơn đứng trước chữ **hoa** mà thật ra là dấu (`'Swierczewska` = `Świerczewska`)
+  vẫn bị bỏ sót.
+- 1.237 tên có umlaut không khớp được bằng cả hai dạng khoá.
+- Tên viết họ trước không có dấu phẩy (`Nguyen Van An`, `Zhang Wei`) bị hiểu theo
+  thứ tự phương Tây.
+
+⚠️ Lỗi `\bibnamefont` nằm ở `src/parser/bib_dedup.py` nên **phải parse lại** mới
+thấy kết quả. Ba lỗi còn lại ở `src/matching/clean.py`, chỉ ảnh hưởng lúc so khớp.
