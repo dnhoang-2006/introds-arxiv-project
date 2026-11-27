@@ -146,8 +146,11 @@ chạy lại lần nữa chỉ để đo:
 ```bash
 python src/benchmark.py --stage parse --paper-id all_5000_papers \
   --disk-path parsed --csv book/data/benchmark_runs.csv \
-  -- python src/parse_main.py --ids ids/<mssv>.txt --workers 4
+  -- python src/parse_main.py --ids ids/<mssv>.txt --overwrite --workers 4
 ```
+
+`--overwrite` để parse lại cả publication đã parse trước đó; thiếu cờ này thì
+`parse_main.py` bỏ qua mọi publication đã có `elements.jsonl` (ghi `skipped`).
 
 Thầy chốt ở Q&A Milestone 1 câu 16: **final benchmark phải chạy trên trọn bộ dữ
 liệu của tất cả thành viên**, không phải trên mẫu. Câu 9 và câu 22.3: các số đo
