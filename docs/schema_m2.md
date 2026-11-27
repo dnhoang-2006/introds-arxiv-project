@@ -221,8 +221,34 @@ elements: **record the version as empty rather than skipping it**."*
 - Bảng `hierarchy`: **không có dòng nào**
 - `logs/parse.csv`: một dòng `status = empty`, `n_elements = 1`, các cột đếm còn lại = 0
 
-Nhận biết version rỗng: thư mục version có `_EMPTY.json` (do M1 ghi), hoặc `gather()` trả về
-đường biên dịch rỗng.
+Nhận biết version rỗng, ba trường hợp:
+
+1. Thư mục version có `_EMPTY.json` (do M1 ghi) → `error_type = empty_version`
+2. Thư mục không còn file `.tex` nào → `error_type = empty_version`
+3. Có file `.tex` nhưng **không file nào là nguồn TeX thật** → `error_type = not_tex_source`
+
+**`[QUYẾT ĐỊNH]` Trường hợp 3** thêm ngày 27/11. "Nguồn TeX thật" nghĩa là file chứa
+`\begin{document}` hoặc ít nhất một lệnh trong `gather.LATEX_MARKUP_PATTERN`
+(`\section`, `\usepackage`, `\input`, `\cite`, `\item`…), xét sau khi bỏ comment.
+
+Phải tách trường hợp 3 khỏi `fail`/`no_root`, vì hai thứ này cùng làm `find_root()` trả
+`None` nhưng bản chất ngược nhau:
+
+| | nghĩa là gì | xử lý |
+|---|---|---|
+| `not_tex_source` | nguồn vốn không phải TeX (trang HTML đặt tên `main.tex`, văn bản thuần). Vĩnh viễn, chạy lại bao nhiêu lần cũng vậy | ghi **version rỗng** |
+| `no_root` | là TeX thật nhưng heuristic chọn root của nhóm còn thiếu. Nội dung vẫn còn, sửa heuristic là bóc được | giữ **`fail`**, không ghi file, để lần sau parse lại |
+
+Đo trên dải 24120053: `2507.08666`, `2507.08667`, `2507.09585` là HTML đội lốt `.tex`,
+không một lệnh TeX nào → rỗng thật. Còn `2507.10483` có `\usepackage`, `\section`,
+`\input`, `\ref` trong `itenn.tex` → plain TeX thật, ghi "rỗng" là nói dối và mất luôn
+nội dung, nên giữ `fail`.
+
+Trước bản vá này, cả bốn bài đều ra `fail` và publication không có thư mục `parsed/`,
+khiến **V6 `version_cover` của `validator_m2.py` báo FAIL**. Không sửa bằng cách tạo thư
+mục `parsed/` rỗng đánh dấu: làm vậy `already_done()` sẽ thấy đủ ba file nên bài đó không
+bao giờ được parse lại, và `export_hf` sẽ xuất nó với dòng trong `papers` mà `elements`
+trống — người đọc dataset hiểu nhầm là bài không có nội dung.
 
 ---
 

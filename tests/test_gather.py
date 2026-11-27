@@ -72,15 +72,35 @@ def test_self_include(tmp_path):
 
 
 def test_no_root(tmp_path):
-    v = make(tmp_path / "v1", {"a.tex": "No documentclass.", "b.tex": "Neither."})
+    """Là nguồn TeX thật mà không chọn được root -> fail, để lần sau parse lại."""
+    v = make(tmp_path / "v1", {"a.tex": "\\section{A}\nNo documentclass.",
+                               "b.tex": "\\section{B}\nNeither."})
     r = gather_detail(v)
     assert r.compile_path == []
     assert names(r.unused, v) == ["a.tex", "b.tex"]
     assert (r.status, r.error_type) == ("fail", "no_root")
 
 
+def test_tex_file_that_is_not_tex_source_is_empty(tmp_path):
+    """File .tex không hề là nguồn TeX -> version RỖNG, không phải fail.
+
+    Đề (schema_m2 mục 6): "record the version as empty rather than skipping it".
+    Thật tế gặp ở 2507.08666/08667/09585 — nguyên một trang HTML đặt tên main.tex.
+    """
+    v = make(tmp_path / "v1", {"main.tex": "<html><body><p>Not TeX</p></body></html>"})
+    r = gather_detail(v)
+    assert r.compile_path == []
+    assert (r.status, r.error_type) == ("empty", "not_tex_source")
+
+
+def test_plain_text_tex_is_empty(tmp_path):
+    v = make(tmp_path / "v1", {"a.tex": "No documentclass.", "b.tex": "Neither."})
+    assert gather_detail(v).status == "empty"
+
+
 def test_documentclass_in_comment_is_not_root(tmp_path):
-    v = make(tmp_path / "v1", {"a.tex": "% \\documentclass{article}\nText."})
+    v = make(tmp_path / "v1",
+             {"a.tex": "% \\documentclass{article}\n\\section{T}\nText."})
     assert gather_detail(v).error_type == "no_root"
 
 
@@ -182,7 +202,7 @@ def test_run_writes_log_with_schema_columns(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "CORPUS_ROOT", corpus)
     make(corpus / "2507-06659" / "v1", {"main.tex": DOC + "\\input{a}" + END, "a.tex": "A"})
     make(corpus / "2507-06659" / "v2", {"_EMPTY.json": "{}"})
-    make(corpus / "2507-06660" / "v1", {"x.tex": "no root"})
+    make(corpus / "2507-06660" / "v1", {"x.tex": "\\section{x}\nno root"})
     log = tmp_path / "logs" / "gather.csv"
 
     run(["2507.06659", "2507.06660"], log_path=log, quiet=True)
