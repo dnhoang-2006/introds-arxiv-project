@@ -14,7 +14,7 @@ Mỗi thành viên được phân công đúng 5.000 bài báo trong dải ID ri
 | Dương Ngọc Minh Thư | 24120144 | `ids/24120144.txt` | Source Download, Tối ưu I/O |
 | Trần Ngọc Thanh Tú | 24120152 | `ids/24120152.txt` | Corpus Builder, Kiểm thử dữ liệu |
 | Nguyễn Lê Anh Tuấn | 24120153 | `ids/24120153.txt` | Benchmark Tool, Jupyter Book |
-| Cáp Hửu Duy | 24120177 | `ids/24120177.txt` | Semantic Scholar References |
+| Cáp Hữu Duy | 24120177 | `ids/24120177.txt` | Semantic Scholar References |
 
 Mọi câu lệnh cào đều được bao bọc bởi `src/benchmark.py`. Công cụ này chạy song song để đo 4 thông số:
 - Thời gian chạy thực tế (Wall-clock time).
@@ -157,7 +157,7 @@ Mỗi thành viên chỉ cần sao chép chính xác khối lệnh tương ứng
 
 ---
 
-### Dành cho Cáp Hửu Duy (MSSV: 24120177)
+### Dành cho Cáp Hữu Duy (MSSV: 24120177)
 
 ```bash
 # Giai đoạn 1: Discovery

@@ -98,12 +98,20 @@ Thứ tự ưu tiên trong matcher, dừng ở luật đầu tiên khớp:
 Không luật nào khớp → `groundtruth_arxiv_id: null`.
 
 **Họ tác giả đầu + năm chỉ dùng để LỌC ỨNG VIÊN trước khi so tiêu đề, không tự
-gán nhãn.** Sửa ngày 27/11 sau khi Hửu Duy đo trên 500 publication dải 24120177
+gán nhãn.** Sửa ngày 27/11 sau khi Hữu Duy đo trên 500 publication dải 24120177
 (27.342 entry): bật luật này sinh thêm 1.160 nhãn, mà trong 730 nhãn so được tiêu
 đề thì 638 nhãn (87%) có độ giống tiêu đề < 0,5. Chi tiết ở mục 9.
 
-So khớp tác giả phải dùng `Author.matches()` hoặc hợp của `author_keys` và
-`author_keys_alt`, không so `author_keys` trần — xem mục 9.
+So khớp tác giả **đừng tự viết** `set(a["author_keys"]) & set(b["author_keys"])`:
+cách đó bỏ mất khoá phụ nên `Blümlein` (`bluemlein j`) không gặp `Blumlein`
+(`blumlein j`). Dùng `clean.author_key_set()`, hoặc `clean.authors_match()` /
+`clean.first_author_matches()` nếu phù hợp.
+
+`first_author_matches()` **có thể dùng** cho bước lọc ứng viên, nhưng nó chặt hơn
+một bộ lọc chỉ-so-họ: khi cả hai bên đều có chữ đầu tên mà khác nhau thì nó loại.
+Hữu Duy đo 27/11, sau khi parse lại vẫn chênh khoảng 65 cặp (~0,9%) so với
+chỉ-so-họ. Matcher được phép dùng bộ lọc lỏng hơn (so `Author.surnames` trực tiếp)
+— tài liệu không bắt buộc hàm nào, chỉ bắt buộc **không** so `author_keys` trần.
 
 ---
 
@@ -169,7 +177,7 @@ Ghi vào đây để đưa lên poster, đừng giấu.
 
 ### Vì sao bỏ luật "họ tác giả đầu + năm" khỏi matcher (27/11)
 
-Hửu Duy đo trên 500 publication dải 24120177, 27.342 entry:
+Hữu Duy đo trên 500 publication dải 24120177, 27.342 entry:
 
 | | |
 |---|---|
@@ -213,6 +221,21 @@ Ba điểm cần nhớ khi đụng lại `src/matching/clean.py`:
   dấu khớp 338. Fold vẫn là khoá chính, bỏ dấu chỉ là khoá phụ.
 - **Nháy trong tiêu đề là sở hữu cách**, không phải dấu. Việc sửa nháy chỉ áp dụng
   cho tên tác giả, không áp dụng cho `clean_title`.
+
+Hai điểm Hữu Duy soát lại ngày 27/11:
+
+- **Thứ tự quan trọng.** `_QUOTE_ACCENT_RE` phải chạy khi chuỗi còn nguyên hoa
+  thường. Dời xuống sau `.lower()` thì `O'Brien` đã thành `o'brien`, nháy đứng
+  trước chữ thường nên bị xoá — đúng lỗi bản vá muốn tránh. Nhìn regex tưởng an
+  toàn vì nó "chỉ xoá trước chữ thường", nên chỗ này rất dễ sai.
+  `test_quote_regex_runs_before_lowercasing` chặn.
+- **Thêm `Author.matches()` thôi chưa đủ**, chỗ gọi phải dùng nó. Vì vậy
+  `clean.py` cung cấp sẵn `author_key_set()`, `authors_match()` và
+  `first_author_matches()` — matcher gọi thẳng, không tự ghép khoá.
+
+Ưu tiên theo số của Hữu Duy (đếm *cặp entry–reference thật sự trượt*, sát với MRR
+hơn là đếm tên): umlaut chỉ chiếm ~10/70 cặp mất, nên là mục thấp nhất. Thứ tự
+thi công: `\bibnamefont` → `et al.` → nháy đơn → umlaut.
 
 Còn lại chưa xử lý:
 
