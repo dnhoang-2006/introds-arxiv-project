@@ -109,6 +109,10 @@ def _tex_to_unicode(text: str) -> str:
     s = re.sub(r"\\(" + _ACC_CMD + r")\s*([a-zA-Zıȷ])", _repl_accent, s)
     s = re.sub(r'\{([\"\'^~=.`])([a-zA-Z\u0131\u0237])\}', _repl_accent, s)
     s = re.sub(r'([\"\'^~=.`])\{([a-zA-Z\u0131\u0237])\}', _repl_accent, s)
+    # `\'{\i}` ra ı + dấu sắc: chữ i không chấm chỉ để đặt dấu lên trên, có dấu rồi thì
+    # về lại i (í). Không có bước này thì `Garc\'{\i}a` ra `Garcı́a` (đo 27/11: 3.733 tên).
+    s = re.sub("\u0131(?=[\u0300-\u036f])", "i", s)
+    s = re.sub("\u0237(?=[\u0300-\u036f])", "j", s)
 
     return unicodedata.normalize("NFC", s)
 
@@ -246,6 +250,7 @@ def _clean_author_name(name: str) -> str:
     n = _tex_to_unicode(name)
     n = n.replace("~", " ")
     n = re.sub(r"\\[a-zA-Z]+\s*", " ", n)
+    n = re.sub(r"\\", " ", n)          # `\ ` (control space) và `\` cuối tên của REVTeX
     n = re.sub(r"[{}]", "", n).strip()
     n = re.sub(r"\s+", " ", n)
     return n

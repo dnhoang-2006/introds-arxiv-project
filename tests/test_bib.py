@@ -450,3 +450,106 @@ def test_read_bib_file_letter_accents_survive_brace_removal(tmp_path: Path):
     (entry,) = read_bib_file(bib)
     assert entry["authors"] == ["Veličković, Petar", "Šmejkal, Libor", "Gonçalves, F."]
     assert entry["title"] == "On a problem of Erdős"
+
+
+# ------------------------------------------------------------------ \bibitem: đo 27/11
+# Các ca dưới lấy nguyên văn từ .bbl thật trên dải 24120177. Trước khi sửa, 7,3% tên
+# tác giả trong bảng bibtex dính rác và 47% entry kiểu \newblock không có tiêu đề.
+
+
+def test_parse_bibitem_revtex_authors_from_bibinfo():
+    """REVTeX: lấy tác giả từ \\bibinfo{author}{...}, không đoán theo dấu phẩy/'and'."""
+    raw = (
+        r"\BibitemOpen \bibfield {author} {\bibinfo {author} {\bibfnamefont {M.}~\bibnamefont {Alidoust}}, "
+        r"\bibinfo {author} {\bibfnamefont {C.}~\bibnamefont {Shen}},\ and\ \bibinfo {author} "
+        r"{\bibfnamefont {I.}~\bibnamefont {{\v{Z}}uti{\'c}}},\ }\bibfield {title} {\bibinfo {title} "
+        r"{Cubic spin-orbit coupling and anomalous {Josephson} effect in planar junctions},\ }"
+        r"\href {https://link.aps.org/doi/10.1103/PhysRevB.103.L060503} {\bibfield {journal} "
+        r"{\bibinfo {journal} {Phys. Rev. B}\ }\textbf {\bibinfo {volume} {103}},\ \bibinfo {pages} "
+        r"{L060503} (\bibinfo {year} {2021})}\BibitemShut {NoStop}"
+    )
+    item = parse_bibitem("Alidoust2021", raw)
+    assert item["title"] == "Cubic spin-orbit coupling and anomalous Josephson effect in planar junctions"
+    assert len(item["authors"]) == 3
+    assert "Alidoust" in item["authors"][0] and "Žutić" in item["authors"][2]
+    assert not any("\\" in a or "title" in a or "http" in a for a in item["authors"])
+
+
+def test_parse_bibitem_aps_ifmmode_accent():
+    """APS: `\\ifmmode \\check{c}\\else \\v{c}\\fi{}` lấy nhánh \\else, không ra `Skvar č`."""
+    raw = (
+        r"\BibitemOpen \bibfield {author} {\bibinfo {author} {\bibfnamefont {J.}~\bibnamefont "
+        r"{Skvar\ifmmode~\check{c}\else \v{c}\fi{}}}},\ }\bibinfo {journal} {Nucl. Phys. A}"
+    )
+    (author,) = parse_bibitem("Skvarc", raw)["authors"]
+    assert author.endswith("Skvarč")
+
+
+def test_parse_bibitem_acm_person_and_showarticletitle():
+    raw = (
+        r"\bibfield{author}{\bibinfo{person}{Valeri Chukhlomin} {et~al\mbox{.}}} \bibinfo{year}{2024}"
+        r"\natexlab{}. \newblock \showarticletitle{Socratic Prompts: Engineered Dialogue as a Tool}. "
+        r"\newblock \bibinfo{journal}{\emph{Latin American Business and Sustainability Review}}"
+    )
+    item = parse_bibitem("chukhlomin2024", raw)
+    assert item["authors"] == ["Valeri Chukhlomin"]
+    assert item["title"] == "Socratic Prompts: Engineered Dialogue as a Tool"
+
+
+def test_parse_bibitem_note_only_has_no_author():
+    raw = (
+        r"\BibitemOpen \href@noop {} {}\bibinfo {note} {See Supplemental Material for a discussion "
+        r"of the effective mass approximation and computational details.}\BibitemShut {Stop}"
+    )
+    assert parse_bibitem("SM", raw)["authors"] is None
+
+
+def test_parse_bibitem_natbib_newblock_title_is_second_field():
+    """natbib: trường thứ hai là tiêu đề; \\emph ở trường thứ ba là tên hội nghị."""
+    raw = (
+        "Jonathan Ho, Ajay Jain, and Pieter Abbeel.\n\\newblock Denoising diffusion probabilistic models.\n"
+        "\\newblock \\emph{Advances in neural information processing systems}, 33:\\penalty0 6840--6851, 2020."
+    )
+    item = parse_bibitem("ho2020denoising", raw)
+    assert item["title"] == "Denoising diffusion probabilistic models"
+    assert item["authors"] == ["Jonathan Ho", "Ajay Jain", "Pieter Abbeel"]
+    assert item["year"] == 2020
+
+
+def test_parse_bibitem_newblock_url_only_is_not_title():
+    raw = r"{BlenderKit}. \newblock {\scriptsize{\url{https://www.blenderkit.com/asset-gallery}}}."
+    assert parse_bibitem("blenderkit", raw)["title"] is None
+
+
+def test_parse_bibitem_textbf_volume_is_not_title():
+    raw = r"D.~J.~Gross and E.~Witten, Nucl. Phys. B \textbf{277}, 1 (1986) doi:10.1016/0550-3213(86)90429-3"
+    item = parse_bibitem("Gross:1986", raw)
+    assert item["title"] is None
+    assert item["doi"] == "10.1016/0550-3213(86)90429-3"
+
+
+def test_parse_bibitem_textit_title_with_nested_accent():
+    raw = (
+        "M. Albanese, G. Barbaro and M. Lejmi,\n\\textit{ Generalized almost-K\\\"{a}hler-Ricci solitons},\n"
+        "Differential Geom. Appl., \\textbf{97} (2024), Paper No. 102193, 27 pp."
+    )
+    assert parse_bibitem("ABL", raw)["title"] == "Generalized almost-Kähler-Ricci solitons"
+
+
+def test_parse_bibitem_et_al_variants_normalized():
+    raw = r"T.~Abramovich, M.~Udeshi, et~al.\ \newblock Enigma: Enhanced interactive agent. \newblock arXiv, 2024."
+    assert parse_bibitem("abramovich2024", raw)["authors"][-1] == "et al"
+
+
+def test_parse_bibitem_lncs_colon_splits_authors_and_title():
+    raw = (
+        "{Abou Jaoude}, D., Garoche, P.L., Farhood, M.: Computing state invariants using\n"
+        "  point-wise integral quadratic constraints and the {S}-procedure. In: 2021\n"
+        "  {A}merican {C}ontrol {C}onference (ACC). pp. 2394--2399 (2021)"
+    )
+    item = parse_bibitem("AboujaoudeGarocheFarhood21", raw)
+    assert item["title"] == (
+        "Computing state invariants using point-wise integral quadratic constraints and the S-procedure"
+    )
+    assert item["authors"] == ["Abou Jaoude, D.", "Garoche, P.L.", "Farhood, M."]
+    assert item["year"] == 2021

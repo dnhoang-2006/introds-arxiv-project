@@ -38,42 +38,77 @@ ARXIV_REF_PAT = re.compile(r"(?:arXiv[:.]|abs/)\s*(\d{4}\.\d{4,5}|[a-z-]+/\d{7})
 URL_PAT = re.compile(r"https?://[^\s,}]+")
 
 # Các regex trích xuất tiêu đề fallback theo ngoặc kép ``...'' và "...",
-# cuối cùng là \emph/\textit/\textbf vì \emph{} thường dùng cho tên hội nghị/tạp chí
+# cuối cùng là \emph/\textit vì \emph{} thường dùng cho tên hội nghị/tạp chí.
+# KHÔNG dùng \textbf: style vật lý in đậm số volume (`Nucl. Phys. B \textbf{277}`),
+# đo 27/11 trên 500 pub dải 24120177 thì tiêu đề bắt từ \textbf hầu hết là số volume.
 TITLE_PATS = [
     re.compile(r"``(.+?)''"),
-    re.compile(r'"([^"]+)"'),
-    re.compile(r"\\(?:emph|textit|textbf)\{([^}]+)\}"),
+    # `\"` là dấu umlaut, không phải ngoặc kép: `Extremal K\"ahler` từng ra tiêu đề `K\"a`.
+    re.compile(r'(?<!\\)"([^"]+?)(?<!\\)"'),
+    re.compile(r"\\(?:emph|textit)\{([^}]+)\}"),
 ]
+
+# REVTeX dùng \bibinfo{title}, ACM (ACM-Reference-Format) dùng \showarticletitle.
+_STRUCT_TITLE_PAT = re.compile(r"\\bibinfo\s*\{\s*title\s*\}\s*\{|\\showarticletitle\s*\{", re.IGNORECASE)
+# REVTeX ghi từng tác giả trong \bibinfo{author}{...}, ACM trong \bibinfo{person}{...}.
+_STRUCT_AUTHOR_PAT = re.compile(r"\\bibinfo\s*\{\s*(?:author|person)\s*\}\s*\{", re.IGNORECASE)
+_NEWBLOCK_PAT = re.compile(r"\\newblock\b")
+# LNCS: phần tác giả kết thúc bằng chữ cái đầu viết tắt ("Farhood, M.:" / "Garoche, P.L.:").
+_LNCS_PAT = re.compile(
+    r"(?P<authors>[^:]{2,400}?\b[A-Z](?:\.-?[A-Z])*\.)\s*:\s+(?P<title>[^:]+?)\.\s+(?=In:|[A-Z(]|\d|$)"
+)
+
+
+def _balanced_close(raw: str, start: int) -> int:
+    """Vị trí `}` đóng ngoặc mở ngay trước `start`, bỏ qua ký tự sau `\\`; -1 nếu không có."""
+    depth, i, n = 1, start, len(raw)
+    while i < n:
+        c = raw[i]
+        if c == "\\":
+            i += 2
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return -1
 
 
 def _extract_bibinfo_title_span(raw: str) -> tuple[str, int, int] | None:
-    """Trích xuất tiêu đề từ \\bibinfo{title}{...} bằng cách cân bằng ngoặc nhọn (arbitrary nesting).
+    """Trích xuất tiêu đề từ \\bibinfo{title}{...} hoặc \\showarticletitle{...}, cân bằng ngoặc nhọn.
 
     Hỗ trợ độ lồng ngoặc không giới hạn (như {\\textendash}, {\\ensuremath{\\alpha}}, v.v.),
     tránh giới hạn của regex tĩnh khi gặp macro lồng sâu bên trong tiêu đề.
     Trả về (nội dung tiêu đề thô, vị trí bắt đầu, vị trí kết thúc) hoặc None.
     """
-    m = re.search(r"\\bibinfo\s*\{title\}\s*\{", raw, re.IGNORECASE)
+    m = _STRUCT_TITLE_PAT.search(raw)
     if not m:
         return None
-    start_content = m.end()
-    depth = 1
-    i = start_content
-    n = len(raw)
-    while i < n and depth > 0:
-        c = raw[i]
-        if c == "\\":
-            i += 2
-            continue
-        elif c == "{":
-            depth += 1
-        elif c == "}":
-            depth -= 1
-            if depth == 0:
-                content = raw[start_content:i]
-                return content, m.start(), i
-        i += 1
-    return None
+    end = _balanced_close(raw, m.end())
+    return (raw[m.end():end], m.start(), end) if end != -1 else None
+
+
+class _SpanMatch:
+    """Giả lập re.Match chỉ có .start(), để _extract_authors biết phần tác giả dừng ở đâu."""
+
+    def __init__(self, start_pos: int):
+        self._start = start_pos
+
+    def start(self) -> int:
+        return self._start
+
+
+def _structured_authors(raw: str) -> list[str]:
+    """Nội dung thô của mọi \\bibinfo{author|person}{...} theo thứ tự xuất hiện."""
+    out = []
+    for m in _STRUCT_AUTHOR_PAT.finditer(raw):
+        end = _balanced_close(raw, m.end())
+        if end != -1:
+            out.append(raw[m.end():end])
+    return out
 
 
 # Lệnh định dạng chỉ bọc nội dung, phải GỠ trước khi xoá ngoặc nhọn.
@@ -83,9 +118,32 @@ def _extract_bibinfo_title_span(raw: str) -> tuple[str, int, int] | None:
 _UNWRAP_CMD = (
     "text|textrm|textbf|textit|texttt|textsc|textsf|textnormal|textup|"
     "emph|mathrm|mathbf|mathit|mathsf|mathtt|mathcal|mbox|hbox|"
-    "ensuremath|boldsymbol|bm|uppercase|lowercase"
+    "ensuremath|boldsymbol|bm|uppercase|lowercase|"
+    "bibnamefont|bibfnamefont|citenamefont|bibsc|enquote"
 )
 _UNWRAP_PAT = re.compile(r"\\(?:" + _UNWRAP_CMD + r")\s*\{([^{}]*)\}")
+
+# APS ghi dấu bằng `\ifmmode \check{c}\else \v{c}\fi{}`: giữ nhánh \else (dạng văn bản).
+# Không xử lý thì `Skvar\ifmmode~\check{c}\else \v{c}\fi{}` ra `Skvar č` (đo 27/11: 287 tên).
+_IFMMODE_PAT = re.compile(r"\\ifmmode\b.*?\\else\b\s*(.*?)\s*\\fi\b(?:\{\})?", re.DOTALL)
+# Lệnh REVTeX không mang nội dung: \BibitemOpen, \BibitemShut{NoStop}, \href@noop{}, \natexlab{a}.
+_REVTEX_NOISE_PAT = re.compile(
+    r"\\BibitemOpen\b|\\BibitemShut\s*\{[^{}]*\}|\\href@noop\s*\{\s*\}|\\natexlab\s*\{[^{}]*\}"
+    # nhãn trường REVTeX/ACM: `\bibinfo{howpublished}{X}` -> X, `\bibfield{journal}{X}` -> X
+    r"|\\bibinfo\s*\{\s*\w+\s*\}|\\bibfield\s*\{\s*\w+\s*\}"
+)
+# Khoảng trắng TeX: `\ ` (control space), `\,` `\;` `\!` `\/`. REVTeX chèn `\ ` giữa chữ cái
+# đầu và họ (`W.~J.\ Percival`); để lại thì `\` dính vào tên (đo 27/11: ~33.000 tên).
+_CTRL_SPACE_PAT = re.compile(r"\\[ ,;!/]")
+# Khai báo định dạng không có đối số (`{\em Title}`, `{\bf 55}`): chỉ đổi kiểu chữ, bỏ đi.
+_FONT_DECL_PAT = re.compile(
+    r"\\(?:em|it|bf|rm|sc|sf|tt|sl|normalfont|itshape|bfseries|scshape|upshape|mdseries|"
+    r"tiny|scriptsize|footnotesize|small|normalsize|large|Large)\b\s*"
+)
+# Liên kết lọt vào tiêu đề/tác giả ở .bbl: `\href{url}{X}` giữ X, `\doi{...}`/`\url{...}` bỏ hẳn.
+_LINK_PAT = re.compile(r"\\href\s*\{[^{}]*\}|\\(?:doi|url|urlprefix|doibase|Eprint)\b\s*(?:\{[^{}]*\})?")
+# Ký tự thoát: `\&` -> `&`, `\%` -> `%`, `\_` -> `_`, `\#` -> `#`, `\$` -> `$`.
+_ESCAPED_CHAR_PAT = re.compile(r"\\([&%_#$])")
 
 
 def _clean_bib_text(val: str | None) -> str | None:
@@ -95,12 +153,18 @@ def _clean_bib_text(val: str | None) -> str | None:
     # `\vc`, chốt (?![a-zA-Z]) của bib_dedup._ACC_CMD (chặn `\bibnamefont`) không nhận
     # ra dấu nữa và bước xoá `\\[a-zA-Z]+` cắt luôn tên: `Veli{\v{c}}kovi{\'c}` -> `Veli ć`.
     # Đo 27/11 trên 500 pub dải 24120177: 3.518/114.598 trường author .bib bị đổi.
-    cleaned = _tex_to_unicode(val)
+    cleaned = _IFMMODE_PAT.sub(r"\1", val)
+    cleaned = _REVTEX_NOISE_PAT.sub(" ", cleaned)
+    cleaned = _tex_to_unicode(cleaned)
     for _ in range(4):                      # lệnh có thể lồng vài lớp
         new = _UNWRAP_PAT.sub(r"\1", cleaned)
         if new == cleaned:
             break
         cleaned = new
+    cleaned = _CTRL_SPACE_PAT.sub(" ", cleaned)
+    cleaned = _FONT_DECL_PAT.sub("", cleaned)
+    cleaned = _LINK_PAT.sub(" ", cleaned)
+    cleaned = _ESCAPED_CHAR_PAT.sub(r"\1", cleaned)
     cleaned = re.sub(r"[{}]", "", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned or None
@@ -297,6 +361,10 @@ def _extract_authors(clean_raw: str, title_match: re.Match | None) -> list[str] 
 
     if not prefix:
         return None
+    # rstrip(".") ở trên ăn luôn dấu chấm của chữ viết tắt cuối ("Farhood, M." -> "Farhood, M");
+    # trả lại nếu ngay trước là một chữ cái hoa đứng riêng.
+    if re.search(r"(?:^|[\s,.~-])[A-Z]$", prefix) and clean_raw[len(prefix):len(prefix) + 1] == ".":
+        prefix += "."
 
     # Làm sạch các macro LaTeX thường gặp trong \\bibitem như \\bibinfo{author}, \\newblock
     prefix = re.sub(r"\\newblock\s*", " ", prefix)
@@ -315,13 +383,44 @@ def _extract_authors(clean_raw: str, title_match: re.Match | None) -> list[str] 
     for chunk in chunks:
         raw_authors.extend(_split_author_chunk(chunk))
 
+    return _tidy_authors(raw_authors)
+
+
+_ET_AL_ONLY_PAT = re.compile(r"[\W_]*et[\s~.]*al[\W_]*", re.IGNORECASE)
+_TRAILING_YEAR_PAT = re.compile(r"\s*\(\s*(?:19|20)\d{2}[a-z]?\s*\)\s*\.?$")
+_HAS_NAME_PAT = re.compile(r"[^\W\d_]{2,}|[^\W\d_]\.")
+
+
+def _tidy_authors(raw_authors: list[str]) -> list[str] | None:
+    """Làm sạch từng tên và bỏ phần không phải tên người.
+
+    - Giữ `et al` (hợp đồng có test), nhưng gộp các biến thể `et al.\\`, `\\ et al.`, `et al. (`.
+    - Bỏ đuôi năm kiểu tác giả-năm: `Abbeel, P. (2020)` -> `Abbeel, P.`
+    - Bỏ mảnh không có chữ (`\\`, `. , .`, `(`) và rác REVTeX (`title`, `@noop`, URL).
+    """
     authors = []
     for p in raw_authors:
         cleaned = _clean_bib_text(p)
-        if cleaned and cleaned.lower() not in ("in", "by"):
-            authors.append(cleaned)
-
-    return authors if authors else None
+        if not cleaned:
+            continue
+        cleaned = cleaned.replace("~", " ")
+        cleaned = re.sub(r"\\[a-zA-Z]+\s*", " ", cleaned)        # lệnh còn sót (`\bibnamefont`)
+        cleaned = re.sub(r"\\", " ", cleaned)                     # `\` lẻ còn sót
+        cleaned = re.sub(r"\s+", " ", cleaned).strip(" ,;")
+        cleaned = re.sub(r"^and\s+", "", cleaned, flags=re.IGNORECASE)
+        cleaned = _TRAILING_YEAR_PAT.sub("", cleaned).strip(" ,;")
+        if _ET_AL_ONLY_PAT.fullmatch(cleaned):
+            authors.append("et al")
+            continue
+        if (
+            cleaned.lower() in ("in", "by", "title")
+            or "@noop" in cleaned
+            or re.search(r"https?:|doi\.org", cleaned, re.IGNORECASE)
+            or not _HAS_NAME_PAT.search(cleaned)
+        ):
+            continue
+        authors.append(cleaned)
+    return authors or None
 
 
 def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
@@ -339,33 +438,49 @@ def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
     # Title
     title = None
     title_match = None
+    newblocks = [s.strip() for s in _NEWBLOCK_PAT.split(clean_raw)]
 
-    # 1. Ưu tiên bóc tách cân bằng ngoặc cho \bibinfo{title}{...} (REVTeX/APS), hỗ trợ lồng ngoặc sâu
+    # 1. Ưu tiên bóc tách cân bằng ngoặc cho \bibinfo{title}{...} (REVTeX/APS) và
+    #    \showarticletitle{...} (ACM), hỗ trợ lồng ngoặc sâu
     res_bibinfo = _extract_bibinfo_title_span(clean_raw)
     if res_bibinfo:
         raw_title, t_start, _ = res_bibinfo
         title = _clean_bib_text(raw_title)
-        if title:
-            title = title.rstrip(" ,.")
-
-        class _SpanMatch:
-            def __init__(self, start_pos: int):
-                self._start = start_pos
-
-            def start(self) -> int:
-                return self._start
-
-        title_match = _SpanMatch(t_start)  # type: ignore[assignment]
+        title_match = _SpanMatch(t_start)
+    elif len(newblocks) >= 2 and newblocks[0]:
+        # 2. natbib (plainnat, abbrvnat, ieee_fullname...): "Tác giả. \newblock Tiêu đề. \newblock Nơi đăng".
+        #    Trường thứ hai là tiêu đề; \emph ở trường thứ ba là tên hội nghị, không phải tiêu đề.
+        #    Đo 27/11 trên 500 pub dải 24120177: 3.826/8.172 entry kiểu này không ra tiêu đề.
+        seg = newblocks[1]
+        m = TITLE_PATS[0].search(seg) or TITLE_PATS[1].search(seg)
+        title = _clean_bib_text(m.group(1) if m else seg)
+        title_match = _SpanMatch(_NEWBLOCK_PAT.search(clean_raw).start())
+    elif (m_lncs := _LNCS_PAT.match(clean_raw)) and not TITLE_PATS[0].search(clean_raw):
+        # 3. LNCS (splncs04): "Họ, A., Họ, B.: Tiêu đề. In: Hội nghị ...". Chỉ nhận khi trước
+        #    dấu ':' là chữ cái đầu viết tắt, để không nhầm với tiêu đề có dấu ':'.
+        title = _clean_bib_text(m_lncs.group("title"))
+        title_match = _SpanMatch(m_lncs.end("authors"))
     else:
-        # 2. Thử các pattern regex fallback
+        # 4. Thử các pattern regex fallback. \emph/\textit lấy theo ngoặc cân bằng:
+        #    `\textit{Generalized almost-K\"{a}hler}` với [^}]+ chỉ ra `Generalized almost-K\"a`.
         for pat in TITLE_PATS:
             m = pat.search(clean_raw)
-            if m:
-                title = _clean_bib_text(m.group(1))
-                if title:
-                    title = title.rstrip(" ,.")
-                title_match = m
-                break
+            if not m:
+                continue
+            body = m.group(1)
+            if pat is TITLE_PATS[2]:
+                open_end = clean_raw.index("{", m.start()) + 1
+                close = _balanced_close(clean_raw, open_end)
+                if close != -1:
+                    body = clean_raw[open_end:close]
+            title = _clean_bib_text(body)
+            title_match = m
+            break
+    if title:
+        title = title.rstrip(" ,.") or None
+    # "\newblock et al." hay "\newblock {\scriptsize\url{...}}" không phải tiêu đề.
+    if title and (_ET_AL_ONLY_PAT.fullmatch(title) or not _HAS_NAME_PAT.search(re.sub(r"\\[a-zA-Z]+", "", title))):
+        title = None
 
     # Year
     m_year = YEAR_PAT.search(clean_raw)
@@ -383,8 +498,17 @@ def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
     m_url = URL_PAT.search(clean_raw)
     url = m_url.group(0).rstrip(".") if m_url else None
 
-    # Authors -> list[str]
-    authors = _extract_authors(clean_raw, title_match)
+    # Authors -> list[str]. REVTeX/ACM ghi sẵn từng tác giả trong \bibinfo{author|person}{...}:
+    # lấy thẳng, không đoán theo dấu phẩy/'and' (cách đó sinh `\`, `\ title`, URL thành tác giả).
+    # Entry REVTeX không có trường author (vd. chỉ có \bibinfo{note}) thì không có tác giả,
+    # đừng đoán: đoán sẽ biến câu ghi chú thành tên tác giả.
+    structured = _structured_authors(clean_raw)
+    if structured:
+        authors = _tidy_authors(structured)
+    elif re.search(r"\\bibinfo\s*\{", clean_raw):
+        authors = None
+    else:
+        authors = _extract_authors(clean_raw, title_match)
 
     return {
         "citation_key": key,
