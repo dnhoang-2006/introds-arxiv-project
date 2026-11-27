@@ -431,3 +431,22 @@ def test_parse_bibitem_nested_braces_baptista():
 
 
 
+
+
+def test_read_bib_file_letter_accents_survive_brace_removal(tmp_path: Path):
+    r"""Dấu viết bằng chữ cái (\v \c \H) phải đổi sang Unicode trước khi xoá ngoặc.
+
+    Xoá ngoặc trước thì `\v{c}` thành `\vc`, chốt chặn `\bibnamefont` không nhận
+    ra dấu nữa và tên bị cắt: `Veli{\v{c}}kovi{\'c}` -> `Veli ć` (đo 27/11).
+    """
+    bib = tmp_path / "refs.bib"
+    bib.write_text(
+        "@article{a,\n"
+        r"  title={On a problem of {E}rd{\H{o}}s}," "\n"
+        r"  author={Veli{\v{c}}kovi{\'c}, Petar and {\v{S}}mejkal, Libor and Gon\c{c}alves, F.}," "\n"
+        "  year={2018}\n}\n",
+        encoding="utf-8",
+    )
+    (entry,) = read_bib_file(bib)
+    assert entry["authors"] == ["Veličković, Petar", "Šmejkal, Libor", "Gonçalves, F."]
+    assert entry["title"] == "On a problem of Erdős"

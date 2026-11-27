@@ -21,6 +21,8 @@ from typing import Any
 
 import bibtexparser
 
+from .bib_dedup import _tex_to_unicode
+
 logging.getLogger("bibtexparser").setLevel(logging.ERROR)
 
 COMMENT_PAT = re.compile(r"(?<!\\)%.*")
@@ -89,7 +91,11 @@ _UNWRAP_PAT = re.compile(r"\\(?:" + _UNWRAP_CMD + r")\s*\{([^{}]*)\}")
 def _clean_bib_text(val: str | None) -> str | None:
     if not val:
         return None
-    cleaned = val
+    # Đổi dấu TeX sang Unicode khi ngoặc còn nguyên. Xoá ngoặc trước thì `\v{c}` thành
+    # `\vc`, chốt (?![a-zA-Z]) của bib_dedup._ACC_CMD (chặn `\bibnamefont`) không nhận
+    # ra dấu nữa và bước xoá `\\[a-zA-Z]+` cắt luôn tên: `Veli{\v{c}}kovi{\'c}` -> `Veli ć`.
+    # Đo 27/11 trên 500 pub dải 24120177: 3.518/114.598 trường author .bib bị đổi.
+    cleaned = _tex_to_unicode(val)
     for _ in range(4):                      # lệnh có thể lồng vài lớp
         new = _UNWRAP_PAT.sub(r"\1", cleaned)
         if new == cleaned:
