@@ -1,31 +1,4 @@
-"""Gán nhãn TAY cặp entry BibTeX <-> reference cho Milestone 3 (docs/schema_m3.md).
-
-    # 1. Gợi ý publication đủ điều kiện để chọn 5 bài
-    python scripts/manual_label.py --mssv <MSSV> --suggest
-
-    # 2. Gán nhãn 5 bài đã chọn (chạy lại là làm tiếp chỗ đang dừng)
-    python scripts/manual_label.py --mssv <MSSV> --pubs 2503.13964,2503.15390,...
-
-Kết quả ghi vào labels/manual/<MSSV>.jsonl, mỗi entry một dòng, đúng schema mục 1:
-    {"arxiv_id", "citation_key", "groundtruth_arxiv_id", "labeler", "method": "manual"}
-
-Với mỗi entry, công cụ in tiêu đề/tác giả/năm của entry và 5 reference có tiêu đề
-giống nhất (chỉ để đỡ phải lục cả danh sách). Công cụ KHÔNG đánh dấu sẵn đáp án:
-người gán tự đối chiếu rồi gõ lựa chọn. Lệnh tại dấu nhắc:
-
-    1..5   chọn reference tương ứng trong danh sách gợi ý
-    r<N>   chọn reference số N trong danh sách đầy đủ (xem bằng `s`)
-    0      entry không khớp reference nào -> groundtruth_arxiv_id = null
-    s      in toàn bộ reference có arXiv ID của bài
-    b      quay lại entry trước (xoá nhãn vừa gán)
-    q      thoát, lần sau chạy lại sẽ làm tiếp
-
-Ràng buộc lấy từ schema_m3:
-  - Mục 2: entry không khớp vẫn có dòng, ghi null; chỉ tiêu 20 nhãn/bài đếm dòng KHÁC null.
-  - Mục 4: bài đã gán tay không đưa qua matcher tự động -> chạy matcher với
-    `--exclude labels/manual/<MSSV>.jsonl`.
-  - Mục 7: đáp án phải nằm trong reference của chính publication đó.
-Cần parse lại bằng code mới trước khi gán, để citation_key khớp bảng bibtex cuối.
+"""Gán nhãn cặp entry BibTeX <-> reference cho Milestone 3 (docs/schema_m3.md).
 """
 from __future__ import annotations
 
@@ -48,7 +21,7 @@ MIN_LABELS_PER_PUB = 20      # schema_m3 mục 4
 N_SHOWN = 5
 
 
-#  Phần thuần (có test): xếp hạng gợi ý, đọc/ghi tiến độ, gợi ý publication
+#  Phần thuần: xếp hạng gợi ý, đọc/ghi tiến độ, gợi ý publication
 
 def rank_candidates(entry: dict[str, Any], refs: list[dict[str, Any]], k: int = N_SHOWN) -> list[int]:
     """Chỉ số k reference có tiêu đề giống tiêu đề entry nhất (giữ thứ tự gốc khi hoà)."""

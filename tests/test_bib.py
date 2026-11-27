@@ -452,9 +452,6 @@ def test_read_bib_file_letter_accents_survive_brace_removal(tmp_path: Path):
     assert entry["title"] == "On a problem of Erdős"
 
 
-# ------------------------------------------------------------------ \bibitem: đo 27/11
-# Các ca dưới lấy nguyên văn từ .bbl thật trên dải 24120177. Trước khi sửa, 7,3% tên
-# tác giả trong bảng bibtex dính rác và 47% entry kiểu \newblock không có tiêu đề.
 
 
 def test_parse_bibitem_revtex_authors_from_bibinfo():

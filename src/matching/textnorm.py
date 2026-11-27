@@ -40,7 +40,7 @@ def first_author(authors: Any) -> Author | None:
 
 
 def same_first_author(a: Author, b: Author) -> bool:
-    """Bộ lọc ứng viên: cùng họ theo `Author.matches` của clean.py, KHÔNG xét chữ đầu tên.
+    """Bộ lọc ứng viên: cùng họ theo `Author.matches` của clean.py.
 
     `matches` lo khoá phụ umlaut (`Böttcher`/`Bottcher`), tiền tố tách lệch
     (`Di Giulio`/`Giulio`) và tên tổ chức (`ATLAS Collaboration`/`A. Collaboration`).

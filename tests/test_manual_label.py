@@ -1,8 +1,4 @@
 """tests/test_manual_label.py — Kiểm scripts/manual_label.py.
-
-Phần đáng kiểm: nhãn ghi đúng schema_m3 (mục 1–2), thoát giữa chừng không mất nhãn
-và chạy lại thì làm tiếp, lệnh `b` xoá đúng nhãn vừa gán, đáp án luôn nằm trong
-reference của chính bài (mục 7).
 """
 from __future__ import annotations
 

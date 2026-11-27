@@ -1,13 +1,4 @@
 """Matcher tự động gán nhãn cặp BibTeX entry và reference có arXiv ID (Milestone 3).
-
-Dùng chung cho 5 thành viên (chỉ cần đổi `--ids` và `--mssv`):
-
-    python src/matching/auto_label.py --ids ids/<MSSV>.txt --mssv <MSSV> --n 500 --seed 42 [--exclude FILE] [--overwrite] [--dry-run]
-    python src/matching/auto_label.py --eval --gold <file_nhan_tay.jsonl>
-
-Thứ tự khớp (dừng ở bước đầu tiên khớp): arXiv ID trong `url`/`journal`/`doi`,
-tách `10.48550/arXiv.<id>` từ `doi`, lọc ứng viên theo họ tác giả đầu và năm rồi so
-tiêu đề chuẩn hóa bằng `difflib.SequenceMatcher`.
 """
 
 from __future__ import annotations

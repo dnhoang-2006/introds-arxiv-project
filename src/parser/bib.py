@@ -8,8 +8,6 @@ Quy mô (từ duy2_prescan_summary.json, dải 2503, 8.129 version):
 
 124 version có cả hai nguồn là bộ đối chứng miễn phí: file .bib là đáp án để chấm
 độ chính xác của regex bóc \\bibitem, không tốn công gán tay.
-
-Cần thêm vào src/requirements.txt:  bibtexparser>=2.0,<3
 """
 
 from __future__ import annotations
@@ -39,8 +37,6 @@ URL_PAT = re.compile(r"https?://[^\s,}]+")
 
 # Các regex trích xuất tiêu đề fallback theo ngoặc kép ``...'' và "...",
 # cuối cùng là \emph/\textit vì \emph{} thường dùng cho tên hội nghị/tạp chí.
-# KHÔNG dùng \textbf: style vật lý in đậm số volume (`Nucl. Phys. B \textbf{277}`),
-# đo 27/11 trên 500 pub dải 24120177 thì tiêu đề bắt từ \textbf hầu hết là số volume.
 TITLE_PATS = [
     re.compile(r"``(.+?)''"),
     # `\"` là dấu umlaut, không phải ngoặc kép: `Extremal K\"ahler` từng ra tiêu đề `K\"a`.
@@ -276,34 +272,18 @@ def split_bibitems(tex: str) -> list[tuple[str, str]]:
     # 1. Loại bỏ comment TeX nhưng giữ ký tự thoát \%
     clean_tex = COMMENT_PAT.sub("", tex)
 
-    # 2. Tìm tất cả các khối thebibliography
-    blocks = list(THEBIB_BLOCK_PAT.finditer(clean_tex))
+    # 2. Các khối thebibliography; không có \begin thì lấy từ đầu tới \end (hoặc hết chuỗi)
+    blocks = [m.group(1) for m in THEBIB_BLOCK_PAT.finditer(clean_tex)]
+    if not blocks:
+        end_env = clean_tex.find(r"\end{thebibliography}")
+        blocks = [clean_tex[:end_env] if end_env != -1 else clean_tex]
+
     out: list[tuple[str, str]] = []
-
-    if blocks:
-        for block_match in blocks:
-            block_content = block_match.group(1)
-            hits = list(BIBITEM_PAT.finditer(block_content))
-            if not hits:
-                continue
-            for i, m in enumerate(hits):
-                key = m.group(1).strip()
-                start_pos = m.end()
-                end_pos = hits[i + 1].start() if (i + 1 < len(hits)) else len(block_content)
-                raw = block_content[start_pos:end_pos].strip()
-                out.append((key, raw))
-    else:
-        hits = list(BIBITEM_PAT.finditer(clean_tex))
-        if hits:
-            end_env = clean_tex.find(r"\end{thebibliography}")
-            max_len = end_env if end_env != -1 else len(clean_tex)
-            for i, m in enumerate(hits):
-                key = m.group(1).strip()
-                start_pos = m.end()
-                end_pos = hits[i + 1].start() if (i + 1 < len(hits)) else max_len
-                raw = clean_tex[start_pos:end_pos].strip()
-                out.append((key, raw))
-
+    for block in blocks:
+        hits = list(BIBITEM_PAT.finditer(block))
+        for i, m in enumerate(hits):
+            end_pos = hits[i + 1].start() if i + 1 < len(hits) else len(block)
+            out.append((m.group(1).strip(), block[m.end():end_pos].strip()))
     return out
 
 
@@ -375,12 +355,9 @@ def _extract_authors(clean_raw: str, title_match: re.Match | None) -> list[str] 
     if re.search(r"(?:^|[\s,.~-])[A-Z]$", prefix) and clean_raw[len(prefix):len(prefix) + 1] == ".":
         prefix += "."
 
-    # Làm sạch các macro LaTeX thường gặp trong \\bibitem như \\bibinfo{author}, \\newblock
+    # REVTeX/ACM (\bibinfo{author}, \bibfield{author}) không tới đây: parse_bibitem lấy tác giả
+    # của chúng bằng _structured_authors.
     prefix = re.sub(r"\\newblock\s*", " ", prefix)
-    prefix = re.sub(r"\\bibinfo\s*\{author\}\s*", " ", prefix)
-    # REVTeX: `\bibfield author` — nhãn `author` KHÔNG nằm trong ngoặc nên phải
-    # xoá cả cụm, nếu không chữ "author" ở lại và thành một tác giả giả.
-    prefix = re.sub(r"\\bibfield\s*\{?\s*author\s*\}?\s*", " ", prefix)
 
     # Tách theo 'and' hoặc '&' (kể cả dạng LaTeX '\&') trước nếu có
     if re.search(r"\band\b|\\?&", prefix, re.IGNORECASE):
@@ -555,7 +532,7 @@ def _collect_cited_keys(vdir: Path) -> set[str] | None:
             tex = p.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        tex = re.sub(r"(?<!\\)%.*", "", tex)        # bỏ comment
+        tex = COMMENT_PAT.sub("", tex)
         if _NOCITE_ALL.search(tex):
             return None
         for group in _CITE_PAT.findall(tex):

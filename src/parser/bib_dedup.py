@@ -82,14 +82,6 @@ _TEX_SPECIAL_LETTERS = [
     (re.compile(r"\{\\(?:j)\}|\\j(?:\{\}|\s+|\b)"), "ȷ"),
 ]
 
-
-# ⚠️ Lệnh dấu viết bằng CHỮ CÁI (\b, \c, \v, \u, \d, \r, \k, \H) phải có chốt
-# (?![a-zA-Z]), nếu không `\bibnamefont` bị đọc thành `\b` + "i" -> "i̱bnamefont".
-# Đo 27/11 trước khi vá: 76.387/1.390.019 chuỗi tác giả (5,5%) trên 277 publication
-# dính lỗi này, và vì dấu `\` đã bị nuốt nên bước xoá `\\[a-zA-Z]+` ở dưới không
-# dọn được nữa — họ còn đúng nhưng chữ cái đầu của tên luôn thành "i".
-# Lệnh dấu viết bằng KÝ HIỆU (\" \' \^ \~ \= \. \`) không cần chốt vì không thể
-# nhầm với tên lệnh. cross_validate.py đã có chốt này từ đầu; chép cho khớp.
 _ACC_CMD = r"[\"'^~=.`]|[uvHcdbrk](?![a-zA-Z])"
 
 
