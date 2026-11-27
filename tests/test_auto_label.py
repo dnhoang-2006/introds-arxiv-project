@@ -1076,3 +1076,17 @@ class TestZeroMatchedSummaryAndMissingGold:
         ])
         out_none = capsys.readouterr().out
         assert "Không đánh giá được publication nào" in out_none
+
+
+class TestTextnormUsesClean:
+    def test_title_latex_and_unicode_math_agree(self) -> None:
+        from matching.textnorm import norm_title
+
+        assert norm_title(r"Effect at NO$\nu$A") == norm_title("Effect at NOνA")
+        assert norm_title("") is None and norm_title(None) is None
+
+    def test_surname_keeps_bib_dedup_for_et_al(self) -> None:
+        from matching.textnorm import first_author_last_name
+
+        # clean.parse_author cho họ "al"; bib_dedup bỏ "et al." nên giữ đúng họ
+        assert first_author_last_name(["P. Moskal et al."]) == "moskal"

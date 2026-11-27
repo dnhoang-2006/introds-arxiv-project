@@ -1,10 +1,17 @@
-"""Re-export các hàm chuẩn hóa văn bản và định danh dùng cho matcher M3.
+"""Re-export các hàm chuẩn hóa văn bản và định danh dùng cho matcher M3 (quyết định D1).
 
-Khi nhóm trưởng cung cấp clean.py, chỉ cần đổi nguồn import
-tại đây mà không sửa logic đối sánh ở các module khác.
+Tiêu đề lấy từ `clean.py` của nhóm. Họ tác giả, DOI, arXiv ID và năm vẫn lấy từ
+`bib_dedup`: `clean.py` không có hàm cho DOI/arXiv/năm, còn `parse_author` làm mất
+70 cặp đúng trên mẫu 500 pub (ngày 27/11). Lỗi gặp: `X et al.` thành họ `al`,
+`Cr'epel` của S2 thành `cr epel`, `Blümlein` thành `bluemlein` trong khi S2 ghi `Blumlein`.
+shortcut: đổi họ tác giả sang clean.py khi nhóm trưởng sửa ba lỗi trên.
 """
 
 from __future__ import annotations
+
+from typing import Any
+
+from .clean import clean_title
 
 try:
     from parser.bib_dedup import (
@@ -12,7 +19,6 @@ try:
         _first_author_last_name as first_author_last_name,
         _norm_arxiv as norm_arxiv,
         _norm_doi as norm_doi,
-        _norm_title as norm_title,
     )
 except ModuleNotFoundError as exc:
     if exc.name not in {"parser", "parser.bib_dedup"}:
@@ -22,8 +28,13 @@ except ModuleNotFoundError as exc:
         _first_author_last_name as first_author_last_name,
         _norm_arxiv as norm_arxiv,
         _norm_doi as norm_doi,
-        _norm_title as norm_title,
     )
+
+
+def norm_title(title: Any) -> str | None:
+    """Tiêu đề chuẩn hóa theo `clean.clean_title`; `None` nếu rỗng."""
+    return clean_title(str(title) if title else None) or None
+
 
 __all__ = [
     "clean_year",
