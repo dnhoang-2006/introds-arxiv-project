@@ -170,10 +170,17 @@ def _clean_bib_text(val: str | None) -> str | None:
     return cleaned or None
 
 
-def _find_arxiv(e: Any) -> str | None:
+def _fields_lower(e: Any) -> dict[str, Any]:
+    """Trường của entry theo tên viết thường. Tên trường BibTeX không phân biệt hoa thường:
+    BibDesk/Papers ghi `Author = {...}`, `Title = {...}`. Tra `fields_dict` trần thì mọi trường
+    ra None, và entry rỗng từ .bib còn ghi đè entry đầy đủ bóc từ .bbl (đo 27/11: 2503.12256)."""
+    return {k.lower(): v for k, v in e.fields_dict.items()}
+
+
+def _find_arxiv(fields: dict[str, Any]) -> str | None:
     """Tìm arXiv ID rải rác trong các trường của entry BibTeX (M3 matching pool)."""
     # 1. Ưu tiên trường eprint (có thể có hoặc không có tiền tố arXiv:)
-    fld_eprint = e.fields_dict.get("eprint")
+    fld_eprint = fields.get("eprint")
     if fld_eprint:
         val = str(fld_eprint.value).strip()
         m_eprint = re.search(r"(?:arXiv[:\s]*)?(\d{4}\.\d{4,5}|[a-z-]+/\d{7})(?:v\d+)?", val, re.IGNORECASE)
@@ -182,7 +189,7 @@ def _find_arxiv(e: Any) -> str | None:
 
     # 2. Tìm trong các trường khác (cần có tiền tố arXiv: hoặc abs/)
     for name in ("doi", "url", "journal", "note", "volume"):
-        fld = e.fields_dict.get(name)
+        fld = fields.get(name)
         if fld and (m := ARXIV_REF_PAT.search(str(fld.value))):
             return m.group(1)
     return None
@@ -217,8 +224,10 @@ def read_bib_file(
         if not e.key:
             continue
 
+        fields = _fields_lower(e)
+
         def f(name: str) -> str | None:
-            fld = e.fields_dict.get(name)
+            fld = fields.get(name)
             return _clean_bib_text(str(fld.value)) if fld and fld.value is not None else None
 
         # Title
@@ -239,7 +248,7 @@ def read_bib_file(
         url = f("url")
 
         # arXiv ID
-        arxiv_id = _find_arxiv(e)
+        arxiv_id = _find_arxiv(fields)
 
         entry_type = (e.entry_type or "misc").lower().strip()
 
@@ -640,6 +649,12 @@ def collect_bib(
         for entry in entries:
             key = entry.get("citation_key")
             if key:
+                # .bib thắng, nhưng trường nào .bib để trống thì giữ giá trị đã bóc từ
+                # \bibitem/.bbl thay vì xoá mất (vd. @misc chỉ có `note`).
+                prev = collected.get(key) or {}
+                for k, v in prev.items():
+                    if k != "raw" and v not in (None, "", []) and entry.get(k) in (None, "", []):
+                        entry[k] = v
                 collected[key] = entry
 
     # 3. Chỉ giữ entry THỰC SỰ được trích dẫn.

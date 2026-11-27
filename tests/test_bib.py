@@ -553,3 +553,40 @@ def test_parse_bibitem_lncs_colon_splits_authors_and_title():
     )
     assert item["authors"] == ["Abou Jaoude, D.", "Garoche, P.L.", "Farhood, M."]
     assert item["year"] == 2021
+
+
+def test_read_bib_file_field_names_are_case_insensitive(tmp_path: Path):
+    """BibDesk ghi `Author = {...}`, `Title = {...}`; tên trường BibTeX không phân biệt hoa thường.
+
+    Trước 27/11 mọi trường ra None (đo trên 2503.12256: 7 entry rỗng hoàn toàn).
+    """
+    bib = tmp_path / "refs.bib"
+    bib.write_text(
+        "@article{noiri_highfidelity_2022,\n"
+        "\tAuthor = {Noiri, Akito and Takeda, Kenta},\n"
+        "\tDoi = {10.1038/s41586-021-04182-y},\n"
+        "\tJournal = {Nature},\n"
+        "\tTitle = {Fast universal quantum gate above the fault-tolerance threshold in silicon},\n"
+        "\tYear = {2022},\n"
+        "\tEprint = {2108.02626}}\n",
+        encoding="utf-8",
+    )
+    (e,) = read_bib_file(bib)
+    assert e["title"] == "Fast universal quantum gate above the fault-tolerance threshold in silicon"
+    assert e["authors"] == ["Noiri, Akito", "Takeda, Kenta"]
+    assert (e["year"], e["doi"], e["journal"], e["arxiv_id"]) == (2022, "10.1038/s41586-021-04182-y", "Nature", "2108.02626")
+
+
+def test_collect_bib_bib_entry_keeps_fields_from_bbl(tmp_path: Path):
+    """.bib ghi đè .bbl khi trùng khoá, nhưng không được xoá trường .bib để trống."""
+    (tmp_path / "main.bbl").write_text(
+        "\\begin{thebibliography}{1}\n"
+        "\\bibitem{site} Some Author.\n\\newblock The project homepage.\n\\newblock 2024.\n"
+        "\\end{thebibliography}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "refs.bib").write_text("@misc{site, note = {Accessed 2024}}\n", encoding="utf-8")
+    (e,) = collect_bib(tmp_path)
+    assert e["title"] == "The project homepage"
+    assert e["authors"] == ["Some Author"]
+    assert e["entry_type"] == "misc"                # trường .bib có giá trị vẫn thắng
