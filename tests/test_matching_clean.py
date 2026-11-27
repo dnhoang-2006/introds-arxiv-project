@@ -278,3 +278,39 @@ def test_authors_match_caps_pairwise_work():
     # "He" nằm ngoài ngưỡng _PAIRWISE_LIMIT nên không khớp -> không treo máy
     assert authors_match(big_a, big_b) is False
     assert authors_match(["Kaiming He"], ["He"]) is True
+
+
+# ------------------------------------------------------------------ tên tổ chức
+@pytest.mark.parametrize(
+    ("left", "right", "expect"),
+    [
+        # KHÁC tổ chức: luật "họ là đuôi của nhau" không được nổ trên từ chung.
+        # Đây đúng là ví dụ ATLAS mà schema_m3 mục 9 dùng để giải thích bỏ luật 4.
+        ("{ATLAS Collaboration}", "CMS Collaboration", False),
+        ("ATLAS Collaboration", "CMS Collaboration", False),
+        ("{Google Research}", "Microsoft Research", False),
+        # CÙNG tổ chức, một bên có ngoặc nhọn một bên không
+        ("{ATLAS Collaboration}", "ATLAS Collaboration", True),
+        ("{Google Research}", "Google Research", True),
+        ("{LHCb Collaboration}", "LHCb collaboration", True),
+    ],
+)
+def test_organisation_names(left, right, expect):
+    assert parse_author(left).matches(parse_author(right)) is expect
+
+
+def test_org_name_without_braces_kept_whole():
+    """Không tách họ/tên cho tên tổ chức, dù không có ngoặc nhọn.
+
+    Nếu tách thì "ATLAS Collaboration" ra họ `collaboration`, `ATLAS` chui vào
+    initials — vừa không gặp `{ATLAS Collaboration}`, vừa gặp nhầm `CMS`.
+    """
+    a = parse_author("ATLAS Collaboration")
+    assert (a.last, a.initials) == ("atlas collaboration", "")
+
+
+def test_person_whose_surname_resembles_org_word_is_unaffected():
+    """Một từ chung đứng một mình không biến tên người thành tổ chức."""
+    assert parse_author("Group").last == "group"
+    a, b = parse_author("K. Grouper"), parse_author("Kevin Grouper")
+    assert a.matches(b)

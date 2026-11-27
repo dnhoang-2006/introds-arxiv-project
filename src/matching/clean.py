@@ -216,7 +216,11 @@ class Author(NamedTuple):
         """
         for a in self.surnames:
             for b in other.surnames:
-                if a == b or a.endswith(f" {b}") or b.endswith(f" {a}"):
+                if a == b:
+                    return True
+                if a.endswith(f" {b}") and not _all_generic(b):
+                    return True
+                if b.endswith(f" {a}") and not _all_generic(a):
                     return True
         return False
 
@@ -236,6 +240,32 @@ class Author(NamedTuple):
         if not self.initials or not other.initials:
             return True
         return self.initials[0] == other.initials[0]
+
+
+#: Từ chung kết thúc tên tổ chức. Dùng cho hai việc, cùng một lý do:
+#:   1. ``_is_org_name``: "ATLAS Collaboration" là tổ chức, giữ nguyên cả cụm chứ
+#:      không tách họ/tên, để nó gặp được ``{ATLAS Collaboration}`` phía BibTeX.
+#:   2. ``_surname_agrees``: luật "họ là đuôi của nhau" không được nổ khi phần đuôi
+#:      chỉ toàn từ chung — nếu không ``{ATLAS Collaboration}`` sẽ khớp
+#:      ``CMS Collaboration`` và ``{Google Research}`` khớp ``Microsoft Research``.
+#: Chính cặp ATLAS này là ví dụ mà schema_m3 mục 9 dùng để giải thích vì sao bỏ
+#: luật "họ tác giả đầu + năm". Hữu Duy chỉ ra 27/11.
+_ORG_TAIL_WORDS = frozenset({
+    "collaboration", "collaborations", "consortium", "research", "group",
+    "team", "project", "experiment", "committee",
+})
+
+
+def _is_org_name(raw: str) -> bool:
+    """Tên kết thúc bằng từ chung chỉ tổ chức, và có từ hai từ trở lên."""
+    words = _normalize(raw).split()
+    return len(words) > 1 and words[-1] in _ORG_TAIL_WORDS
+
+
+def _all_generic(surname: str) -> bool:
+    """Họ chỉ gồm toàn từ chung — không đủ để kết luận cùng một tổ chức."""
+    words = surname.split()
+    return bool(words) and all(w in _ORG_TAIL_WORDS for w in words)
 
 
 def _is_suffix(word: str) -> bool:
@@ -266,7 +296,7 @@ def _author_raw(name: str, *, fold: bool) -> str:
     thì ``O'Brien`` đã thành ``o'brien``, nháy lúc đó đứng trước chữ thường nên bị
     xoá thành ``obrien`` — đúng cái lỗi mà bản vá muốn tránh. Nhìn regex thì tưởng
     an toàn vì nó "chỉ xoá trước chữ thường", nên chỗ này dễ sai.
-    Hữu Duy chỉ ra 27/11. ``test_quote_accent_only_before_lowercase`` chặn việc này.
+    Hữu Duy chỉ ra 27/11. ``test_quote_regex_runs_before_lowercasing`` chặn việc này.
     """
     s = strip_latex(name)
     if fold:
@@ -287,6 +317,14 @@ def parse_author(name: str | None) -> Author | None:
     raw = _author_raw(name, fold=True)
     if not raw or raw.lower() in _NOT_A_PERSON:
         return None
+
+    if _is_org_name(raw):
+        # Tên tổ chức KHÔNG có ngoặc nhọn: giữ nguyên cả cụm như nhánh trên.
+        # Nếu tách họ/tên thì "ATLAS Collaboration" ra họ `collaboration`, tên
+        # `ATLAS` chui vào initials — vừa không gặp được `{ATLAS Collaboration}`
+        # của phía BibTeX, vừa gặp nhầm `CMS Collaboration`.
+        whole = _normalize(raw)
+        return Author(whole, "") if whole else None
 
     first, last = _split_first_last(raw)
     last = _normalize(last)
@@ -375,7 +413,7 @@ def first_author_matches(
 
     ⚠️ Hàm này vẫn CHẶT HƠN bộ lọc chỉ-so-họ: khi cả hai bên đều có chữ đầu tên
     mà chữ đó khác nhau thì nó trả về False. Hữu Duy đo 27/11: so với bộ lọc
-    chỉ-so-họ, sau khi parse lại vẫn chênh khoảng 130 cặp (~1,7%). Nếu cần thiên
+    chỉ-so-họ, sau khi parse lại vẫn chênh khoảng 65 cặp (~0,9%). Nếu cần thiên
     về bắt sót nữa thì so ``parse_author(x).surnames`` trực tiếp.
 
     Chỉ parse tác giả đầu, không parse cả danh sách — bài collaboration có hàng

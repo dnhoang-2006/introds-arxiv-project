@@ -109,7 +109,7 @@ cách đó bỏ mất khoá phụ nên `Blümlein` (`bluemlein j`) không gặp 
 
 `first_author_matches()` **có thể dùng** cho bước lọc ứng viên, nhưng nó chặt hơn
 một bộ lọc chỉ-so-họ: khi cả hai bên đều có chữ đầu tên mà khác nhau thì nó loại.
-Hữu Duy đo 27/11, sau khi parse lại vẫn chênh khoảng 130 cặp (~1,7%) so với
+Hữu Duy đo 27/11, sau khi parse lại vẫn chênh khoảng 65 cặp (~0,9%) so với
 chỉ-so-họ. Matcher được phép dùng bộ lọc lỏng hơn (so `Author.surnames` trực tiếp)
 — tài liệu không bắt buộc hàm nào, chỉ bắt buộc **không** so `author_keys` trần.
 
@@ -228,7 +228,7 @@ Hai điểm Hữu Duy soát lại ngày 27/11:
   thường. Dời xuống sau `.lower()` thì `O'Brien` đã thành `o'brien`, nháy đứng
   trước chữ thường nên bị xoá — đúng lỗi bản vá muốn tránh. Nhìn regex tưởng an
   toàn vì nó "chỉ xoá trước chữ thường", nên chỗ này rất dễ sai.
-  `test_quote_accent_only_before_lowercase` chặn.
+  `test_quote_regex_runs_before_lowercasing` chặn.
 - **Thêm `Author.matches()` thôi chưa đủ**, chỗ gọi phải dùng nó. Vì vậy
   `clean.py` cung cấp sẵn `author_key_set()`, `authors_match()` và
   `first_author_matches()` — matcher gọi thẳng, không tự ghép khoá.
