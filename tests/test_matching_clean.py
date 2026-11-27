@@ -314,3 +314,30 @@ def test_person_whose_surname_resembles_org_word_is_unaffected():
     assert parse_author("Group").last == "group"
     a, b = parse_author("K. Grouper"), parse_author("Kevin Grouper")
     assert a.matches(b)
+
+
+# ------------------------------------------------------------------ Hữu Duy soát #2
+@pytest.mark.parametrize(
+    ("left", "right", "expect"),
+    [
+        # Cùng tổ chức, một bên viết tắt tên riêng của tổ chức
+        ("ATLAS Collaboration", "A. Collaboration", True),
+        ("CMS Collaboration", "C. Collaboration", True),
+        # Cùng tổ chức, một bên viết kèm dấu phẩy nên bị tách họ/tên
+        ("Collaboration, ATLAS", "ATLAS Collaboration", True),
+        ("Team, Gemini", "Gemini Team", True),
+        # Khác tổ chức thì vẫn phải loại, kể cả khi đuôi giống nhau
+        ("{ATLAS Collaboration}", "CMS Collaboration", False),
+        ("ATLAS Collaboration", "C. Collaboration", False),
+        ("{Google Research}", "Microsoft Research", False),
+    ],
+)
+def test_abbreviated_and_comma_written_organisations(left, right, expect):
+    assert parse_author(left).matches(parse_author(right)) is expect
+
+
+def test_comma_name_is_not_mistaken_for_organisation():
+    """`Zhang, Research` là người tên Research họ Zhang, không phải tổ chức."""
+    a = parse_author("Zhang, Research")
+    assert (a.last, a.initials) == ("zhang", "r")
+    assert a.matches(parse_author("Zhang, R."))

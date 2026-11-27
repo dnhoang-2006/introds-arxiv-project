@@ -224,6 +224,39 @@ class Author(NamedTuple):
                     return True
         return False
 
+    def _org_words(self) -> list[str] | None:
+        """Dãy từ để so tên tổ chức, hoặc None nếu tên này không giống tổ chức.
+
+        Cùng một tổ chức có thể tới từ hai nguồn ở hai dạng rất khác nhau:
+
+            "ATLAS Collaboration"   -> giữ nguyên cụm  -> ['atlas', 'collaboration']
+            "A. Collaboration"      -> giữ nguyên cụm  -> ['a', 'collaboration']
+            "Collaboration, ATLAS"  -> bị tách họ/tên  -> ['a', 'collaboration']
+            "Team, Gemini"          -> bị tách họ/tên  -> ['g', 'team']
+
+        Quy về cùng một dãy từ rồi so từng từ, cho phép một chữ cái khớp với từ
+        đầy đủ. Nhờ vậy `A. Collaboration` gặp `ATLAS Collaboration` nhưng
+        `CMS Collaboration` thì không. Hữu Duy chỉ ra 27/11: thiếu nhánh này thì
+        riêng dải 24120177 đã mất 10 cặp đúng, và dạng `Team, Gemini` có 132 tên.
+        """
+        words = self.last.split()
+        if not self.initials and len(words) > 1 and words[-1] in _ORG_TAIL_WORDS:
+            return words
+        if self.initials and _all_generic(self.last):
+            return [*self.initials, *words]
+        return None
+
+    @staticmethod
+    def _word_agrees(a: str, b: str) -> bool:
+        """Hai từ trùng, hoặc một bên là chữ cái đầu viết tắt của bên kia."""
+        return a == b or (len(a) == 1 and b.startswith(a)) or (len(b) == 1 and a.startswith(b))
+
+    def _org_agrees(self, other: "Author") -> bool:
+        x, y = self._org_words(), other._org_words()
+        if x is None or y is None or len(x) != len(y):
+            return False
+        return all(self._word_agrees(p, q) for p, q in zip(x, y))
+
     def matches(self, other: "Author") -> bool:
         """Hai tên có thể là cùng một người không.
 
@@ -235,6 +268,8 @@ class Author(NamedTuple):
         ``Kaiming He`` cho ``he k``, entry bóc từ `.bbl` rất hay chỉ ghi họ.
         Hữu Duy đo 27/11: bỏ qua là mất 52 cặp.
         """
+        if self._org_agrees(other):
+            return True
         if not self._surname_agrees(other):
             return False
         if not self.initials or not other.initials:
@@ -318,11 +353,16 @@ def parse_author(name: str | None) -> Author | None:
     if not raw or raw.lower() in _NOT_A_PERSON:
         return None
 
-    if _is_org_name(raw):
+    if "," not in raw and _is_org_name(raw):
         # Tên tổ chức KHÔNG có ngoặc nhọn: giữ nguyên cả cụm như nhánh trên.
         # Nếu tách họ/tên thì "ATLAS Collaboration" ra họ `collaboration`, tên
         # `ATLAS` chui vào initials — vừa không gặp được `{ATLAS Collaboration}`
         # của phía BibTeX, vừa gặp nhầm `CMS Collaboration`.
+        #
+        # Có dấu phẩy thì KHÔNG đi nhánh này: `Zhang, Research` là người tên
+        # Research họ Zhang chứ không phải tổ chức `zhang research`. Dạng tổ chức
+        # viết kèm phẩy (`Collaboration, ATLAS`) vẫn gặp nhau được nhờ
+        # `_org_words` ở dưới. Hữu Duy chỉ ra 27/11.
         whole = _normalize(raw)
         return Author(whole, "") if whole else None
 

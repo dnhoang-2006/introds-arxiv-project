@@ -23,3 +23,6 @@ bibtexparser>=2.0,<3
 
 # --- Hugging Face dataset export: Parquet ---
 pyarrow>=14
+
+# --- Milestone 3: day dataset len Hugging Face Hub ---
+huggingface_hub>=0.26

@@ -138,6 +138,44 @@ Có thể chạy thử một phần trước:
 python src/corpus_builder.py --ids ids/<mssv>.txt --limit 5
 ```
 
+### Bước 7 — Parse (Milestone 2)
+
+Bọc bằng `benchmark.py` để lần parse này ghi luôn một dòng hiệu năng, khỏi phải
+chạy lại lần nữa chỉ để đo:
+
+```bash
+python src/benchmark.py --stage parse --paper-id all_5000_papers \
+  --disk-path parsed --csv book/data/benchmark_runs.csv \
+  -- python src/parse_main.py --ids ids/<mssv>.txt --workers 4
+```
+
+Thầy chốt ở Q&A Milestone 1 câu 16: **final benchmark phải chạy trên trọn bộ dữ
+liệu của tất cả thành viên**, không phải trên mẫu. Câu 9 và câu 22.3: các số đo
+phải lấy trên **Google Colab**, không phải máy cá nhân. Nên mỗi người chạy lệnh
+trên cho dải của mình trên Colab rồi gộp `benchmark_runs.csv` lại.
+
+### Bước 8 — Xuất và đẩy dataset lên Hugging Face (Milestone 3)
+
+```bash
+# 1. Xuất Parquet ra hf_export/<MSSV>/
+python src/export_hf.py --mssv <MSSV> --overwrite --shard-rows 500000
+
+# 2. Đăng nhập một lần (token loại write, lấy ở huggingface.co/settings/tokens)
+hf auth login
+
+# 3. Kiểm trước khi đẩy
+python scripts/upload_hf.py --mssv <MSSV> --dry-run
+
+# 4. Đẩy lên và lấy link
+python scripts/upload_hf.py --mssv <MSSV>
+```
+
+`--shard-rows 500000` cho ra khoảng 10 file thay vì 200; mặc định 25.000 dòng
+mỗi shard chỉ nặng ~1,6 MB, quá vụn nên upload chậm vì phí gọi API.
+
+Mỗi thành viên **tự host dataset của mình và tự nộp link riêng** — thầy chốt ở
+Q&A Milestone 3 câu 2 và câu 5.
+
 Chạy lại lệnh không giải nén lại version đã dựng; dùng `--force` nếu cần dựng lại.
 
 ### Phần nâng cao A3 — so 3 nguồn metadata

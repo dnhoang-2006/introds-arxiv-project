@@ -1,5 +1,5 @@
 # BÁO CÁO CÔNG VIỆC MILESTONE 1 — PHÂN HỆ CRAWL REFERENCES & TIỀN XỬ LÝ TEX
-**Người thực hiện:** Cáp Hửu Duy (MSSV: 24120177)  
+**Người thực hiện:** Cáp Hữu Duy (MSSV: 24120177)  
 **Phân bổ tập ID:** 5 000 bài arXiv tháng 2025-03 (`2503.11914` → `2503.16913`)
 
 ---
