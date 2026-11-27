@@ -34,8 +34,8 @@ Quy tắc chuyển: `.` → `-`, `/` → `_`. Hàm `config.pub_key()` làm việ
 corpus/
 └── 2310-12345/                  ← pub_key
     ├── paper_meta.json          ← Thanh Tú ghi (từ discovery.py)
-    ├── references.json          ← Hữu Duy ghi
-    ├── prescan.json             ← Hữu Duy ghi (tuần 2)
+    ├── references.json          ← Hửu Duy ghi
+    ├── prescan.json             ← Hửu Duy ghi (tuần 2)
     ├── v1/
     │   ├── main.tex
     │   ├── sections/intro.tex   ← giữ nguyên cấu trúc thư mục con trong archive
@@ -175,7 +175,7 @@ arxiv_id,version,bytes_before,bytes_after,n_tex,n_bib,status,error_type
 > `bytes_before` = dung lượng archive gốc, `bytes_after` = tổng dung lượng `.tex` + `.bib` giữ lại.
 > Hai cột này là nguồn của số liệu **"dung lượng trung bình trước/sau khi bỏ figure"** trong báo cáo.
 
-### `logs/references.csv` — Hữu Duy ghi
+### `logs/references.csv` — Hửu Duy ghi
 ```
 arxiv_id,n_total,n_with_arxiv,seconds,status,error_type
 2310.12345,42,17,1.05,ok,

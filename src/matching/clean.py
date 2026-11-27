@@ -209,7 +209,7 @@ class Author(NamedTuple):
         Vế sau xử lý tiền tố tách lệch giữa hai nguồn: ``G. Di Giulio`` ra họ
         ``giulio`` còn ``Di Giulio, Giuseppe`` ra ``di giulio``; ``S. von
         Buddenbrock`` ra ``von buddenbrock`` còn BibTeX ghi ``Buddenbrock,
-        Stefan``. Hữu Duy đo 27/11: bỏ qua là mất 77 cặp.
+        Stefan``. Hửu Duy đo 27/11: bỏ qua là mất 77 cặp.
 
         KHÔNG sửa bằng cách cho ``_split_first_last`` coi ``Di``/``Le`` viết hoa
         là tiền tố — ``Le Wang`` (tên Trung Quốc, ``Le`` là tên riêng) sẽ hỏng.
@@ -236,7 +236,7 @@ class Author(NamedTuple):
 
         Quy về cùng một dãy từ rồi so từng từ, cho phép một chữ cái khớp với từ
         đầy đủ. Nhờ vậy `A. Collaboration` gặp `ATLAS Collaboration` nhưng
-        `CMS Collaboration` thì không. Hữu Duy chỉ ra 27/11: thiếu nhánh này thì
+        `CMS Collaboration` thì không. Hửu Duy chỉ ra 27/11: thiếu nhánh này thì
         riêng dải 24120177 đã mất 10 cặp đúng, và dạng `Team, Gemini` có 132 tên.
         """
         words = self.last.split()
@@ -266,7 +266,7 @@ class Author(NamedTuple):
 
         Một bên thiếu chữ đầu tên thì chỉ so họ: ``He`` cho khoá ``he`` còn
         ``Kaiming He`` cho ``he k``, entry bóc từ `.bbl` rất hay chỉ ghi họ.
-        Hữu Duy đo 27/11: bỏ qua là mất 52 cặp.
+        Hửu Duy đo 27/11: bỏ qua là mất 52 cặp.
         """
         if self._org_agrees(other):
             return True
@@ -284,7 +284,7 @@ class Author(NamedTuple):
 #:      chỉ toàn từ chung — nếu không ``{ATLAS Collaboration}`` sẽ khớp
 #:      ``CMS Collaboration`` và ``{Google Research}`` khớp ``Microsoft Research``.
 #: Chính cặp ATLAS này là ví dụ mà schema_m3 mục 9 dùng để giải thích vì sao bỏ
-#: luật "họ tác giả đầu + năm". Hữu Duy chỉ ra 27/11.
+#: luật "họ tác giả đầu + năm". Hửu Duy chỉ ra 27/11.
 _ORG_TAIL_WORDS = frozenset({
     "collaboration", "collaborations", "consortium", "research", "group",
     "team", "project", "experiment", "committee",
@@ -331,7 +331,7 @@ def _author_raw(name: str, *, fold: bool) -> str:
     thì ``O'Brien`` đã thành ``o'brien``, nháy lúc đó đứng trước chữ thường nên bị
     xoá thành ``obrien`` — đúng cái lỗi mà bản vá muốn tránh. Nhìn regex thì tưởng
     an toàn vì nó "chỉ xoá trước chữ thường", nên chỗ này dễ sai.
-    Hữu Duy chỉ ra 27/11. ``test_quote_regex_runs_before_lowercasing`` chặn việc này.
+    Hửu Duy chỉ ra 27/11. ``test_quote_regex_runs_before_lowercasing`` chặn việc này.
     """
     s = strip_latex(name)
     if fold:
@@ -362,7 +362,7 @@ def parse_author(name: str | None) -> Author | None:
         # Có dấu phẩy thì KHÔNG đi nhánh này: `Zhang, Research` là người tên
         # Research họ Zhang chứ không phải tổ chức `zhang research`. Dạng tổ chức
         # viết kèm phẩy (`Collaboration, ATLAS`) vẫn gặp nhau được nhờ
-        # `_org_words` ở dưới. Hữu Duy chỉ ra 27/11.
+        # `_org_words` ở dưới. Hửu Duy chỉ ra 27/11.
         whole = _normalize(raw)
         return Author(whole, "") if whole else None
 
@@ -452,7 +452,7 @@ def first_author_matches(
     không tự gán nhãn.
 
     ⚠️ Hàm này vẫn CHẶT HƠN bộ lọc chỉ-so-họ: khi cả hai bên đều có chữ đầu tên
-    mà chữ đó khác nhau thì nó trả về False. Hữu Duy đo 27/11: so với bộ lọc
+    mà chữ đó khác nhau thì nó trả về False. Hửu Duy đo 27/11: so với bộ lọc
     chỉ-so-họ, sau khi parse lại vẫn chênh khoảng 65 cặp (~0,9%). Nếu cần thiên
     về bắt sót nữa thì so ``parse_author(x).surnames`` trực tiếp.
 

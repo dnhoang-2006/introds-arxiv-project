@@ -33,7 +33,7 @@ Quy trình được chia thành ba giai đoạn chính:
 | **24120053** | Đặng Ngọc Hoàng | Nhóm trưởng, điều phối quy trình và thu thập siêu dữ liệu | **Phân hệ A3:** Đối sánh chéo ba nguồn siêu dữ liệu và khảo sát mã tiếp tục OAI-PMH |
 | **24120144** | Dương Ngọc Minh Thư | Tải toàn văn mã nguồn bài báo | **Phân hệ A1:** Tối ưu hóa tải luồng nhị phân và phân loại lỗi tải trên 8.066 phiên bản |
 | **24120152** | Trần Ngọc Thanh Tú | Trích xuất và tối ưu kho lưu trữ mã nguồn | **Phân hệ A2:** Bộ kiểm định chất lượng dữ liệu trên 7.606 phiên bản |
-| **24120177** | Cáp Hữu Duy | Thu thập dữ liệu trích dẫn Semantic Scholar | **Phân hệ C:** Khảo sát trích dẫn và tiền xử lý cấu trúc TeX trên 8.129 phiên bản |
+| **24120177** | Cáp Hửu Duy | Thu thập dữ liệu trích dẫn Semantic Scholar | **Phân hệ C:** Khảo sát trích dẫn và tiền xử lý cấu trúc TeX trên 8.129 phiên bản |
 | **24120153** | Nguyễn Lê Anh Tuấn | Đo lường hiệu năng và hạ tầng báo cáo Jupyter Book | **Phân hệ B:** Đo lường bộ nhớ đỉnh qua nhân hệ điều hành so với lấy mẫu định kỳ |
 
 ---

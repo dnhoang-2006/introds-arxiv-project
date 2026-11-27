@@ -4,7 +4,7 @@
 # --- Entry Discovery (nhóm trưởng) ---
 arxiv>=4.0.0,<5.0.0
 
-# --- Tải source + gọi API (Minh Thư, Hữu Duy) ---
+# --- Tải source + gọi API (Minh Thư, Hửu Duy) ---
 requests>=2.31.0
 tqdm>=4.66.0
 

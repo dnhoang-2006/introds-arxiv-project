@@ -31,7 +31,7 @@ USER_AGENT = f"{GROUP_NAME}/1.0 (academic course project; mailto:{CONTACT_EMAIL}
 # Mirror dành riêng cho tải source. KHÔNG BAO GIỜ trỏ về https://arxiv.org/
 ARXIV_SRC_BASE = "https://export.arxiv.org/src/"
 
-# Semantic Scholar (Hữu Duy dùng)
+# Semantic Scholar (Hửu Duy dùng)
 S2_PAPER_BASE = "https://api.semanticscholar.org/graph/v1/paper/arXiv:"
 S2_BATCH_URL = "https://api.semanticscholar.org/graph/v1/paper/batch"
 

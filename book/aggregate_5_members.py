@@ -60,7 +60,7 @@ MEMBERS = {
         "extract":    "tu_extract.csv",         # đã có
         "references": "tu_references.csv",      # <-- THIẾU
     },
-    "Hữu Duy 24120177": {
+    "Hửu Duy 24120177": {
         "id_range":   "2503.11914-2503.16913",
         "discovery":  "duy2_discovery.csv",     # <-- THIẾU
         "download":   "duy2_download.csv",      # <-- THIẾU
@@ -219,8 +219,8 @@ ENHANCEMENTS = {
         "đã dùng": ["a3_coverage.csv", "a3_three_way.csv",
                     "a3_versions.csv", "a3_author_causes.csv"],
     },
-    "C — Tiền xử lý bắc cầu M2/M3 (Hữu Duy)": {
-        "owner": "Hữu Duy 24120177",
+    "C — Tiền xử lý bắc cầu M2/M3 (Hửu Duy)": {
+        "owner": "Hửu Duy 24120177",
         "files": ["duy2_prescan_versions.csv", "duy2_prescan_summary.json",
                   "duy2_ReadMe.txt", "duy_report.md"],
         "đã dùng": [],
@@ -381,7 +381,7 @@ if __name__ == "__main__":
 
     ps = load_prescan("data")
     if ps:
-        print("\n--- C Hữu Duy: prescan TeX/bib (tính từ file) ---")
+        print("\n--- C Hửu Duy: prescan TeX/bib (tính từ file) ---")
         for k, v in ps.items():
             print(f"  {k:32} {v}")
 

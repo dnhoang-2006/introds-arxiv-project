@@ -4,7 +4,7 @@ Chạy từ thư mục gốc dự án:
     pytest tests/test_matching_clean.py -v
 
 Hai phía M2 (bibtex) và M1 (references) phải ra CÙNG một dạng; test đỏ nghĩa là
-matcher sẽ trượt, phải báo Hữu Duy và Anh Tuấn.
+matcher sẽ trượt, phải báo Hửu Duy và Anh Tuấn.
 """
 from __future__ import annotations
 
@@ -108,7 +108,7 @@ def test_bibtex_and_reference_sides_agree():
     assert bib["citation_key"] == "vaswani2017"  # giữ nguyên trường gốc
 
 # ------------------------------------------------------------------ hồi quy 27/11
-# Bốn lỗi do Hữu Duy báo + đo lại trên dải 24120053. Test đỏ ở đây nghĩa là
+# Bốn lỗi do Hửu Duy báo + đo lại trên dải 24120053. Test đỏ ở đây nghĩa là
 # matcher trượt đúng những ca đã biết, xem docs/schema_m3.md mục 9.
 @pytest.mark.parametrize(
     ("s2_side", "bibtex_side"),
@@ -207,7 +207,7 @@ def test_first_author_matches_only_looks_at_first():
 
 
 def test_quote_regex_runs_before_lowercasing():
-    """Bẫy Hữu Duy chỉ ra 27/11: dời regex xuống sau .lower() là hỏng O'Brien.
+    """Bẫy Hửu Duy chỉ ra 27/11: dời regex xuống sau .lower() là hỏng O'Brien.
 
     Gộp từ test_quote_accent_only_before_lowercase cũ.
     """
@@ -220,7 +220,7 @@ def test_quote_regex_runs_before_lowercasing():
     assert "crepel v" in parse_author("Valentin Cr'epel").keys
 
 
-# ------------------------------------------------------------------ Hữu Duy soát 27/11
+# ------------------------------------------------------------------ Hửu Duy soát 27/11
 @pytest.mark.parametrize(
     ("left", "right"),
     [
@@ -316,7 +316,7 @@ def test_person_whose_surname_resembles_org_word_is_unaffected():
     assert a.matches(b)
 
 
-# ------------------------------------------------------------------ Hữu Duy soát #2
+# ------------------------------------------------------------------ Hửu Duy soát #2
 @pytest.mark.parametrize(
     ("left", "right", "expect"),
     [

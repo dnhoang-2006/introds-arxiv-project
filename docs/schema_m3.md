@@ -98,7 +98,7 @@ Thứ tự ưu tiên trong matcher, dừng ở luật đầu tiên khớp:
 Không luật nào khớp → `groundtruth_arxiv_id: null`.
 
 **Họ tác giả đầu + năm chỉ dùng để LỌC ỨNG VIÊN trước khi so tiêu đề, không tự
-gán nhãn.** Sửa ngày 27/11 sau khi Hữu Duy đo trên 500 publication dải 24120177
+gán nhãn.** Sửa ngày 27/11 sau khi Hửu Duy đo trên 500 publication dải 24120177
 (27.342 entry): bật luật này sinh thêm 1.160 nhãn, mà trong 730 nhãn so được tiêu
 đề thì 638 nhãn (87%) có độ giống tiêu đề < 0,5. Chi tiết ở mục 9.
 
@@ -109,7 +109,7 @@ cách đó bỏ mất khoá phụ nên `Blümlein` (`bluemlein j`) không gặp 
 
 `first_author_matches()` **có thể dùng** cho bước lọc ứng viên, nhưng nó chặt hơn
 một bộ lọc chỉ-so-họ: khi cả hai bên đều có chữ đầu tên mà khác nhau thì nó loại.
-Hữu Duy đo 27/11, sau khi parse lại vẫn chênh khoảng 65 cặp (~0,9%) so với
+Hửu Duy đo 27/11, sau khi parse lại vẫn chênh khoảng 65 cặp (~0,9%) so với
 chỉ-so-họ. Matcher được phép dùng bộ lọc lỏng hơn (so `Author.surnames` trực tiếp)
 — tài liệu không bắt buộc hàm nào, chỉ bắt buộc **không** so `author_keys` trần.
 
@@ -177,7 +177,7 @@ Ghi vào đây để đưa lên poster, đừng giấu.
 
 ### Vì sao bỏ luật "họ tác giả đầu + năm" khỏi matcher (27/11)
 
-Hữu Duy đo trên 500 publication dải 24120177, 27.342 entry:
+Hửu Duy đo trên 500 publication dải 24120177, 27.342 entry:
 
 | | |
 |---|---|
@@ -222,7 +222,7 @@ Ba điểm cần nhớ khi đụng lại `src/matching/clean.py`:
 - **Nháy trong tiêu đề là sở hữu cách**, không phải dấu. Việc sửa nháy chỉ áp dụng
   cho tên tác giả, không áp dụng cho `clean_title`.
 
-Hai điểm Hữu Duy soát lại ngày 27/11:
+Hai điểm Hửu Duy soát lại ngày 27/11:
 
 - **Thứ tự quan trọng.** `_QUOTE_ACCENT_RE` phải chạy khi chuỗi còn nguyên hoa
   thường. Dời xuống sau `.lower()` thì `O'Brien` đã thành `o'brien`, nháy đứng
@@ -233,7 +233,7 @@ Hai điểm Hữu Duy soát lại ngày 27/11:
   `clean.py` cung cấp sẵn `author_key_set()`, `authors_match()` và
   `first_author_matches()` — matcher gọi thẳng, không tự ghép khoá.
 
-Ưu tiên theo số của Hữu Duy (đếm *cặp entry–reference thật sự trượt*, sát với MRR
+Ưu tiên theo số của Hửu Duy (đếm *cặp entry–reference thật sự trượt*, sát với MRR
 hơn là đếm tên): umlaut chỉ chiếm ~10/70 cặp mất, nên là mục thấp nhất. Thứ tự
 thi công: `\bibnamefont` → `et al.` → nháy đơn → umlaut.
 
