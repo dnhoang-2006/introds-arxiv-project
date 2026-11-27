@@ -431,3 +431,159 @@ def test_parse_bibitem_nested_braces_baptista():
 
 
 
+
+
+def test_read_bib_file_letter_accents_survive_brace_removal(tmp_path: Path):
+    r"""Dấu viết bằng chữ cái (\v \c \H) phải đổi sang Unicode trước khi xoá ngoặc.
+
+    Xoá ngoặc trước thì `\v{c}` thành `\vc`, chốt chặn `\bibnamefont` không nhận
+    ra dấu nữa và tên bị cắt: `Veli{\v{c}}kovi{\'c}` -> `Veli ć` (đo 27/11).
+    """
+    bib = tmp_path / "refs.bib"
+    bib.write_text(
+        "@article{a,\n"
+        r"  title={On a problem of {E}rd{\H{o}}s}," "\n"
+        r"  author={Veli{\v{c}}kovi{\'c}, Petar and {\v{S}}mejkal, Libor and Gon\c{c}alves, F.}," "\n"
+        "  year={2018}\n}\n",
+        encoding="utf-8",
+    )
+    (entry,) = read_bib_file(bib)
+    assert entry["authors"] == ["Veličković, Petar", "Šmejkal, Libor", "Gonçalves, F."]
+    assert entry["title"] == "On a problem of Erdős"
+
+
+
+
+def test_parse_bibitem_revtex_authors_from_bibinfo():
+    """REVTeX: lấy tác giả từ \\bibinfo{author}{...}, không đoán theo dấu phẩy/'and'."""
+    raw = (
+        r"\BibitemOpen \bibfield {author} {\bibinfo {author} {\bibfnamefont {M.}~\bibnamefont {Alidoust}}, "
+        r"\bibinfo {author} {\bibfnamefont {C.}~\bibnamefont {Shen}},\ and\ \bibinfo {author} "
+        r"{\bibfnamefont {I.}~\bibnamefont {{\v{Z}}uti{\'c}}},\ }\bibfield {title} {\bibinfo {title} "
+        r"{Cubic spin-orbit coupling and anomalous {Josephson} effect in planar junctions},\ }"
+        r"\href {https://link.aps.org/doi/10.1103/PhysRevB.103.L060503} {\bibfield {journal} "
+        r"{\bibinfo {journal} {Phys. Rev. B}\ }\textbf {\bibinfo {volume} {103}},\ \bibinfo {pages} "
+        r"{L060503} (\bibinfo {year} {2021})}\BibitemShut {NoStop}"
+    )
+    item = parse_bibitem("Alidoust2021", raw)
+    assert item["title"] == "Cubic spin-orbit coupling and anomalous Josephson effect in planar junctions"
+    assert len(item["authors"]) == 3
+    assert "Alidoust" in item["authors"][0] and "Žutić" in item["authors"][2]
+    assert not any("\\" in a or "title" in a or "http" in a for a in item["authors"])
+
+
+def test_parse_bibitem_aps_ifmmode_accent():
+    """APS: `\\ifmmode \\check{c}\\else \\v{c}\\fi{}` lấy nhánh \\else, không ra `Skvar č`."""
+    raw = (
+        r"\BibitemOpen \bibfield {author} {\bibinfo {author} {\bibfnamefont {J.}~\bibnamefont "
+        r"{Skvar\ifmmode~\check{c}\else \v{c}\fi{}}}},\ }\bibinfo {journal} {Nucl. Phys. A}"
+    )
+    (author,) = parse_bibitem("Skvarc", raw)["authors"]
+    assert author.endswith("Skvarč")
+
+
+def test_parse_bibitem_acm_person_and_showarticletitle():
+    raw = (
+        r"\bibfield{author}{\bibinfo{person}{Valeri Chukhlomin} {et~al\mbox{.}}} \bibinfo{year}{2024}"
+        r"\natexlab{}. \newblock \showarticletitle{Socratic Prompts: Engineered Dialogue as a Tool}. "
+        r"\newblock \bibinfo{journal}{\emph{Latin American Business and Sustainability Review}}"
+    )
+    item = parse_bibitem("chukhlomin2024", raw)
+    assert item["authors"] == ["Valeri Chukhlomin"]
+    assert item["title"] == "Socratic Prompts: Engineered Dialogue as a Tool"
+
+
+def test_parse_bibitem_note_only_has_no_author():
+    raw = (
+        r"\BibitemOpen \href@noop {} {}\bibinfo {note} {See Supplemental Material for a discussion "
+        r"of the effective mass approximation and computational details.}\BibitemShut {Stop}"
+    )
+    assert parse_bibitem("SM", raw)["authors"] is None
+
+
+def test_parse_bibitem_natbib_newblock_title_is_second_field():
+    """natbib: trường thứ hai là tiêu đề; \\emph ở trường thứ ba là tên hội nghị."""
+    raw = (
+        "Jonathan Ho, Ajay Jain, and Pieter Abbeel.\n\\newblock Denoising diffusion probabilistic models.\n"
+        "\\newblock \\emph{Advances in neural information processing systems}, 33:\\penalty0 6840--6851, 2020."
+    )
+    item = parse_bibitem("ho2020denoising", raw)
+    assert item["title"] == "Denoising diffusion probabilistic models"
+    assert item["authors"] == ["Jonathan Ho", "Ajay Jain", "Pieter Abbeel"]
+    assert item["year"] == 2020
+
+
+def test_parse_bibitem_newblock_url_only_is_not_title():
+    raw = r"{BlenderKit}. \newblock {\scriptsize{\url{https://www.blenderkit.com/asset-gallery}}}."
+    assert parse_bibitem("blenderkit", raw)["title"] is None
+
+
+def test_parse_bibitem_textbf_volume_is_not_title():
+    raw = r"D.~J.~Gross and E.~Witten, Nucl. Phys. B \textbf{277}, 1 (1986) doi:10.1016/0550-3213(86)90429-3"
+    item = parse_bibitem("Gross:1986", raw)
+    assert item["title"] is None
+    assert item["doi"] == "10.1016/0550-3213(86)90429-3"
+
+
+def test_parse_bibitem_textit_title_with_nested_accent():
+    raw = (
+        "M. Albanese, G. Barbaro and M. Lejmi,\n\\textit{ Generalized almost-K\\\"{a}hler-Ricci solitons},\n"
+        "Differential Geom. Appl., \\textbf{97} (2024), Paper No. 102193, 27 pp."
+    )
+    assert parse_bibitem("ABL", raw)["title"] == "Generalized almost-Kähler-Ricci solitons"
+
+
+def test_parse_bibitem_et_al_variants_normalized():
+    raw = r"T.~Abramovich, M.~Udeshi, et~al.\ \newblock Enigma: Enhanced interactive agent. \newblock arXiv, 2024."
+    assert parse_bibitem("abramovich2024", raw)["authors"][-1] == "et al"
+
+
+def test_parse_bibitem_lncs_colon_splits_authors_and_title():
+    raw = (
+        "{Abou Jaoude}, D., Garoche, P.L., Farhood, M.: Computing state invariants using\n"
+        "  point-wise integral quadratic constraints and the {S}-procedure. In: 2021\n"
+        "  {A}merican {C}ontrol {C}onference (ACC). pp. 2394--2399 (2021)"
+    )
+    item = parse_bibitem("AboujaoudeGarocheFarhood21", raw)
+    assert item["title"] == (
+        "Computing state invariants using point-wise integral quadratic constraints and the S-procedure"
+    )
+    assert item["authors"] == ["Abou Jaoude, D.", "Garoche, P.L.", "Farhood, M."]
+    assert item["year"] == 2021
+
+
+def test_read_bib_file_field_names_are_case_insensitive(tmp_path: Path):
+    """BibDesk ghi `Author = {...}`, `Title = {...}`; tên trường BibTeX không phân biệt hoa thường.
+
+    Trước 27/11 mọi trường ra None (đo trên 2503.12256: 7 entry rỗng hoàn toàn).
+    """
+    bib = tmp_path / "refs.bib"
+    bib.write_text(
+        "@article{noiri_highfidelity_2022,\n"
+        "\tAuthor = {Noiri, Akito and Takeda, Kenta},\n"
+        "\tDoi = {10.1038/s41586-021-04182-y},\n"
+        "\tJournal = {Nature},\n"
+        "\tTitle = {Fast universal quantum gate above the fault-tolerance threshold in silicon},\n"
+        "\tYear = {2022},\n"
+        "\tEprint = {2108.02626}}\n",
+        encoding="utf-8",
+    )
+    (e,) = read_bib_file(bib)
+    assert e["title"] == "Fast universal quantum gate above the fault-tolerance threshold in silicon"
+    assert e["authors"] == ["Noiri, Akito", "Takeda, Kenta"]
+    assert (e["year"], e["doi"], e["journal"], e["arxiv_id"]) == (2022, "10.1038/s41586-021-04182-y", "Nature", "2108.02626")
+
+
+def test_collect_bib_bib_entry_keeps_fields_from_bbl(tmp_path: Path):
+    """.bib ghi đè .bbl khi trùng khoá, nhưng không được xoá trường .bib để trống."""
+    (tmp_path / "main.bbl").write_text(
+        "\\begin{thebibliography}{1}\n"
+        "\\bibitem{site} Some Author.\n\\newblock The project homepage.\n\\newblock 2024.\n"
+        "\\end{thebibliography}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "refs.bib").write_text("@misc{site, note = {Accessed 2024}}\n", encoding="utf-8")
+    (e,) = collect_bib(tmp_path)
+    assert e["title"] == "The project homepage"
+    assert e["authors"] == ["Some Author"]
+    assert e["entry_type"] == "misc"                # trường .bib có giá trị vẫn thắng
