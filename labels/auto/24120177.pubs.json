@@ -1,0 +1,6326 @@
+{
+  "mssv": "24120177",
+  "ids_file": "ids\\24120177.txt",
+  "exclude_file": "labels\\manual\\24120177.jsonl",
+  "seed": 42,
+  "n_requested": 500,
+  "n_selected": 500,
+  "excluded_ids_count": 5,
+  "criteria": {
+    "references_status": "ok",
+    "requires_ref_arxiv_id": true,
+    "min_entries": 1,
+    "max_entries": 1000,
+    "manual_publications_excluded": true,
+    "title_threshold": 0.9,
+    "margin_threshold": 0.03,
+    "year_delta": 1,
+    "short_title_min_chars": 20,
+    "short_title_min_words": 4,
+    "garbled_author_title_threshold": 0.95
+  },
+  "eligibility": {
+    "total_ids": 5000,
+    "excluded_manual": 5,
+    "references_missing": 0,
+    "references_not_ok": 1,
+    "no_arxiv_candidates": 648,
+    "bibtex_missing": 0,
+    "no_bibtex_entries": 385,
+    "too_many_bibtex_entries": 1,
+    "eligible": 3960
+  },
+  "summary": {
+    "total_entries": 27390,
+    "total_matched": 11620,
+    "total_unmatched": 15770,
+    "match_rate": 0.4242,
+    "n_pubs_with_matches": 458,
+    "n_pubs_zero_matched": 42,
+    "rules": {
+      "arxiv_url": 3384,
+      "doi": 121,
+      "null": 15770,
+      "title": 8115
+    }
+  },
+  "publications": [
+    {
+      "arxiv_id": "2503.12664",
+      "pub_key": "2503-12664",
+      "n_entries": 25,
+      "n_candidates": 9,
+      "n_matched": 6,
+      "n_unmatched": 19,
+      "rules": {
+        "null": 19,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.16415",
+      "pub_key": "2503-16415",
+      "n_entries": 88,
+      "n_candidates": 71,
+      "n_matched": 71,
+      "n_unmatched": 17,
+      "rules": {
+        "arxiv_url": 70,
+        "null": 17,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.13731",
+      "pub_key": "2503-13731",
+      "n_entries": 130,
+      "n_candidates": 83,
+      "n_matched": 78,
+      "n_unmatched": 52,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 52,
+        "title": 70
+      }
+    },
+    {
+      "arxiv_id": "2503.14184",
+      "pub_key": "2503-14184",
+      "n_entries": 35,
+      "n_candidates": 8,
+      "n_matched": 7,
+      "n_unmatched": 28,
+      "rules": {
+        "null": 28,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.13856",
+      "pub_key": "2503-13856",
+      "n_entries": 40,
+      "n_candidates": 24,
+      "n_matched": 24,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 14,
+        "null": 16,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.16818",
+      "pub_key": "2503-16818",
+      "n_entries": 42,
+      "n_candidates": 13,
+      "n_matched": 10,
+      "n_unmatched": 32,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 32,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.16396",
+      "pub_key": "2503-16396",
+      "n_entries": 86,
+      "n_candidates": 82,
+      "n_matched": 82,
+      "n_unmatched": 4,
+      "rules": {
+        "arxiv_url": 24,
+        "null": 4,
+        "title": 58
+      }
+    },
+    {
+      "arxiv_id": "2503.16592",
+      "pub_key": "2503-16592",
+      "n_entries": 31,
+      "n_candidates": 13,
+      "n_matched": 13,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 18,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.15895",
+      "pub_key": "2503-15895",
+      "n_entries": 19,
+      "n_candidates": 17,
+      "n_matched": 17,
+      "n_unmatched": 2,
+      "rules": {
+        "arxiv_url": 16,
+        "null": 2,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.15995",
+      "pub_key": "2503-15995",
+      "n_entries": 29,
+      "n_candidates": 23,
+      "n_matched": 0,
+      "n_unmatched": 29,
+      "rules": {
+        "null": 29
+      }
+    },
+    {
+      "arxiv_id": "2503.12791",
+      "pub_key": "2503-12791",
+      "n_entries": 55,
+      "n_candidates": 43,
+      "n_matched": 41,
+      "n_unmatched": 14,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 14,
+        "title": 29
+      }
+    },
+    {
+      "arxiv_id": "2503.15401",
+      "pub_key": "2503-15401",
+      "n_entries": 43,
+      "n_candidates": 14,
+      "n_matched": 12,
+      "n_unmatched": 31,
+      "rules": {
+        "null": 31,
+        "title": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.16179",
+      "pub_key": "2503-16179",
+      "n_entries": 27,
+      "n_candidates": 24,
+      "n_matched": 24,
+      "n_unmatched": 3,
+      "rules": {
+        "arxiv_url": 13,
+        "null": 3,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.12240",
+      "pub_key": "2503-12240",
+      "n_entries": 46,
+      "n_candidates": 13,
+      "n_matched": 10,
+      "n_unmatched": 36,
+      "rules": {
+        "null": 36,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.14592",
+      "pub_key": "2503-14592",
+      "n_entries": 68,
+      "n_candidates": 43,
+      "n_matched": 39,
+      "n_unmatched": 29,
+      "rules": {
+        "doi": 6,
+        "null": 29,
+        "title": 33
+      }
+    },
+    {
+      "arxiv_id": "2503.13518",
+      "pub_key": "2503-13518",
+      "n_entries": 21,
+      "n_candidates": 16,
+      "n_matched": 16,
+      "n_unmatched": 5,
+      "rules": {
+        "arxiv_url": 11,
+        "null": 5,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.15088",
+      "pub_key": "2503-15088",
+      "n_entries": 37,
+      "n_candidates": 40,
+      "n_matched": 28,
+      "n_unmatched": 9,
+      "rules": {
+        "arxiv_url": 26,
+        "null": 9,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.12302",
+      "pub_key": "2503-12302",
+      "n_entries": 18,
+      "n_candidates": 8,
+      "n_matched": 0,
+      "n_unmatched": 18,
+      "rules": {
+        "null": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.14691",
+      "pub_key": "2503-14691",
+      "n_entries": 102,
+      "n_candidates": 47,
+      "n_matched": 45,
+      "n_unmatched": 57,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 57,
+        "title": 43
+      }
+    },
+    {
+      "arxiv_id": "2503.13434",
+      "pub_key": "2503-13434",
+      "n_entries": 70,
+      "n_candidates": 37,
+      "n_matched": 37,
+      "n_unmatched": 33,
+      "rules": {
+        "arxiv_url": 13,
+        "null": 33,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.15672",
+      "pub_key": "2503-15672",
+      "n_entries": 64,
+      "n_candidates": 58,
+      "n_matched": 55,
+      "n_unmatched": 9,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 9,
+        "title": 52
+      }
+    },
+    {
+      "arxiv_id": "2503.16320",
+      "pub_key": "2503-16320",
+      "n_entries": 60,
+      "n_candidates": 30,
+      "n_matched": 32,
+      "n_unmatched": 28,
+      "rules": {
+        "arxiv_url": 9,
+        "null": 28,
+        "title": 23
+      }
+    },
+    {
+      "arxiv_id": "2503.13771",
+      "pub_key": "2503-13771",
+      "n_entries": 40,
+      "n_candidates": 18,
+      "n_matched": 18,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 2,
+        "doi": 1,
+        "null": 22,
+        "title": 15
+      }
+    },
+    {
+      "arxiv_id": "2503.16102",
+      "pub_key": "2503-16102",
+      "n_entries": 36,
+      "n_candidates": 26,
+      "n_matched": 14,
+      "n_unmatched": 22,
+      "rules": {
+        "null": 22,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.14930",
+      "pub_key": "2503-14930",
+      "n_entries": 41,
+      "n_candidates": 5,
+      "n_matched": 0,
+      "n_unmatched": 41,
+      "rules": {
+        "null": 41
+      }
+    },
+    {
+      "arxiv_id": "2503.12948",
+      "pub_key": "2503-12948",
+      "n_entries": 69,
+      "n_candidates": 6,
+      "n_matched": 6,
+      "n_unmatched": 63,
+      "rules": {
+        "null": 63,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.16754",
+      "pub_key": "2503-16754",
+      "n_entries": 23,
+      "n_candidates": 16,
+      "n_matched": 15,
+      "n_unmatched": 8,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 8,
+        "title": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.15923",
+      "pub_key": "2503-15923",
+      "n_entries": 59,
+      "n_candidates": 20,
+      "n_matched": 0,
+      "n_unmatched": 59,
+      "rules": {
+        "null": 59
+      }
+    },
+    {
+      "arxiv_id": "2503.12383",
+      "pub_key": "2503-12383",
+      "n_entries": 57,
+      "n_candidates": 39,
+      "n_matched": 39,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 5,
+        "doi": 16,
+        "null": 18,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.13370",
+      "pub_key": "2503-13370",
+      "n_entries": 31,
+      "n_candidates": 2,
+      "n_matched": 0,
+      "n_unmatched": 31,
+      "rules": {
+        "null": 31
+      }
+    },
+    {
+      "arxiv_id": "2503.15776",
+      "pub_key": "2503-15776",
+      "n_entries": 26,
+      "n_candidates": 11,
+      "n_matched": 6,
+      "n_unmatched": 20,
+      "rules": {
+        "null": 20,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.15732",
+      "pub_key": "2503-15732",
+      "n_entries": 48,
+      "n_candidates": 33,
+      "n_matched": 13,
+      "n_unmatched": 35,
+      "rules": {
+        "null": 35,
+        "title": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.13108",
+      "pub_key": "2503-13108",
+      "n_entries": 44,
+      "n_candidates": 41,
+      "n_matched": 41,
+      "n_unmatched": 3,
+      "rules": {
+        "arxiv_url": 24,
+        "null": 3,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.14482",
+      "pub_key": "2503-14482",
+      "n_entries": 62,
+      "n_candidates": 45,
+      "n_matched": 42,
+      "n_unmatched": 20,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 20,
+        "title": 30
+      }
+    },
+    {
+      "arxiv_id": "2503.16652",
+      "pub_key": "2503-16652",
+      "n_entries": 24,
+      "n_candidates": 4,
+      "n_matched": 4,
+      "n_unmatched": 20,
+      "rules": {
+        "null": 20,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.14521",
+      "pub_key": "2503-14521",
+      "n_entries": 30,
+      "n_candidates": 17,
+      "n_matched": 17,
+      "n_unmatched": 13,
+      "rules": {
+        "arxiv_url": 16,
+        "null": 13,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.13551",
+      "pub_key": "2503-13551",
+      "n_entries": 36,
+      "n_candidates": 32,
+      "n_matched": 30,
+      "n_unmatched": 6,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 6,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.16416",
+      "pub_key": "2503-16416",
+      "n_entries": 196,
+      "n_candidates": 132,
+      "n_matched": 129,
+      "n_unmatched": 67,
+      "rules": {
+        "arxiv_url": 87,
+        "null": 67,
+        "title": 42
+      }
+    },
+    {
+      "arxiv_id": "2503.14128",
+      "pub_key": "2503-14128",
+      "n_entries": 49,
+      "n_candidates": 26,
+      "n_matched": 25,
+      "n_unmatched": 24,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 24,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.14021",
+      "pub_key": "2503-14021",
+      "n_entries": 63,
+      "n_candidates": 49,
+      "n_matched": 49,
+      "n_unmatched": 14,
+      "rules": {
+        "arxiv_url": 22,
+        "null": 14,
+        "title": 27
+      }
+    },
+    {
+      "arxiv_id": "2503.14870",
+      "pub_key": "2503-14870",
+      "n_entries": 14,
+      "n_candidates": 2,
+      "n_matched": 1,
+      "n_unmatched": 13,
+      "rules": {
+        "null": 13,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.14624",
+      "pub_key": "2503-14624",
+      "n_entries": 60,
+      "n_candidates": 30,
+      "n_matched": 26,
+      "n_unmatched": 34,
+      "rules": {
+        "null": 34,
+        "title": 26
+      }
+    },
+    {
+      "arxiv_id": "2503.14958",
+      "pub_key": "2503-14958",
+      "n_entries": 32,
+      "n_candidates": 22,
+      "n_matched": 15,
+      "n_unmatched": 17,
+      "rules": {
+        "null": 17,
+        "title": 15
+      }
+    },
+    {
+      "arxiv_id": "2503.12912",
+      "pub_key": "2503-12912",
+      "n_entries": 40,
+      "n_candidates": 13,
+      "n_matched": 11,
+      "n_unmatched": 29,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 29,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.12913",
+      "pub_key": "2503-12913",
+      "n_entries": 49,
+      "n_candidates": 19,
+      "n_matched": 17,
+      "n_unmatched": 32,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 32,
+        "title": 16
+      }
+    },
+    {
+      "arxiv_id": "2503.14669",
+      "pub_key": "2503-14669",
+      "n_entries": 31,
+      "n_candidates": 5,
+      "n_matched": 5,
+      "n_unmatched": 26,
+      "rules": {
+        "null": 26,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.13513",
+      "pub_key": "2503-13513",
+      "n_entries": 3,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 0,
+      "rules": {
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.15739",
+      "pub_key": "2503-15739",
+      "n_entries": 11,
+      "n_candidates": 4,
+      "n_matched": 4,
+      "n_unmatched": 7,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 7,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.16265",
+      "pub_key": "2503-16265",
+      "n_entries": 72,
+      "n_candidates": 47,
+      "n_matched": 45,
+      "n_unmatched": 27,
+      "rules": {
+        "null": 27,
+        "title": 45
+      }
+    },
+    {
+      "arxiv_id": "2503.13426",
+      "pub_key": "2503-13426",
+      "n_entries": 158,
+      "n_candidates": 1,
+      "n_matched": 1,
+      "n_unmatched": 157,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 157
+      }
+    },
+    {
+      "arxiv_id": "2503.16598",
+      "pub_key": "2503-16598",
+      "n_entries": 103,
+      "n_candidates": 92,
+      "n_matched": 91,
+      "n_unmatched": 12,
+      "rules": {
+        "arxiv_url": 91,
+        "null": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.15529",
+      "pub_key": "2503-15529",
+      "n_entries": 10,
+      "n_candidates": 2,
+      "n_matched": 2,
+      "n_unmatched": 8,
+      "rules": {
+        "null": 8,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.14854",
+      "pub_key": "2503-14854",
+      "n_entries": 65,
+      "n_candidates": 42,
+      "n_matched": 41,
+      "n_unmatched": 24,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 24,
+        "title": 36
+      }
+    },
+    {
+      "arxiv_id": "2503.13863",
+      "pub_key": "2503-13863",
+      "n_entries": 29,
+      "n_candidates": 8,
+      "n_matched": 3,
+      "n_unmatched": 26,
+      "rules": {
+        "null": 26,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.13101",
+      "pub_key": "2503-13101",
+      "n_entries": 22,
+      "n_candidates": 14,
+      "n_matched": 14,
+      "n_unmatched": 8,
+      "rules": {
+        "arxiv_url": 11,
+        "null": 8,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.16850",
+      "pub_key": "2503-16850",
+      "n_entries": 20,
+      "n_candidates": 4,
+      "n_matched": 3,
+      "n_unmatched": 17,
+      "rules": {
+        "null": 17,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.15786",
+      "pub_key": "2503-15786",
+      "n_entries": 53,
+      "n_candidates": 6,
+      "n_matched": 5,
+      "n_unmatched": 48,
+      "rules": {
+        "null": 48,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.16424",
+      "pub_key": "2503-16424",
+      "n_entries": 42,
+      "n_candidates": 26,
+      "n_matched": 27,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 15,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.12163",
+      "pub_key": "2503-12163",
+      "n_entries": 25,
+      "n_candidates": 5,
+      "n_matched": 7,
+      "n_unmatched": 18,
+      "rules": {
+        "null": 18,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.15547",
+      "pub_key": "2503-15547",
+      "n_entries": 103,
+      "n_candidates": 23,
+      "n_matched": 31,
+      "n_unmatched": 72,
+      "rules": {
+        "null": 72,
+        "title": 31
+      }
+    },
+    {
+      "arxiv_id": "2503.15414",
+      "pub_key": "2503-15414",
+      "n_entries": 44,
+      "n_candidates": 29,
+      "n_matched": 27,
+      "n_unmatched": 17,
+      "rules": {
+        "arxiv_url": 7,
+        "null": 17,
+        "title": 20
+      }
+    },
+    {
+      "arxiv_id": "2503.16112",
+      "pub_key": "2503-16112",
+      "n_entries": 59,
+      "n_candidates": 10,
+      "n_matched": 9,
+      "n_unmatched": 50,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 50,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.15045",
+      "pub_key": "2503-15045",
+      "n_entries": 30,
+      "n_candidates": 16,
+      "n_matched": 12,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 18,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.13336",
+      "pub_key": "2503-13336",
+      "n_entries": 31,
+      "n_candidates": 6,
+      "n_matched": 6,
+      "n_unmatched": 25,
+      "rules": {
+        "null": 25,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.15208",
+      "pub_key": "2503-15208",
+      "n_entries": 59,
+      "n_candidates": 55,
+      "n_matched": 53,
+      "n_unmatched": 6,
+      "rules": {
+        "arxiv_url": 29,
+        "null": 6,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.15411",
+      "pub_key": "2503-15411",
+      "n_entries": 67,
+      "n_candidates": 10,
+      "n_matched": 0,
+      "n_unmatched": 67,
+      "rules": {
+        "null": 67
+      }
+    },
+    {
+      "arxiv_id": "2503.14273",
+      "pub_key": "2503-14273",
+      "n_entries": 53,
+      "n_candidates": 9,
+      "n_matched": 9,
+      "n_unmatched": 44,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 44,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.12825",
+      "pub_key": "2503-12825",
+      "n_entries": 45,
+      "n_candidates": 16,
+      "n_matched": 8,
+      "n_unmatched": 37,
+      "rules": {
+        "null": 37,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.16440",
+      "pub_key": "2503-16440",
+      "n_entries": 78,
+      "n_candidates": 4,
+      "n_matched": 3,
+      "n_unmatched": 75,
+      "rules": {
+        "null": 75,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.13321",
+      "pub_key": "2503-13321",
+      "n_entries": 63,
+      "n_candidates": 47,
+      "n_matched": 45,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 18,
+        "title": 43
+      }
+    },
+    {
+      "arxiv_id": "2503.15615",
+      "pub_key": "2503-15615",
+      "n_entries": 28,
+      "n_candidates": 25,
+      "n_matched": 23,
+      "n_unmatched": 5,
+      "rules": {
+        "arxiv_url": 11,
+        "null": 5,
+        "title": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.13587",
+      "pub_key": "2503-13587",
+      "n_entries": 55,
+      "n_candidates": 39,
+      "n_matched": 39,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 16,
+        "title": 27
+      }
+    },
+    {
+      "arxiv_id": "2503.14421",
+      "pub_key": "2503-14421",
+      "n_entries": 87,
+      "n_candidates": 68,
+      "n_matched": 65,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 16,
+        "null": 22,
+        "title": 49
+      }
+    },
+    {
+      "arxiv_id": "2503.16897",
+      "pub_key": "2503-16897",
+      "n_entries": 46,
+      "n_candidates": 1,
+      "n_matched": 1,
+      "n_unmatched": 45,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 45
+      }
+    },
+    {
+      "arxiv_id": "2503.11992",
+      "pub_key": "2503-11992",
+      "n_entries": 28,
+      "n_candidates": 13,
+      "n_matched": 7,
+      "n_unmatched": 21,
+      "rules": {
+        "null": 21,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.15779",
+      "pub_key": "2503-15779",
+      "n_entries": 57,
+      "n_candidates": 16,
+      "n_matched": 16,
+      "n_unmatched": 41,
+      "rules": {
+        "arxiv_url": 9,
+        "null": 41,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.15248",
+      "pub_key": "2503-15248",
+      "n_entries": 31,
+      "n_candidates": 4,
+      "n_matched": 3,
+      "n_unmatched": 28,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 28,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.12615",
+      "pub_key": "2503-12615",
+      "n_entries": 67,
+      "n_candidates": 56,
+      "n_matched": 51,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 16,
+        "title": 47
+      }
+    },
+    {
+      "arxiv_id": "2503.13374",
+      "pub_key": "2503-13374",
+      "n_entries": 23,
+      "n_candidates": 9,
+      "n_matched": 8,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 15,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.13429",
+      "pub_key": "2503-13429",
+      "n_entries": 55,
+      "n_candidates": 35,
+      "n_matched": 34,
+      "n_unmatched": 21,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 21,
+        "title": 31
+      }
+    },
+    {
+      "arxiv_id": "2503.14277",
+      "pub_key": "2503-14277",
+      "n_entries": 19,
+      "n_candidates": 2,
+      "n_matched": 2,
+      "n_unmatched": 17,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 17,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.16630",
+      "pub_key": "2503-16630",
+      "n_entries": 62,
+      "n_candidates": 44,
+      "n_matched": 44,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 33,
+        "null": 18,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.16544",
+      "pub_key": "2503-16544",
+      "n_entries": 40,
+      "n_candidates": 16,
+      "n_matched": 15,
+      "n_unmatched": 25,
+      "rules": {
+        "arxiv_url": 7,
+        "null": 25,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.12164",
+      "pub_key": "2503-12164",
+      "n_entries": 48,
+      "n_candidates": 11,
+      "n_matched": 11,
+      "n_unmatched": 37,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 37,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.15159",
+      "pub_key": "2503-15159",
+      "n_entries": 13,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 10,
+      "rules": {
+        "null": 10,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.16316",
+      "pub_key": "2503-16316",
+      "n_entries": 27,
+      "n_candidates": 25,
+      "n_matched": 21,
+      "n_unmatched": 6,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 6,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.13025",
+      "pub_key": "2503-13025",
+      "n_entries": 71,
+      "n_candidates": 57,
+      "n_matched": 53,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 18,
+        "title": 48
+      }
+    },
+    {
+      "arxiv_id": "2503.13140",
+      "pub_key": "2503-13140",
+      "n_entries": 78,
+      "n_candidates": 39,
+      "n_matched": 38,
+      "n_unmatched": 40,
+      "rules": {
+        "arxiv_url": 1,
+        "doi": 1,
+        "null": 40,
+        "title": 36
+      }
+    },
+    {
+      "arxiv_id": "2503.11971",
+      "pub_key": "2503-11971",
+      "n_entries": 42,
+      "n_candidates": 4,
+      "n_matched": 4,
+      "n_unmatched": 38,
+      "rules": {
+        "null": 38,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.15752",
+      "pub_key": "2503-15752",
+      "n_entries": 42,
+      "n_candidates": 8,
+      "n_matched": 7,
+      "n_unmatched": 35,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 35,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.14836",
+      "pub_key": "2503-14836",
+      "n_entries": 54,
+      "n_candidates": 36,
+      "n_matched": 36,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 32,
+        "null": 18,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.13954",
+      "pub_key": "2503-13954",
+      "n_entries": 33,
+      "n_candidates": 9,
+      "n_matched": 7,
+      "n_unmatched": 26,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 26,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.16769",
+      "pub_key": "2503-16769",
+      "n_entries": 61,
+      "n_candidates": 12,
+      "n_matched": 12,
+      "n_unmatched": 49,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 49
+      }
+    },
+    {
+      "arxiv_id": "2503.15333",
+      "pub_key": "2503-15333",
+      "n_entries": 122,
+      "n_candidates": 2,
+      "n_matched": 0,
+      "n_unmatched": 122,
+      "rules": {
+        "null": 122
+      }
+    },
+    {
+      "arxiv_id": "2503.14248",
+      "pub_key": "2503-14248",
+      "n_entries": 13,
+      "n_candidates": 8,
+      "n_matched": 7,
+      "n_unmatched": 6,
+      "rules": {
+        "null": 6,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.15850",
+      "pub_key": "2503-15850",
+      "n_entries": 214,
+      "n_candidates": 105,
+      "n_matched": 102,
+      "n_unmatched": 112,
+      "rules": {
+        "arxiv_url": 43,
+        "null": 112,
+        "title": 59
+      }
+    },
+    {
+      "arxiv_id": "2503.15351",
+      "pub_key": "2503-15351",
+      "n_entries": 41,
+      "n_candidates": 20,
+      "n_matched": 17,
+      "n_unmatched": 24,
+      "rules": {
+        "arxiv_url": 7,
+        "null": 24,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.14705",
+      "pub_key": "2503-14705",
+      "n_entries": 20,
+      "n_candidates": 7,
+      "n_matched": 6,
+      "n_unmatched": 14,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 14,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.13163",
+      "pub_key": "2503-13163",
+      "n_entries": 55,
+      "n_candidates": 35,
+      "n_matched": 33,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 22,
+        "title": 25
+      }
+    },
+    {
+      "arxiv_id": "2503.16168",
+      "pub_key": "2503-16168",
+      "n_entries": 103,
+      "n_candidates": 60,
+      "n_matched": 2,
+      "n_unmatched": 101,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 101
+      }
+    },
+    {
+      "arxiv_id": "2503.13221",
+      "pub_key": "2503-13221",
+      "n_entries": 35,
+      "n_candidates": 7,
+      "n_matched": 1,
+      "n_unmatched": 34,
+      "rules": {
+        "null": 34,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.16431",
+      "pub_key": "2503-16431",
+      "n_entries": 47,
+      "n_candidates": 21,
+      "n_matched": 20,
+      "n_unmatched": 27,
+      "rules": {
+        "arxiv_url": 18,
+        "null": 27,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.15555",
+      "pub_key": "2503-15555",
+      "n_entries": 27,
+      "n_candidates": 9,
+      "n_matched": 7,
+      "n_unmatched": 20,
+      "rules": {
+        "null": 20,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.16514",
+      "pub_key": "2503-16514",
+      "n_entries": 41,
+      "n_candidates": 10,
+      "n_matched": 10,
+      "n_unmatched": 31,
+      "rules": {
+        "null": 31,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.16408",
+      "pub_key": "2503-16408",
+      "n_entries": 52,
+      "n_candidates": 2,
+      "n_matched": 2,
+      "n_unmatched": 50,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 50
+      }
+    },
+    {
+      "arxiv_id": "2503.13245",
+      "pub_key": "2503-13245",
+      "n_entries": 49,
+      "n_candidates": 20,
+      "n_matched": 19,
+      "n_unmatched": 30,
+      "rules": {
+        "null": 30,
+        "title": 19
+      }
+    },
+    {
+      "arxiv_id": "2503.13304",
+      "pub_key": "2503-13304",
+      "n_entries": 59,
+      "n_candidates": 24,
+      "n_matched": 17,
+      "n_unmatched": 42,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 42,
+        "title": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.12878",
+      "pub_key": "2503-12878",
+      "n_entries": 21,
+      "n_candidates": 1,
+      "n_matched": 1,
+      "n_unmatched": 20,
+      "rules": {
+        "null": 20,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.14464",
+      "pub_key": "2503-14464",
+      "n_entries": 73,
+      "n_candidates": 17,
+      "n_matched": 16,
+      "n_unmatched": 57,
+      "rules": {
+        "null": 57,
+        "title": 16
+      }
+    },
+    {
+      "arxiv_id": "2503.15291",
+      "pub_key": "2503-15291",
+      "n_entries": 29,
+      "n_candidates": 9,
+      "n_matched": 0,
+      "n_unmatched": 29,
+      "rules": {
+        "null": 29
+      }
+    },
+    {
+      "arxiv_id": "2503.12034",
+      "pub_key": "2503-12034",
+      "n_entries": 37,
+      "n_candidates": 24,
+      "n_matched": 24,
+      "n_unmatched": 13,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 13,
+        "title": 20
+      }
+    },
+    {
+      "arxiv_id": "2503.16241",
+      "pub_key": "2503-16241",
+      "n_entries": 35,
+      "n_candidates": 25,
+      "n_matched": 23,
+      "n_unmatched": 12,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 12,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.12612",
+      "pub_key": "2503-12612",
+      "n_entries": 127,
+      "n_candidates": 113,
+      "n_matched": 112,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 110,
+        "null": 15,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.14961",
+      "pub_key": "2503-14961",
+      "n_entries": 77,
+      "n_candidates": 47,
+      "n_matched": 22,
+      "n_unmatched": 55,
+      "rules": {
+        "null": 55,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.12865",
+      "pub_key": "2503-12865",
+      "n_entries": 54,
+      "n_candidates": 33,
+      "n_matched": 27,
+      "n_unmatched": 27,
+      "rules": {
+        "null": 27,
+        "title": 27
+      }
+    },
+    {
+      "arxiv_id": "2503.14203",
+      "pub_key": "2503-14203",
+      "n_entries": 43,
+      "n_candidates": 28,
+      "n_matched": 27,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 16,
+        "title": 23
+      }
+    },
+    {
+      "arxiv_id": "2503.12058",
+      "pub_key": "2503-12058",
+      "n_entries": 106,
+      "n_candidates": 74,
+      "n_matched": 66,
+      "n_unmatched": 40,
+      "rules": {
+        "arxiv_url": 7,
+        "doi": 1,
+        "null": 40,
+        "title": 58
+      }
+    },
+    {
+      "arxiv_id": "2503.15606",
+      "pub_key": "2503-15606",
+      "n_entries": 118,
+      "n_candidates": 1,
+      "n_matched": 1,
+      "n_unmatched": 117,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 117
+      }
+    },
+    {
+      "arxiv_id": "2503.13309",
+      "pub_key": "2503-13309",
+      "n_entries": 23,
+      "n_candidates": 8,
+      "n_matched": 8,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 15,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.16256",
+      "pub_key": "2503-16256",
+      "n_entries": 33,
+      "n_candidates": 7,
+      "n_matched": 6,
+      "n_unmatched": 27,
+      "rules": {
+        "null": 27,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.15001",
+      "pub_key": "2503-15001",
+      "n_entries": 46,
+      "n_candidates": 18,
+      "n_matched": 15,
+      "n_unmatched": 31,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 31,
+        "title": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.14747",
+      "pub_key": "2503-14747",
+      "n_entries": 93,
+      "n_candidates": 5,
+      "n_matched": 2,
+      "n_unmatched": 91,
+      "rules": {
+        "null": 91,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.14882",
+      "pub_key": "2503-14882",
+      "n_entries": 61,
+      "n_candidates": 39,
+      "n_matched": 37,
+      "n_unmatched": 24,
+      "rules": {
+        "arxiv_url": 15,
+        "null": 24,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.12793",
+      "pub_key": "2503-12793",
+      "n_entries": 40,
+      "n_candidates": 30,
+      "n_matched": 27,
+      "n_unmatched": 13,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 13,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.15171",
+      "pub_key": "2503-15171",
+      "n_entries": 35,
+      "n_candidates": 13,
+      "n_matched": 13,
+      "n_unmatched": 22,
+      "rules": {
+        "null": 22,
+        "title": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.12716",
+      "pub_key": "2503-12716",
+      "n_entries": 25,
+      "n_candidates": 11,
+      "n_matched": 4,
+      "n_unmatched": 21,
+      "rules": {
+        "null": 21,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.14429",
+      "pub_key": "2503-14429",
+      "n_entries": 44,
+      "n_candidates": 8,
+      "n_matched": 0,
+      "n_unmatched": 44,
+      "rules": {
+        "null": 44
+      }
+    },
+    {
+      "arxiv_id": "2503.14811",
+      "pub_key": "2503-14811",
+      "n_entries": 14,
+      "n_candidates": 5,
+      "n_matched": 3,
+      "n_unmatched": 11,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 11,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.16474",
+      "pub_key": "2503-16474",
+      "n_entries": 26,
+      "n_candidates": 13,
+      "n_matched": 13,
+      "n_unmatched": 13,
+      "rules": {
+        "arxiv_url": 3,
+        "doi": 6,
+        "null": 13,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.12102",
+      "pub_key": "2503-12102",
+      "n_entries": 28,
+      "n_candidates": 19,
+      "n_matched": 18,
+      "n_unmatched": 10,
+      "rules": {
+        "null": 10,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.11937",
+      "pub_key": "2503-11937",
+      "n_entries": 46,
+      "n_candidates": 38,
+      "n_matched": 36,
+      "n_unmatched": 10,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 10,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.12752",
+      "pub_key": "2503-12752",
+      "n_entries": 42,
+      "n_candidates": 9,
+      "n_matched": 8,
+      "n_unmatched": 34,
+      "rules": {
+        "null": 34,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.13096",
+      "pub_key": "2503-13096",
+      "n_entries": 33,
+      "n_candidates": 11,
+      "n_matched": 7,
+      "n_unmatched": 26,
+      "rules": {
+        "null": 26,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.15055",
+      "pub_key": "2503-15055",
+      "n_entries": 57,
+      "n_candidates": 9,
+      "n_matched": 9,
+      "n_unmatched": 48,
+      "rules": {
+        "arxiv_url": 6,
+        "null": 48,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.14490",
+      "pub_key": "2503-14490",
+      "n_entries": 71,
+      "n_candidates": 10,
+      "n_matched": 10,
+      "n_unmatched": 61,
+      "rules": {
+        "arxiv_url": 10,
+        "null": 61
+      }
+    },
+    {
+      "arxiv_id": "2503.16452",
+      "pub_key": "2503-16452",
+      "n_entries": 43,
+      "n_candidates": 14,
+      "n_matched": 10,
+      "n_unmatched": 33,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 33,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.14388",
+      "pub_key": "2503-14388",
+      "n_entries": 42,
+      "n_candidates": 8,
+      "n_matched": 11,
+      "n_unmatched": 31,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 31,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.14035",
+      "pub_key": "2503-14035",
+      "n_entries": 41,
+      "n_candidates": 21,
+      "n_matched": 21,
+      "n_unmatched": 20,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 20,
+        "title": 20
+      }
+    },
+    {
+      "arxiv_id": "2503.15437",
+      "pub_key": "2503-15437",
+      "n_entries": 38,
+      "n_candidates": 24,
+      "n_matched": 17,
+      "n_unmatched": 21,
+      "rules": {
+        "null": 21,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.14929",
+      "pub_key": "2503-14929",
+      "n_entries": 109,
+      "n_candidates": 41,
+      "n_matched": 37,
+      "n_unmatched": 72,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 72,
+        "title": 33
+      }
+    },
+    {
+      "arxiv_id": "2503.13757",
+      "pub_key": "2503-13757",
+      "n_entries": 69,
+      "n_candidates": 30,
+      "n_matched": 17,
+      "n_unmatched": 52,
+      "rules": {
+        "null": 52,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.12638",
+      "pub_key": "2503-12638",
+      "n_entries": 16,
+      "n_candidates": 4,
+      "n_matched": 3,
+      "n_unmatched": 13,
+      "rules": {
+        "null": 13,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.16330",
+      "pub_key": "2503-16330",
+      "n_entries": 34,
+      "n_candidates": 12,
+      "n_matched": 5,
+      "n_unmatched": 29,
+      "rules": {
+        "null": 29,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.13068",
+      "pub_key": "2503-13068",
+      "n_entries": 74,
+      "n_candidates": 57,
+      "n_matched": 54,
+      "n_unmatched": 20,
+      "rules": {
+        "arxiv_url": 21,
+        "null": 20,
+        "title": 33
+      }
+    },
+    {
+      "arxiv_id": "2503.15483",
+      "pub_key": "2503-15483",
+      "n_entries": 87,
+      "n_candidates": 5,
+      "n_matched": 5,
+      "n_unmatched": 82,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 82
+      }
+    },
+    {
+      "arxiv_id": "2503.12028",
+      "pub_key": "2503-12028",
+      "n_entries": 17,
+      "n_candidates": 1,
+      "n_matched": 0,
+      "n_unmatched": 17,
+      "rules": {
+        "null": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.16672",
+      "pub_key": "2503-16672",
+      "n_entries": 18,
+      "n_candidates": 13,
+      "n_matched": 12,
+      "n_unmatched": 6,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 6,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.14375",
+      "pub_key": "2503-14375",
+      "n_entries": 27,
+      "n_candidates": 6,
+      "n_matched": 5,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 22,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.16624",
+      "pub_key": "2503-16624",
+      "n_entries": 63,
+      "n_candidates": 41,
+      "n_matched": 40,
+      "n_unmatched": 23,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 23,
+        "title": 39
+      }
+    },
+    {
+      "arxiv_id": "2503.12495",
+      "pub_key": "2503-12495",
+      "n_entries": 38,
+      "n_candidates": 17,
+      "n_matched": 17,
+      "n_unmatched": 21,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 21,
+        "title": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.14214",
+      "pub_key": "2503-14214",
+      "n_entries": 70,
+      "n_candidates": 63,
+      "n_matched": 56,
+      "n_unmatched": 14,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 14,
+        "title": 55
+      }
+    },
+    {
+      "arxiv_id": "2503.15784",
+      "pub_key": "2503-15784",
+      "n_entries": 33,
+      "n_candidates": 23,
+      "n_matched": 22,
+      "n_unmatched": 11,
+      "rules": {
+        "arxiv_url": 7,
+        "null": 11,
+        "title": 15
+      }
+    },
+    {
+      "arxiv_id": "2503.12378",
+      "pub_key": "2503-12378",
+      "n_entries": 19,
+      "n_candidates": 4,
+      "n_matched": 3,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 16,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.13265",
+      "pub_key": "2503-13265",
+      "n_entries": 72,
+      "n_candidates": 63,
+      "n_matched": 62,
+      "n_unmatched": 10,
+      "rules": {
+        "arxiv_url": 40,
+        "null": 10,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.15431",
+      "pub_key": "2503-15431",
+      "n_entries": 50,
+      "n_candidates": 23,
+      "n_matched": 16,
+      "n_unmatched": 34,
+      "rules": {
+        "arxiv_url": 6,
+        "doi": 1,
+        "null": 34,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.14444",
+      "pub_key": "2503-14444",
+      "n_entries": 75,
+      "n_candidates": 29,
+      "n_matched": 26,
+      "n_unmatched": 49,
+      "rules": {
+        "null": 49,
+        "title": 26
+      }
+    },
+    {
+      "arxiv_id": "2503.15362",
+      "pub_key": "2503-15362",
+      "n_entries": 34,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 31,
+      "rules": {
+        "null": 31,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.12966",
+      "pub_key": "2503-12966",
+      "n_entries": 38,
+      "n_candidates": 22,
+      "n_matched": 23,
+      "n_unmatched": 15,
+      "rules": {
+        "null": 15,
+        "title": 23
+      }
+    },
+    {
+      "arxiv_id": "2503.15985",
+      "pub_key": "2503-15985",
+      "n_entries": 32,
+      "n_candidates": 20,
+      "n_matched": 18,
+      "n_unmatched": 14,
+      "rules": {
+        "null": 14,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.13944",
+      "pub_key": "2503-13944",
+      "n_entries": 42,
+      "n_candidates": 2,
+      "n_matched": 2,
+      "n_unmatched": 40,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 40
+      }
+    },
+    {
+      "arxiv_id": "2503.16247",
+      "pub_key": "2503-16247",
+      "n_entries": 80,
+      "n_candidates": 45,
+      "n_matched": 43,
+      "n_unmatched": 37,
+      "rules": {
+        "null": 37,
+        "title": 43
+      }
+    },
+    {
+      "arxiv_id": "2503.15361",
+      "pub_key": "2503-15361",
+      "n_entries": 66,
+      "n_candidates": 38,
+      "n_matched": 38,
+      "n_unmatched": 28,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 28,
+        "title": 34
+      }
+    },
+    {
+      "arxiv_id": "2503.13952",
+      "pub_key": "2503-13952",
+      "n_entries": 66,
+      "n_candidates": 33,
+      "n_matched": 48,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 9,
+        "null": 18,
+        "title": 39
+      }
+    },
+    {
+      "arxiv_id": "2503.12944",
+      "pub_key": "2503-12944",
+      "n_entries": 41,
+      "n_candidates": 34,
+      "n_matched": 33,
+      "n_unmatched": 8,
+      "rules": {
+        "arxiv_url": 13,
+        "null": 8,
+        "title": 20
+      }
+    },
+    {
+      "arxiv_id": "2503.16790",
+      "pub_key": "2503-16790",
+      "n_entries": 29,
+      "n_candidates": 2,
+      "n_matched": 0,
+      "n_unmatched": 29,
+      "rules": {
+        "null": 29
+      }
+    },
+    {
+      "arxiv_id": "2503.15721",
+      "pub_key": "2503-15721",
+      "n_entries": 18,
+      "n_candidates": 2,
+      "n_matched": 2,
+      "n_unmatched": 16,
+      "rules": {
+        "null": 16,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.16600",
+      "pub_key": "2503-16600",
+      "n_entries": 145,
+      "n_candidates": 88,
+      "n_matched": 91,
+      "n_unmatched": 54,
+      "rules": {
+        "doi": 15,
+        "null": 54,
+        "title": 76
+      }
+    },
+    {
+      "arxiv_id": "2503.12205",
+      "pub_key": "2503-12205",
+      "n_entries": 71,
+      "n_candidates": 19,
+      "n_matched": 16,
+      "n_unmatched": 55,
+      "rules": {
+        "arxiv_url": 1,
+        "doi": 1,
+        "null": 55,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.12857",
+      "pub_key": "2503-12857",
+      "n_entries": 100,
+      "n_candidates": 74,
+      "n_matched": 71,
+      "n_unmatched": 29,
+      "rules": {
+        "null": 29,
+        "title": 71
+      }
+    },
+    {
+      "arxiv_id": "2503.15807",
+      "pub_key": "2503-15807",
+      "n_entries": 44,
+      "n_candidates": 39,
+      "n_matched": 30,
+      "n_unmatched": 14,
+      "rules": {
+        "arxiv_url": 29,
+        "null": 14,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.16248",
+      "pub_key": "2503-16248",
+      "n_entries": 89,
+      "n_candidates": 35,
+      "n_matched": 35,
+      "n_unmatched": 54,
+      "rules": {
+        "arxiv_url": 31,
+        "null": 54,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.12470",
+      "pub_key": "2503-12470",
+      "n_entries": 48,
+      "n_candidates": 24,
+      "n_matched": 17,
+      "n_unmatched": 31,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 31,
+        "title": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.15834",
+      "pub_key": "2503-15834",
+      "n_entries": 99,
+      "n_candidates": 73,
+      "n_matched": 72,
+      "n_unmatched": 27,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 27,
+        "title": 60
+      }
+    },
+    {
+      "arxiv_id": "2503.15441",
+      "pub_key": "2503-15441",
+      "n_entries": 49,
+      "n_candidates": 10,
+      "n_matched": 4,
+      "n_unmatched": 45,
+      "rules": {
+        "null": 45,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.11938",
+      "pub_key": "2503-11938",
+      "n_entries": 116,
+      "n_candidates": 63,
+      "n_matched": 61,
+      "n_unmatched": 55,
+      "rules": {
+        "arxiv_url": 6,
+        "null": 55,
+        "title": 55
+      }
+    },
+    {
+      "arxiv_id": "2503.13793",
+      "pub_key": "2503-13793",
+      "n_entries": 121,
+      "n_candidates": 91,
+      "n_matched": 59,
+      "n_unmatched": 62,
+      "rules": {
+        "arxiv_url": 33,
+        "null": 62,
+        "title": 26
+      }
+    },
+    {
+      "arxiv_id": "2503.13109",
+      "pub_key": "2503-13109",
+      "n_entries": 49,
+      "n_candidates": 28,
+      "n_matched": 28,
+      "n_unmatched": 21,
+      "rules": {
+        "arxiv_url": 8,
+        "doi": 5,
+        "null": 21,
+        "title": 15
+      }
+    },
+    {
+      "arxiv_id": "2503.15630",
+      "pub_key": "2503-15630",
+      "n_entries": 83,
+      "n_candidates": 62,
+      "n_matched": 60,
+      "n_unmatched": 23,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 23,
+        "title": 56
+      }
+    },
+    {
+      "arxiv_id": "2503.16184",
+      "pub_key": "2503-16184",
+      "n_entries": 54,
+      "n_candidates": 37,
+      "n_matched": 33,
+      "n_unmatched": 21,
+      "rules": {
+        "arxiv_url": 9,
+        "null": 21,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.14897",
+      "pub_key": "2503-14897",
+      "n_entries": 79,
+      "n_candidates": 64,
+      "n_matched": 61,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 18,
+        "title": 53
+      }
+    },
+    {
+      "arxiv_id": "2503.14072",
+      "pub_key": "2503-14072",
+      "n_entries": 89,
+      "n_candidates": 5,
+      "n_matched": 0,
+      "n_unmatched": 89,
+      "rules": {
+        "null": 89
+      }
+    },
+    {
+      "arxiv_id": "2503.16005",
+      "pub_key": "2503-16005",
+      "n_entries": 26,
+      "n_candidates": 8,
+      "n_matched": 0,
+      "n_unmatched": 26,
+      "rules": {
+        "null": 26
+      }
+    },
+    {
+      "arxiv_id": "2503.16793",
+      "pub_key": "2503-16793",
+      "n_entries": 47,
+      "n_candidates": 30,
+      "n_matched": 30,
+      "n_unmatched": 17,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 17,
+        "title": 27
+      }
+    },
+    {
+      "arxiv_id": "2503.14498",
+      "pub_key": "2503-14498",
+      "n_entries": 33,
+      "n_candidates": 27,
+      "n_matched": 25,
+      "n_unmatched": 8,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 8,
+        "title": 20
+      }
+    },
+    {
+      "arxiv_id": "2503.15058",
+      "pub_key": "2503-15058",
+      "n_entries": 26,
+      "n_candidates": 12,
+      "n_matched": 9,
+      "n_unmatched": 17,
+      "rules": {
+        "null": 17,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.16697",
+      "pub_key": "2503-16697",
+      "n_entries": 26,
+      "n_candidates": 4,
+      "n_matched": 0,
+      "n_unmatched": 26,
+      "rules": {
+        "null": 26
+      }
+    },
+    {
+      "arxiv_id": "2503.16178",
+      "pub_key": "2503-16178",
+      "n_entries": 135,
+      "n_candidates": 41,
+      "n_matched": 24,
+      "n_unmatched": 111,
+      "rules": {
+        "null": 111,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.12048",
+      "pub_key": "2503-12048",
+      "n_entries": 89,
+      "n_candidates": 66,
+      "n_matched": 62,
+      "n_unmatched": 27,
+      "rules": {
+        "arxiv_url": 48,
+        "null": 27,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.16708",
+      "pub_key": "2503-16708",
+      "n_entries": 25,
+      "n_candidates": 21,
+      "n_matched": 20,
+      "n_unmatched": 5,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 5,
+        "title": 16
+      }
+    },
+    {
+      "arxiv_id": "2503.12150",
+      "pub_key": "2503-12150",
+      "n_entries": 88,
+      "n_candidates": 76,
+      "n_matched": 72,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 16,
+        "title": 71
+      }
+    },
+    {
+      "arxiv_id": "2503.14332",
+      "pub_key": "2503-14332",
+      "n_entries": 142,
+      "n_candidates": 129,
+      "n_matched": 124,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 16,
+        "null": 18,
+        "title": 108
+      }
+    },
+    {
+      "arxiv_id": "2503.16314",
+      "pub_key": "2503-16314",
+      "n_entries": 57,
+      "n_candidates": 29,
+      "n_matched": 25,
+      "n_unmatched": 32,
+      "rules": {
+        "arxiv_url": 1,
+        "doi": 1,
+        "null": 32,
+        "title": 23
+      }
+    },
+    {
+      "arxiv_id": "2503.14319",
+      "pub_key": "2503-14319",
+      "n_entries": 60,
+      "n_candidates": 20,
+      "n_matched": 19,
+      "n_unmatched": 41,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 41,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.16187",
+      "pub_key": "2503-16187",
+      "n_entries": 82,
+      "n_candidates": 41,
+      "n_matched": 29,
+      "n_unmatched": 53,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 53,
+        "title": 21
+      }
+    },
+    {
+      "arxiv_id": "2503.13316",
+      "pub_key": "2503-13316",
+      "n_entries": 37,
+      "n_candidates": 11,
+      "n_matched": 4,
+      "n_unmatched": 33,
+      "rules": {
+        "doi": 4,
+        "null": 33
+      }
+    },
+    {
+      "arxiv_id": "2503.12702",
+      "pub_key": "2503-12702",
+      "n_entries": 39,
+      "n_candidates": 13,
+      "n_matched": 13,
+      "n_unmatched": 26,
+      "rules": {
+        "null": 26,
+        "title": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.11987",
+      "pub_key": "2503-11987",
+      "n_entries": 33,
+      "n_candidates": 21,
+      "n_matched": 13,
+      "n_unmatched": 20,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 20,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.16115",
+      "pub_key": "2503-16115",
+      "n_entries": 41,
+      "n_candidates": 24,
+      "n_matched": 22,
+      "n_unmatched": 19,
+      "rules": {
+        "null": 19,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.13414",
+      "pub_key": "2503-13414",
+      "n_entries": 50,
+      "n_candidates": 13,
+      "n_matched": 12,
+      "n_unmatched": 38,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 38,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.13472",
+      "pub_key": "2503-13472",
+      "n_entries": 54,
+      "n_candidates": 1,
+      "n_matched": 0,
+      "n_unmatched": 54,
+      "rules": {
+        "null": 54
+      }
+    },
+    {
+      "arxiv_id": "2503.13821",
+      "pub_key": "2503-13821",
+      "n_entries": 83,
+      "n_candidates": 68,
+      "n_matched": 64,
+      "n_unmatched": 19,
+      "rules": {
+        "arxiv_url": 17,
+        "null": 19,
+        "title": 47
+      }
+    },
+    {
+      "arxiv_id": "2503.14201",
+      "pub_key": "2503-14201",
+      "n_entries": 65,
+      "n_candidates": 32,
+      "n_matched": 32,
+      "n_unmatched": 33,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 33,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.12192",
+      "pub_key": "2503-12192",
+      "n_entries": 125,
+      "n_candidates": 21,
+      "n_matched": 20,
+      "n_unmatched": 105,
+      "rules": {
+        "arxiv_url": 7,
+        "null": 105,
+        "title": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.12167",
+      "pub_key": "2503-12167",
+      "n_entries": 89,
+      "n_candidates": 69,
+      "n_matched": 68,
+      "n_unmatched": 21,
+      "rules": {
+        "arxiv_url": 51,
+        "null": 21,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.14941",
+      "pub_key": "2503-14941",
+      "n_entries": 55,
+      "n_candidates": 39,
+      "n_matched": 33,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 23,
+        "null": 22,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.16173",
+      "pub_key": "2503-16173",
+      "n_entries": 785,
+      "n_candidates": 286,
+      "n_matched": 277,
+      "n_unmatched": 508,
+      "rules": {
+        "arxiv_url": 230,
+        "null": 508,
+        "title": 47
+      }
+    },
+    {
+      "arxiv_id": "2503.12248",
+      "pub_key": "2503-12248",
+      "n_entries": 17,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 14,
+      "rules": {
+        "null": 14,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.12139",
+      "pub_key": "2503-12139",
+      "n_entries": 44,
+      "n_candidates": 16,
+      "n_matched": 15,
+      "n_unmatched": 29,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 29,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.12787",
+      "pub_key": "2503-12787",
+      "n_entries": 20,
+      "n_candidates": 7,
+      "n_matched": 6,
+      "n_unmatched": 14,
+      "rules": {
+        "null": 14,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.12879",
+      "pub_key": "2503-12879",
+      "n_entries": 76,
+      "n_candidates": 55,
+      "n_matched": 47,
+      "n_unmatched": 29,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 29,
+        "title": 44
+      }
+    },
+    {
+      "arxiv_id": "2503.12460",
+      "pub_key": "2503-12460",
+      "n_entries": 41,
+      "n_candidates": 29,
+      "n_matched": 28,
+      "n_unmatched": 13,
+      "rules": {
+        "arxiv_url": 7,
+        "null": 13,
+        "title": 21
+      }
+    },
+    {
+      "arxiv_id": "2503.15843",
+      "pub_key": "2503-15843",
+      "n_entries": 90,
+      "n_candidates": 67,
+      "n_matched": 59,
+      "n_unmatched": 31,
+      "rules": {
+        "arxiv_url": 18,
+        "null": 31,
+        "title": 41
+      }
+    },
+    {
+      "arxiv_id": "2503.15621",
+      "pub_key": "2503-15621",
+      "n_entries": 73,
+      "n_candidates": 65,
+      "n_matched": 62,
+      "n_unmatched": 11,
+      "rules": {
+        "arxiv_url": 26,
+        "null": 11,
+        "title": 36
+      }
+    },
+    {
+      "arxiv_id": "2503.13886",
+      "pub_key": "2503-13886",
+      "n_entries": 26,
+      "n_candidates": 19,
+      "n_matched": 16,
+      "n_unmatched": 10,
+      "rules": {
+        "arxiv_url": 1,
+        "doi": 3,
+        "null": 10,
+        "title": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.14744",
+      "pub_key": "2503-14744",
+      "n_entries": 232,
+      "n_candidates": 117,
+      "n_matched": 99,
+      "n_unmatched": 133,
+      "rules": {
+        "doi": 13,
+        "null": 133,
+        "title": 86
+      }
+    },
+    {
+      "arxiv_id": "2503.14041",
+      "pub_key": "2503-14041",
+      "n_entries": 21,
+      "n_candidates": 12,
+      "n_matched": 0,
+      "n_unmatched": 21,
+      "rules": {
+        "null": 21
+      }
+    },
+    {
+      "arxiv_id": "2503.14398",
+      "pub_key": "2503-14398",
+      "n_entries": 38,
+      "n_candidates": 9,
+      "n_matched": 6,
+      "n_unmatched": 32,
+      "rules": {
+        "null": 32,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.15360",
+      "pub_key": "2503-15360",
+      "n_entries": 57,
+      "n_candidates": 13,
+      "n_matched": 12,
+      "n_unmatched": 45,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 45,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.13992",
+      "pub_key": "2503-13992",
+      "n_entries": 67,
+      "n_candidates": 35,
+      "n_matched": 32,
+      "n_unmatched": 35,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 35,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.16809",
+      "pub_key": "2503-16809",
+      "n_entries": 22,
+      "n_candidates": 14,
+      "n_matched": 11,
+      "n_unmatched": 11,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 11,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.14230",
+      "pub_key": "2503-14230",
+      "n_entries": 44,
+      "n_candidates": 10,
+      "n_matched": 9,
+      "n_unmatched": 35,
+      "rules": {
+        "doi": 2,
+        "null": 35,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.15890",
+      "pub_key": "2503-15890",
+      "n_entries": 65,
+      "n_candidates": 34,
+      "n_matched": 28,
+      "n_unmatched": 37,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 37,
+        "title": 20
+      }
+    },
+    {
+      "arxiv_id": "2503.14301",
+      "pub_key": "2503-14301",
+      "n_entries": 43,
+      "n_candidates": 36,
+      "n_matched": 32,
+      "n_unmatched": 11,
+      "rules": {
+        "arxiv_url": 3,
+        "doi": 1,
+        "null": 11,
+        "title": 28
+      }
+    },
+    {
+      "arxiv_id": "2503.14718",
+      "pub_key": "2503-14718",
+      "n_entries": 33,
+      "n_candidates": 7,
+      "n_matched": 7,
+      "n_unmatched": 26,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 26,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.13818",
+      "pub_key": "2503-13818",
+      "n_entries": 104,
+      "n_candidates": 74,
+      "n_matched": 72,
+      "n_unmatched": 32,
+      "rules": {
+        "doi": 2,
+        "null": 32,
+        "title": 70
+      }
+    },
+    {
+      "arxiv_id": "2503.15974",
+      "pub_key": "2503-15974",
+      "n_entries": 49,
+      "n_candidates": 29,
+      "n_matched": 27,
+      "n_unmatched": 22,
+      "rules": {
+        "null": 22,
+        "title": 27
+      }
+    },
+    {
+      "arxiv_id": "2503.16110",
+      "pub_key": "2503-16110",
+      "n_entries": 23,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 20,
+      "rules": {
+        "null": 20,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.12814",
+      "pub_key": "2503-12814",
+      "n_entries": 63,
+      "n_candidates": 50,
+      "n_matched": 45,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 21,
+        "null": 18,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.13421",
+      "pub_key": "2503-13421",
+      "n_entries": 38,
+      "n_candidates": 22,
+      "n_matched": 19,
+      "n_unmatched": 19,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 19,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.14537",
+      "pub_key": "2503-14537",
+      "n_entries": 345,
+      "n_candidates": 211,
+      "n_matched": 262,
+      "n_unmatched": 83,
+      "rules": {
+        "arxiv_url": 78,
+        "null": 83,
+        "title": 184
+      }
+    },
+    {
+      "arxiv_id": "2503.12348",
+      "pub_key": "2503-12348",
+      "n_entries": 51,
+      "n_candidates": 23,
+      "n_matched": 24,
+      "n_unmatched": 27,
+      "rules": {
+        "arxiv_url": 11,
+        "doi": 1,
+        "null": 27,
+        "title": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.16775",
+      "pub_key": "2503-16775",
+      "n_entries": 41,
+      "n_candidates": 22,
+      "n_matched": 21,
+      "n_unmatched": 20,
+      "rules": {
+        "arxiv_url": 6,
+        "null": 20,
+        "title": 15
+      }
+    },
+    {
+      "arxiv_id": "2503.16492",
+      "pub_key": "2503-16492",
+      "n_entries": 71,
+      "n_candidates": 40,
+      "n_matched": 36,
+      "n_unmatched": 35,
+      "rules": {
+        "arxiv_url": 11,
+        "null": 35,
+        "title": 25
+      }
+    },
+    {
+      "arxiv_id": "2503.14532",
+      "pub_key": "2503-14532",
+      "n_entries": 65,
+      "n_candidates": 11,
+      "n_matched": 11,
+      "n_unmatched": 54,
+      "rules": {
+        "null": 54,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.13118",
+      "pub_key": "2503-13118",
+      "n_entries": 38,
+      "n_candidates": 22,
+      "n_matched": 20,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 18,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.16755",
+      "pub_key": "2503-16755",
+      "n_entries": 32,
+      "n_candidates": 14,
+      "n_matched": 10,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 22,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.12372",
+      "pub_key": "2503-12372",
+      "n_entries": 3,
+      "n_candidates": 2,
+      "n_matched": 3,
+      "n_unmatched": 0,
+      "rules": {
+        "doi": 1,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.14475",
+      "pub_key": "2503-14475",
+      "n_entries": 22,
+      "n_candidates": 17,
+      "n_matched": 17,
+      "n_unmatched": 5,
+      "rules": {
+        "arxiv_url": 9,
+        "null": 5,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.15669",
+      "pub_key": "2503-15669",
+      "n_entries": 98,
+      "n_candidates": 20,
+      "n_matched": 18,
+      "n_unmatched": 80,
+      "rules": {
+        "null": 80,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.15337",
+      "pub_key": "2503-15337",
+      "n_entries": 65,
+      "n_candidates": 48,
+      "n_matched": 44,
+      "n_unmatched": 21,
+      "rules": {
+        "null": 21,
+        "title": 44
+      }
+    },
+    {
+      "arxiv_id": "2503.12466",
+      "pub_key": "2503-12466",
+      "n_entries": 35,
+      "n_candidates": 31,
+      "n_matched": 31,
+      "n_unmatched": 4,
+      "rules": {
+        "arxiv_url": 14,
+        "null": 4,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.16723",
+      "pub_key": "2503-16723",
+      "n_entries": 50,
+      "n_candidates": 26,
+      "n_matched": 17,
+      "n_unmatched": 33,
+      "rules": {
+        "null": 33,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.16027",
+      "pub_key": "2503-16027",
+      "n_entries": 95,
+      "n_candidates": 25,
+      "n_matched": 15,
+      "n_unmatched": 80,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 80,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.15726",
+      "pub_key": "2503-15726",
+      "n_entries": 15,
+      "n_candidates": 9,
+      "n_matched": 8,
+      "n_unmatched": 7,
+      "rules": {
+        "arxiv_url": 6,
+        "null": 7,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.16877",
+      "pub_key": "2503-16877",
+      "n_entries": 36,
+      "n_candidates": 4,
+      "n_matched": 0,
+      "n_unmatched": 36,
+      "rules": {
+        "null": 36
+      }
+    },
+    {
+      "arxiv_id": "2503.13067",
+      "pub_key": "2503-13067",
+      "n_entries": 103,
+      "n_candidates": 15,
+      "n_matched": 11,
+      "n_unmatched": 92,
+      "rules": {
+        "null": 92,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.14631",
+      "pub_key": "2503-14631",
+      "n_entries": 25,
+      "n_candidates": 4,
+      "n_matched": 4,
+      "n_unmatched": 21,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 21,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.12169",
+      "pub_key": "2503-12169",
+      "n_entries": 52,
+      "n_candidates": 29,
+      "n_matched": 27,
+      "n_unmatched": 25,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 25,
+        "title": 25
+      }
+    },
+    {
+      "arxiv_id": "2503.13521",
+      "pub_key": "2503-13521",
+      "n_entries": 24,
+      "n_candidates": 3,
+      "n_matched": 2,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.12116",
+      "pub_key": "2503-12116",
+      "n_entries": 35,
+      "n_candidates": 22,
+      "n_matched": 20,
+      "n_unmatched": 15,
+      "rules": {
+        "doi": 2,
+        "null": 15,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.16870",
+      "pub_key": "2503-16870",
+      "n_entries": 105,
+      "n_candidates": 53,
+      "n_matched": 52,
+      "n_unmatched": 53,
+      "rules": {
+        "arxiv_url": 16,
+        "null": 53,
+        "title": 36
+      }
+    },
+    {
+      "arxiv_id": "2503.15856",
+      "pub_key": "2503-15856",
+      "n_entries": 76,
+      "n_candidates": 41,
+      "n_matched": 38,
+      "n_unmatched": 38,
+      "rules": {
+        "arxiv_url": 11,
+        "null": 38,
+        "title": 27
+      }
+    },
+    {
+      "arxiv_id": "2503.12819",
+      "pub_key": "2503-12819",
+      "n_entries": 73,
+      "n_candidates": 50,
+      "n_matched": 51,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 22,
+        "title": 48
+      }
+    },
+    {
+      "arxiv_id": "2503.16713",
+      "pub_key": "2503-16713",
+      "n_entries": 17,
+      "n_candidates": 8,
+      "n_matched": 1,
+      "n_unmatched": 16,
+      "rules": {
+        "null": 16,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.12377",
+      "pub_key": "2503-12377",
+      "n_entries": 35,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 32,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 32,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.16737",
+      "pub_key": "2503-16737",
+      "n_entries": 55,
+      "n_candidates": 19,
+      "n_matched": 12,
+      "n_unmatched": 43,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 43,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.16019",
+      "pub_key": "2503-16019",
+      "n_entries": 28,
+      "n_candidates": 9,
+      "n_matched": 1,
+      "n_unmatched": 27,
+      "rules": {
+        "null": 27,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.16896",
+      "pub_key": "2503-16896",
+      "n_entries": 131,
+      "n_candidates": 109,
+      "n_matched": 102,
+      "n_unmatched": 29,
+      "rules": {
+        "arxiv_url": 9,
+        "null": 29,
+        "title": 93
+      }
+    },
+    {
+      "arxiv_id": "2503.16105",
+      "pub_key": "2503-16105",
+      "n_entries": 33,
+      "n_candidates": 13,
+      "n_matched": 8,
+      "n_unmatched": 25,
+      "rules": {
+        "null": 25,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.16135",
+      "pub_key": "2503-16135",
+      "n_entries": 25,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 22,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.12827",
+      "pub_key": "2503-12827",
+      "n_entries": 52,
+      "n_candidates": 42,
+      "n_matched": 40,
+      "n_unmatched": 12,
+      "rules": {
+        "arxiv_url": 10,
+        "null": 12,
+        "title": 30
+      }
+    },
+    {
+      "arxiv_id": "2503.14773",
+      "pub_key": "2503-14773",
+      "n_entries": 25,
+      "n_candidates": 2,
+      "n_matched": 0,
+      "n_unmatched": 25,
+      "rules": {
+        "null": 25
+      }
+    },
+    {
+      "arxiv_id": "2503.13907",
+      "pub_key": "2503-13907",
+      "n_entries": 44,
+      "n_candidates": 9,
+      "n_matched": 9,
+      "n_unmatched": 35,
+      "rules": {
+        "null": 35,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.15434",
+      "pub_key": "2503-15434",
+      "n_entries": 55,
+      "n_candidates": 49,
+      "n_matched": 45,
+      "n_unmatched": 10,
+      "rules": {
+        "arxiv_url": 6,
+        "doi": 2,
+        "null": 10,
+        "title": 37
+      }
+    },
+    {
+      "arxiv_id": "2503.12556",
+      "pub_key": "2503-12556",
+      "n_entries": 20,
+      "n_candidates": 11,
+      "n_matched": 11,
+      "n_unmatched": 9,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 9,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.16394",
+      "pub_key": "2503-16394",
+      "n_entries": 47,
+      "n_candidates": 36,
+      "n_matched": 36,
+      "n_unmatched": 11,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 11,
+        "title": 32
+      }
+    },
+    {
+      "arxiv_id": "2503.16644",
+      "pub_key": "2503-16644",
+      "n_entries": 28,
+      "n_candidates": 5,
+      "n_matched": 5,
+      "n_unmatched": 23,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 23,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.13730",
+      "pub_key": "2503-13730",
+      "n_entries": 36,
+      "n_candidates": 28,
+      "n_matched": 27,
+      "n_unmatched": 9,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 9,
+        "title": 25
+      }
+    },
+    {
+      "arxiv_id": "2503.13873",
+      "pub_key": "2503-13873",
+      "n_entries": 22,
+      "n_candidates": 10,
+      "n_matched": 9,
+      "n_unmatched": 13,
+      "rules": {
+        "null": 13,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.15932",
+      "pub_key": "2503-15932",
+      "n_entries": 54,
+      "n_candidates": 36,
+      "n_matched": 34,
+      "n_unmatched": 20,
+      "rules": {
+        "arxiv_url": 1,
+        "doi": 1,
+        "null": 20,
+        "title": 32
+      }
+    },
+    {
+      "arxiv_id": "2503.15581",
+      "pub_key": "2503-15581",
+      "n_entries": 103,
+      "n_candidates": 9,
+      "n_matched": 9,
+      "n_unmatched": 94,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 94,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.15109",
+      "pub_key": "2503-15109",
+      "n_entries": 67,
+      "n_candidates": 23,
+      "n_matched": 15,
+      "n_unmatched": 52,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 52,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.14629",
+      "pub_key": "2503-14629",
+      "n_entries": 71,
+      "n_candidates": 62,
+      "n_matched": 0,
+      "n_unmatched": 71,
+      "rules": {
+        "null": 71
+      }
+    },
+    {
+      "arxiv_id": "2503.14318",
+      "pub_key": "2503-14318",
+      "n_entries": 39,
+      "n_candidates": 10,
+      "n_matched": 0,
+      "n_unmatched": 39,
+      "rules": {
+        "null": 39
+      }
+    },
+    {
+      "arxiv_id": "2503.16753",
+      "pub_key": "2503-16753",
+      "n_entries": 39,
+      "n_candidates": 21,
+      "n_matched": 15,
+      "n_unmatched": 24,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 24,
+        "title": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.12285",
+      "pub_key": "2503-12285",
+      "n_entries": 57,
+      "n_candidates": 22,
+      "n_matched": 20,
+      "n_unmatched": 37,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 37,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.16747",
+      "pub_key": "2503-16747",
+      "n_entries": 34,
+      "n_candidates": 15,
+      "n_matched": 14,
+      "n_unmatched": 20,
+      "rules": {
+        "null": 20,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.11962",
+      "pub_key": "2503-11962",
+      "n_entries": 43,
+      "n_candidates": 19,
+      "n_matched": 18,
+      "n_unmatched": 25,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 25,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.12008",
+      "pub_key": "2503-12008",
+      "n_entries": 12,
+      "n_candidates": 9,
+      "n_matched": 9,
+      "n_unmatched": 3,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 3,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.15987",
+      "pub_key": "2503-15987",
+      "n_entries": 30,
+      "n_candidates": 2,
+      "n_matched": 2,
+      "n_unmatched": 28,
+      "rules": {
+        "null": 28,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.13947",
+      "pub_key": "2503-13947",
+      "n_entries": 57,
+      "n_candidates": 42,
+      "n_matched": 40,
+      "n_unmatched": 17,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 17,
+        "title": 37
+      }
+    },
+    {
+      "arxiv_id": "2503.12993",
+      "pub_key": "2503-12993",
+      "n_entries": 37,
+      "n_candidates": 21,
+      "n_matched": 19,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 6,
+        "null": 18,
+        "title": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.15447",
+      "pub_key": "2503-15447",
+      "n_entries": 55,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 52,
+      "rules": {
+        "null": 52,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.12845",
+      "pub_key": "2503-12845",
+      "n_entries": 105,
+      "n_candidates": 1,
+      "n_matched": 0,
+      "n_unmatched": 105,
+      "rules": {
+        "null": 105
+      }
+    },
+    {
+      "arxiv_id": "2503.14633",
+      "pub_key": "2503-14633",
+      "n_entries": 85,
+      "n_candidates": 46,
+      "n_matched": 43,
+      "n_unmatched": 42,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 42,
+        "title": 40
+      }
+    },
+    {
+      "arxiv_id": "2503.13326",
+      "pub_key": "2503-13326",
+      "n_entries": 10,
+      "n_candidates": 4,
+      "n_matched": 2,
+      "n_unmatched": 8,
+      "rules": {
+        "null": 8,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.12940",
+      "pub_key": "2503-12940",
+      "n_entries": 11,
+      "n_candidates": 4,
+      "n_matched": 0,
+      "n_unmatched": 11,
+      "rules": {
+        "null": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.16785",
+      "pub_key": "2503-16785",
+      "n_entries": 52,
+      "n_candidates": 24,
+      "n_matched": 23,
+      "n_unmatched": 29,
+      "rules": {
+        "doi": 2,
+        "null": 29,
+        "title": 21
+      }
+    },
+    {
+      "arxiv_id": "2503.16326",
+      "pub_key": "2503-16326",
+      "n_entries": 69,
+      "n_candidates": 22,
+      "n_matched": 22,
+      "n_unmatched": 47,
+      "rules": {
+        "arxiv_url": 5,
+        "doi": 1,
+        "null": 47,
+        "title": 16
+      }
+    },
+    {
+      "arxiv_id": "2503.14392",
+      "pub_key": "2503-14392",
+      "n_entries": 14,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 11,
+      "rules": {
+        "null": 11,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.11963",
+      "pub_key": "2503-11963",
+      "n_entries": 71,
+      "n_candidates": 17,
+      "n_matched": 17,
+      "n_unmatched": 54,
+      "rules": {
+        "null": 54,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.16584",
+      "pub_key": "2503-16584",
+      "n_entries": 22,
+      "n_candidates": 3,
+      "n_matched": 1,
+      "n_unmatched": 21,
+      "rules": {
+        "null": 21,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.12456",
+      "pub_key": "2503-12456",
+      "n_entries": 32,
+      "n_candidates": 6,
+      "n_matched": 0,
+      "n_unmatched": 32,
+      "rules": {
+        "null": 32
+      }
+    },
+    {
+      "arxiv_id": "2503.16601",
+      "pub_key": "2503-16601",
+      "n_entries": 107,
+      "n_candidates": 59,
+      "n_matched": 54,
+      "n_unmatched": 53,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 53,
+        "title": 51
+      }
+    },
+    {
+      "arxiv_id": "2503.16885",
+      "pub_key": "2503-16885",
+      "n_entries": 84,
+      "n_candidates": 70,
+      "n_matched": 65,
+      "n_unmatched": 19,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 19,
+        "title": 61
+      }
+    },
+    {
+      "arxiv_id": "2503.16654",
+      "pub_key": "2503-16654",
+      "n_entries": 41,
+      "n_candidates": 30,
+      "n_matched": 25,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 16,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.15020",
+      "pub_key": "2503-15020",
+      "n_entries": 36,
+      "n_candidates": 7,
+      "n_matched": 6,
+      "n_unmatched": 30,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 30,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.15178",
+      "pub_key": "2503-15178",
+      "n_entries": 31,
+      "n_candidates": 25,
+      "n_matched": 23,
+      "n_unmatched": 8,
+      "rules": {
+        "null": 8,
+        "title": 23
+      }
+    },
+    {
+      "arxiv_id": "2503.16893",
+      "pub_key": "2503-16893",
+      "n_entries": 47,
+      "n_candidates": 25,
+      "n_matched": 25,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 10,
+        "null": 22,
+        "title": 15
+      }
+    },
+    {
+      "arxiv_id": "2503.16188",
+      "pub_key": "2503-16188",
+      "n_entries": 98,
+      "n_candidates": 52,
+      "n_matched": 51,
+      "n_unmatched": 47,
+      "rules": {
+        "arxiv_url": 33,
+        "null": 47,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.12526",
+      "pub_key": "2503-12526",
+      "n_entries": 34,
+      "n_candidates": 28,
+      "n_matched": 28,
+      "n_unmatched": 6,
+      "rules": {
+        "arxiv_url": 10,
+        "null": 6,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.14567",
+      "pub_key": "2503-14567",
+      "n_entries": 18,
+      "n_candidates": 7,
+      "n_matched": 7,
+      "n_unmatched": 11,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 11,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.16234",
+      "pub_key": "2503-16234",
+      "n_entries": 56,
+      "n_candidates": 32,
+      "n_matched": 30,
+      "n_unmatched": 26,
+      "rules": {
+        "null": 26,
+        "title": 30
+      }
+    },
+    {
+      "arxiv_id": "2503.14288",
+      "pub_key": "2503-14288",
+      "n_entries": 27,
+      "n_candidates": 10,
+      "n_matched": 4,
+      "n_unmatched": 23,
+      "rules": {
+        "null": 23,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.13446",
+      "pub_key": "2503-13446",
+      "n_entries": 42,
+      "n_candidates": 38,
+      "n_matched": 37,
+      "n_unmatched": 5,
+      "rules": {
+        "null": 5,
+        "title": 37
+      }
+    },
+    {
+      "arxiv_id": "2503.13161",
+      "pub_key": "2503-13161",
+      "n_entries": 45,
+      "n_candidates": 14,
+      "n_matched": 0,
+      "n_unmatched": 45,
+      "rules": {
+        "null": 45
+      }
+    },
+    {
+      "arxiv_id": "2503.16073",
+      "pub_key": "2503-16073",
+      "n_entries": 104,
+      "n_candidates": 71,
+      "n_matched": 67,
+      "n_unmatched": 37,
+      "rules": {
+        "arxiv_url": 34,
+        "null": 37,
+        "title": 33
+      }
+    },
+    {
+      "arxiv_id": "2503.13367",
+      "pub_key": "2503-13367",
+      "n_entries": 25,
+      "n_candidates": 11,
+      "n_matched": 10,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 15,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.15705",
+      "pub_key": "2503-15705",
+      "n_entries": 30,
+      "n_candidates": 4,
+      "n_matched": 2,
+      "n_unmatched": 28,
+      "rules": {
+        "null": 28,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.16061",
+      "pub_key": "2503-16061",
+      "n_entries": 37,
+      "n_candidates": 10,
+      "n_matched": 6,
+      "n_unmatched": 31,
+      "rules": {
+        "null": 31,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.16749",
+      "pub_key": "2503-16749",
+      "n_entries": 104,
+      "n_candidates": 30,
+      "n_matched": 28,
+      "n_unmatched": 76,
+      "rules": {
+        "null": 76,
+        "title": 28
+      }
+    },
+    {
+      "arxiv_id": "2503.16092",
+      "pub_key": "2503-16092",
+      "n_entries": 63,
+      "n_candidates": 14,
+      "n_matched": 6,
+      "n_unmatched": 57,
+      "rules": {
+        "null": 57,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.15265",
+      "pub_key": "2503-15265",
+      "n_entries": 88,
+      "n_candidates": 94,
+      "n_matched": 83,
+      "n_unmatched": 5,
+      "rules": {
+        "arxiv_url": 46,
+        "null": 5,
+        "title": 37
+      }
+    },
+    {
+      "arxiv_id": "2503.16903",
+      "pub_key": "2503-16903",
+      "n_entries": 88,
+      "n_candidates": 73,
+      "n_matched": 69,
+      "n_unmatched": 19,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 19,
+        "title": 68
+      }
+    },
+    {
+      "arxiv_id": "2503.14378",
+      "pub_key": "2503-14378",
+      "n_entries": 55,
+      "n_candidates": 45,
+      "n_matched": 45,
+      "n_unmatched": 10,
+      "rules": {
+        "arxiv_url": 33,
+        "null": 10,
+        "title": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.13625",
+      "pub_key": "2503-13625",
+      "n_entries": 66,
+      "n_candidates": 9,
+      "n_matched": 9,
+      "n_unmatched": 57,
+      "rules": {
+        "null": 57,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.14417",
+      "pub_key": "2503-14417",
+      "n_entries": 20,
+      "n_candidates": 8,
+      "n_matched": 5,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 15,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.13714",
+      "pub_key": "2503-13714",
+      "n_entries": 46,
+      "n_candidates": 9,
+      "n_matched": 8,
+      "n_unmatched": 38,
+      "rules": {
+        "null": 38,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.12368",
+      "pub_key": "2503-12368",
+      "n_entries": 20,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 17,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 17,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.15030",
+      "pub_key": "2503-15030",
+      "n_entries": 64,
+      "n_candidates": 17,
+      "n_matched": 16,
+      "n_unmatched": 48,
+      "rules": {
+        "arxiv_url": 16,
+        "null": 48
+      }
+    },
+    {
+      "arxiv_id": "2503.12020",
+      "pub_key": "2503-12020",
+      "n_entries": 16,
+      "n_candidates": 10,
+      "n_matched": 10,
+      "n_unmatched": 6,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 6,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.13762",
+      "pub_key": "2503-13762",
+      "n_entries": 82,
+      "n_candidates": 6,
+      "n_matched": 3,
+      "n_unmatched": 79,
+      "rules": {
+        "arxiv_url": 1,
+        "doi": 1,
+        "null": 79,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.13699",
+      "pub_key": "2503-13699",
+      "n_entries": 38,
+      "n_candidates": 25,
+      "n_matched": 19,
+      "n_unmatched": 19,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 19,
+        "title": 16
+      }
+    },
+    {
+      "arxiv_id": "2503.13621",
+      "pub_key": "2503-13621",
+      "n_entries": 18,
+      "n_candidates": 16,
+      "n_matched": 15,
+      "n_unmatched": 3,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 3,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.12935",
+      "pub_key": "2503-12935",
+      "n_entries": 59,
+      "n_candidates": 33,
+      "n_matched": 0,
+      "n_unmatched": 59,
+      "rules": {
+        "null": 59
+      }
+    },
+    {
+      "arxiv_id": "2503.11915",
+      "pub_key": "2503-11915",
+      "n_entries": 32,
+      "n_candidates": 7,
+      "n_matched": 7,
+      "n_unmatched": 25,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 25,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.14354",
+      "pub_key": "2503-14354",
+      "n_entries": 37,
+      "n_candidates": 5,
+      "n_matched": 5,
+      "n_unmatched": 32,
+      "rules": {
+        "null": 32,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.12489",
+      "pub_key": "2503-12489",
+      "n_entries": 39,
+      "n_candidates": 22,
+      "n_matched": 21,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 18,
+        "title": 19
+      }
+    },
+    {
+      "arxiv_id": "2503.12947",
+      "pub_key": "2503-12947",
+      "n_entries": 58,
+      "n_candidates": 42,
+      "n_matched": 41,
+      "n_unmatched": 17,
+      "rules": {
+        "null": 17,
+        "title": 41
+      }
+    },
+    {
+      "arxiv_id": "2503.14372",
+      "pub_key": "2503-14372",
+      "n_entries": 37,
+      "n_candidates": 17,
+      "n_matched": 16,
+      "n_unmatched": 21,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 21,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.16420",
+      "pub_key": "2503-16420",
+      "n_entries": 70,
+      "n_candidates": 60,
+      "n_matched": 58,
+      "n_unmatched": 12,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 12,
+        "title": 54
+      }
+    },
+    {
+      "arxiv_id": "2503.15707",
+      "pub_key": "2503-15707",
+      "n_entries": 45,
+      "n_candidates": 29,
+      "n_matched": 29,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 15,
+        "null": 16,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.13768",
+      "pub_key": "2503-13768",
+      "n_entries": 19,
+      "n_candidates": 5,
+      "n_matched": 1,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.15582",
+      "pub_key": "2503-15582",
+      "n_entries": 65,
+      "n_candidates": 12,
+      "n_matched": 11,
+      "n_unmatched": 54,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 54,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.15955",
+      "pub_key": "2503-15955",
+      "n_entries": 24,
+      "n_candidates": 3,
+      "n_matched": 2,
+      "n_unmatched": 22,
+      "rules": {
+        "null": 22,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.15888",
+      "pub_key": "2503-15888",
+      "n_entries": 74,
+      "n_candidates": 67,
+      "n_matched": 67,
+      "n_unmatched": 7,
+      "rules": {
+        "arxiv_url": 51,
+        "null": 7,
+        "title": 16
+      }
+    },
+    {
+      "arxiv_id": "2503.14243",
+      "pub_key": "2503-14243",
+      "n_entries": 25,
+      "n_candidates": 5,
+      "n_matched": 0,
+      "n_unmatched": 25,
+      "rules": {
+        "null": 25
+      }
+    },
+    {
+      "arxiv_id": "2503.16802",
+      "pub_key": "2503-16802",
+      "n_entries": 57,
+      "n_candidates": 21,
+      "n_matched": 19,
+      "n_unmatched": 38,
+      "rules": {
+        "null": 38,
+        "title": 19
+      }
+    },
+    {
+      "arxiv_id": "2503.14596",
+      "pub_key": "2503-14596",
+      "n_entries": 51,
+      "n_candidates": 19,
+      "n_matched": 14,
+      "n_unmatched": 37,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 37,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.14167",
+      "pub_key": "2503-14167",
+      "n_entries": 37,
+      "n_candidates": 26,
+      "n_matched": 26,
+      "n_unmatched": 11,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 11,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.13193",
+      "pub_key": "2503-13193",
+      "n_entries": 37,
+      "n_candidates": 33,
+      "n_matched": 17,
+      "n_unmatched": 20,
+      "rules": {
+        "arxiv_url": 9,
+        "null": 20,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.13792",
+      "pub_key": "2503-13792",
+      "n_entries": 73,
+      "n_candidates": 60,
+      "n_matched": 57,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 17,
+        "null": 16,
+        "title": 40
+      }
+    },
+    {
+      "arxiv_id": "2503.15829",
+      "pub_key": "2503-15829",
+      "n_entries": 36,
+      "n_candidates": 12,
+      "n_matched": 6,
+      "n_unmatched": 30,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 30,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.13488",
+      "pub_key": "2503-13488",
+      "n_entries": 17,
+      "n_candidates": 5,
+      "n_matched": 5,
+      "n_unmatched": 12,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 12,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.12427",
+      "pub_key": "2503-12427",
+      "n_entries": 48,
+      "n_candidates": 13,
+      "n_matched": 12,
+      "n_unmatched": 36,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 36,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.14829",
+      "pub_key": "2503-14829",
+      "n_entries": 36,
+      "n_candidates": 10,
+      "n_matched": 6,
+      "n_unmatched": 30,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 30,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.13742",
+      "pub_key": "2503-13742",
+      "n_entries": 93,
+      "n_candidates": 20,
+      "n_matched": 20,
+      "n_unmatched": 73,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 73,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.14869",
+      "pub_key": "2503-14869",
+      "n_entries": 35,
+      "n_candidates": 12,
+      "n_matched": 11,
+      "n_unmatched": 24,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 24,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.16829",
+      "pub_key": "2503-16829",
+      "n_entries": 23,
+      "n_candidates": 15,
+      "n_matched": 7,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 16,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.16699",
+      "pub_key": "2503-16699",
+      "n_entries": 75,
+      "n_candidates": 49,
+      "n_matched": 39,
+      "n_unmatched": 36,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 36,
+        "title": 36
+      }
+    },
+    {
+      "arxiv_id": "2503.14807",
+      "pub_key": "2503-14807",
+      "n_entries": 26,
+      "n_candidates": 6,
+      "n_matched": 3,
+      "n_unmatched": 23,
+      "rules": {
+        "null": 23,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.13732",
+      "pub_key": "2503-13732",
+      "n_entries": 69,
+      "n_candidates": 16,
+      "n_matched": 0,
+      "n_unmatched": 69,
+      "rules": {
+        "null": 69
+      }
+    },
+    {
+      "arxiv_id": "2503.15796",
+      "pub_key": "2503-15796",
+      "n_entries": 37,
+      "n_candidates": 5,
+      "n_matched": 5,
+      "n_unmatched": 32,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 32,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.15446",
+      "pub_key": "2503-15446",
+      "n_entries": 45,
+      "n_candidates": 32,
+      "n_matched": 29,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 6,
+        "null": 16,
+        "title": 23
+      }
+    },
+    {
+      "arxiv_id": "2503.14019",
+      "pub_key": "2503-14019",
+      "n_entries": 47,
+      "n_candidates": 30,
+      "n_matched": 18,
+      "n_unmatched": 29,
+      "rules": {
+        "arxiv_url": 10,
+        "null": 29,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.12322",
+      "pub_key": "2503-12322",
+      "n_entries": 222,
+      "n_candidates": 2,
+      "n_matched": 1,
+      "n_unmatched": 221,
+      "rules": {
+        "null": 221,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.16460",
+      "pub_key": "2503-16460",
+      "n_entries": 27,
+      "n_candidates": 7,
+      "n_matched": 7,
+      "n_unmatched": 20,
+      "rules": {
+        "arxiv_url": 5,
+        "doi": 1,
+        "null": 20,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.13634",
+      "pub_key": "2503-13634",
+      "n_entries": 33,
+      "n_candidates": 12,
+      "n_matched": 1,
+      "n_unmatched": 32,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 32
+      }
+    },
+    {
+      "arxiv_id": "2503.16053",
+      "pub_key": "2503-16053",
+      "n_entries": 48,
+      "n_candidates": 30,
+      "n_matched": 14,
+      "n_unmatched": 34,
+      "rules": {
+        "null": 34,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.16323",
+      "pub_key": "2503-16323",
+      "n_entries": 52,
+      "n_candidates": 6,
+      "n_matched": 3,
+      "n_unmatched": 49,
+      "rules": {
+        "doi": 2,
+        "null": 49,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.13461",
+      "pub_key": "2503-13461",
+      "n_entries": 56,
+      "n_candidates": 2,
+      "n_matched": 2,
+      "n_unmatched": 54,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 54
+      }
+    },
+    {
+      "arxiv_id": "2503.14408",
+      "pub_key": "2503-14408",
+      "n_entries": 44,
+      "n_candidates": 4,
+      "n_matched": 4,
+      "n_unmatched": 40,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 40,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.14140",
+      "pub_key": "2503-14140",
+      "n_entries": 96,
+      "n_candidates": 74,
+      "n_matched": 73,
+      "n_unmatched": 23,
+      "rules": {
+        "arxiv_url": 28,
+        "null": 23,
+        "title": 45
+      }
+    },
+    {
+      "arxiv_id": "2503.15255",
+      "pub_key": "2503-15255",
+      "n_entries": 52,
+      "n_candidates": 8,
+      "n_matched": 10,
+      "n_unmatched": 42,
+      "rules": {
+        "null": 42,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.12365",
+      "pub_key": "2503-12365",
+      "n_entries": 36,
+      "n_candidates": 22,
+      "n_matched": 19,
+      "n_unmatched": 17,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 17,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.14526",
+      "pub_key": "2503-14526",
+      "n_entries": 46,
+      "n_candidates": 41,
+      "n_matched": 41,
+      "n_unmatched": 5,
+      "rules": {
+        "arxiv_url": 23,
+        "null": 5,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.12758",
+      "pub_key": "2503-12758",
+      "n_entries": 51,
+      "n_candidates": 38,
+      "n_matched": 35,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 22,
+        "null": 16,
+        "title": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.14673",
+      "pub_key": "2503-14673",
+      "n_entries": 70,
+      "n_candidates": 79,
+      "n_matched": 47,
+      "n_unmatched": 23,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 23,
+        "title": 39
+      }
+    },
+    {
+      "arxiv_id": "2503.12995",
+      "pub_key": "2503-12995",
+      "n_entries": 36,
+      "n_candidates": 11,
+      "n_matched": 5,
+      "n_unmatched": 31,
+      "rules": {
+        "null": 31,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.15753",
+      "pub_key": "2503-15753",
+      "n_entries": 21,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 18,
+      "rules": {
+        "null": 18,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.13717",
+      "pub_key": "2503-13717",
+      "n_entries": 50,
+      "n_candidates": 39,
+      "n_matched": 0,
+      "n_unmatched": 50,
+      "rules": {
+        "null": 50
+      }
+    },
+    {
+      "arxiv_id": "2503.16540",
+      "pub_key": "2503-16540",
+      "n_entries": 24,
+      "n_candidates": 5,
+      "n_matched": 5,
+      "n_unmatched": 19,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 19,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.16702",
+      "pub_key": "2503-16702",
+      "n_entries": 57,
+      "n_candidates": 28,
+      "n_matched": 11,
+      "n_unmatched": 46,
+      "rules": {
+        "null": 46,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.14763",
+      "pub_key": "2503-14763",
+      "n_entries": 24,
+      "n_candidates": 6,
+      "n_matched": 5,
+      "n_unmatched": 19,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 19,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.12781",
+      "pub_key": "2503-12781",
+      "n_entries": 200,
+      "n_candidates": 134,
+      "n_matched": 128,
+      "n_unmatched": 72,
+      "rules": {
+        "arxiv_url": 65,
+        "null": 72,
+        "title": 63
+      }
+    },
+    {
+      "arxiv_id": "2503.13619",
+      "pub_key": "2503-13619",
+      "n_entries": 30,
+      "n_candidates": 4,
+      "n_matched": 3,
+      "n_unmatched": 27,
+      "rules": {
+        "null": 27,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.15950",
+      "pub_key": "2503-15950",
+      "n_entries": 13,
+      "n_candidates": 6,
+      "n_matched": 0,
+      "n_unmatched": 13,
+      "rules": {
+        "null": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.14927",
+      "pub_key": "2503-14927",
+      "n_entries": 43,
+      "n_candidates": 14,
+      "n_matched": 7,
+      "n_unmatched": 36,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 36,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.12007",
+      "pub_key": "2503-12007",
+      "n_entries": 70,
+      "n_candidates": 31,
+      "n_matched": 29,
+      "n_unmatched": 41,
+      "rules": {
+        "null": 41,
+        "title": 29
+      }
+    },
+    {
+      "arxiv_id": "2503.15623",
+      "pub_key": "2503-15623",
+      "n_entries": 19,
+      "n_candidates": 11,
+      "n_matched": 4,
+      "n_unmatched": 15,
+      "rules": {
+        "null": 15,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.12608",
+      "pub_key": "2503-12608",
+      "n_entries": 57,
+      "n_candidates": 42,
+      "n_matched": 37,
+      "n_unmatched": 20,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 20,
+        "title": 32
+      }
+    },
+    {
+      "arxiv_id": "2503.12350",
+      "pub_key": "2503-12350",
+      "n_entries": 31,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 28,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 28,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.12630",
+      "pub_key": "2503-12630",
+      "n_entries": 85,
+      "n_candidates": 54,
+      "n_matched": 47,
+      "n_unmatched": 38,
+      "rules": {
+        "null": 38,
+        "title": 47
+      }
+    },
+    {
+      "arxiv_id": "2503.14626",
+      "pub_key": "2503-14626",
+      "n_entries": 44,
+      "n_candidates": 12,
+      "n_matched": 12,
+      "n_unmatched": 32,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 32,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.14606",
+      "pub_key": "2503-14606",
+      "n_entries": 75,
+      "n_candidates": 2,
+      "n_matched": 2,
+      "n_unmatched": 73,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 73,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.13617",
+      "pub_key": "2503-13617",
+      "n_entries": 101,
+      "n_candidates": 65,
+      "n_matched": 57,
+      "n_unmatched": 44,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 44,
+        "title": 54
+      }
+    },
+    {
+      "arxiv_id": "2503.16673",
+      "pub_key": "2503-16673",
+      "n_entries": 35,
+      "n_candidates": 18,
+      "n_matched": 16,
+      "n_unmatched": 19,
+      "rules": {
+        "arxiv_url": 6,
+        "null": 19,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.12002",
+      "pub_key": "2503-12002",
+      "n_entries": 14,
+      "n_candidates": 4,
+      "n_matched": 3,
+      "n_unmatched": 11,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 11,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.13537",
+      "pub_key": "2503-13537",
+      "n_entries": 47,
+      "n_candidates": 39,
+      "n_matched": 32,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 15,
+        "title": 31
+      }
+    },
+    {
+      "arxiv_id": "2503.16422",
+      "pub_key": "2503-16422",
+      "n_entries": 43,
+      "n_candidates": 43,
+      "n_matched": 38,
+      "n_unmatched": 5,
+      "rules": {
+        "null": 5,
+        "title": 38
+      }
+    },
+    {
+      "arxiv_id": "2503.15822",
+      "pub_key": "2503-15822",
+      "n_entries": 54,
+      "n_candidates": 17,
+      "n_matched": 13,
+      "n_unmatched": 41,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 41,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.14283",
+      "pub_key": "2503-14283",
+      "n_entries": 1,
+      "n_candidates": 3,
+      "n_matched": 0,
+      "n_unmatched": 1,
+      "rules": {
+        "null": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.13635",
+      "pub_key": "2503-13635",
+      "n_entries": 43,
+      "n_candidates": 4,
+      "n_matched": 4,
+      "n_unmatched": 39,
+      "rules": {
+        "null": 39,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.14098",
+      "pub_key": "2503-14098",
+      "n_entries": 102,
+      "n_candidates": 53,
+      "n_matched": 23,
+      "n_unmatched": 79,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 79,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.14517",
+      "pub_key": "2503-14517",
+      "n_entries": 58,
+      "n_candidates": 47,
+      "n_matched": 46,
+      "n_unmatched": 12,
+      "rules": {
+        "arxiv_url": 6,
+        "null": 12,
+        "title": 40
+      }
+    },
+    {
+      "arxiv_id": "2503.12558",
+      "pub_key": "2503-12558",
+      "n_entries": 46,
+      "n_candidates": 6,
+      "n_matched": 6,
+      "n_unmatched": 40,
+      "rules": {
+        "null": 40,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.11980",
+      "pub_key": "2503-11980",
+      "n_entries": 65,
+      "n_candidates": 42,
+      "n_matched": 31,
+      "n_unmatched": 34,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 34,
+        "title": 30
+      }
+    },
+    {
+      "arxiv_id": "2503.15369",
+      "pub_key": "2503-15369",
+      "n_entries": 45,
+      "n_candidates": 34,
+      "n_matched": 32,
+      "n_unmatched": 13,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 13,
+        "title": 20
+      }
+    },
+    {
+      "arxiv_id": "2503.13427",
+      "pub_key": "2503-13427",
+      "n_entries": 68,
+      "n_candidates": 40,
+      "n_matched": 38,
+      "n_unmatched": 30,
+      "rules": {
+        "arxiv_url": 12,
+        "doi": 1,
+        "null": 30,
+        "title": 25
+      }
+    },
+    {
+      "arxiv_id": "2503.15112",
+      "pub_key": "2503-15112",
+      "n_entries": 58,
+      "n_candidates": 25,
+      "n_matched": 21,
+      "n_unmatched": 37,
+      "rules": {
+        "arxiv_url": 17,
+        "null": 37,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.15328",
+      "pub_key": "2503-15328",
+      "n_entries": 76,
+      "n_candidates": 2,
+      "n_matched": 1,
+      "n_unmatched": 75,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 75
+      }
+    },
+    {
+      "arxiv_id": "2503.12104",
+      "pub_key": "2503-12104",
+      "n_entries": 51,
+      "n_candidates": 9,
+      "n_matched": 2,
+      "n_unmatched": 49,
+      "rules": {
+        "null": 49,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.15325",
+      "pub_key": "2503-15325",
+      "n_entries": 71,
+      "n_candidates": 102,
+      "n_matched": 10,
+      "n_unmatched": 61,
+      "rules": {
+        "doi": 1,
+        "null": 61,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.15230",
+      "pub_key": "2503-15230",
+      "n_entries": 27,
+      "n_candidates": 6,
+      "n_matched": 6,
+      "n_unmatched": 21,
+      "rules": {
+        "null": 21,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.12130",
+      "pub_key": "2503-12130",
+      "n_entries": 19,
+      "n_candidates": 9,
+      "n_matched": 0,
+      "n_unmatched": 19,
+      "rules": {
+        "null": 19
+      }
+    },
+    {
+      "arxiv_id": "2503.16771",
+      "pub_key": "2503-16771",
+      "n_entries": 109,
+      "n_candidates": 28,
+      "n_matched": 37,
+      "n_unmatched": 72,
+      "rules": {
+        "arxiv_url": 21,
+        "null": 72,
+        "title": 16
+      }
+    },
+    {
+      "arxiv_id": "2503.15049",
+      "pub_key": "2503-15049",
+      "n_entries": 59,
+      "n_candidates": 37,
+      "n_matched": 28,
+      "n_unmatched": 31,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 31,
+        "title": 23
+      }
+    },
+    {
+      "arxiv_id": "2503.16765",
+      "pub_key": "2503-16765",
+      "n_entries": 37,
+      "n_candidates": 7,
+      "n_matched": 5,
+      "n_unmatched": 32,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 32,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.15768",
+      "pub_key": "2503-15768",
+      "n_entries": 45,
+      "n_candidates": 26,
+      "n_matched": 29,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 16,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.13378",
+      "pub_key": "2503-13378",
+      "n_entries": 12,
+      "n_candidates": 2,
+      "n_matched": 0,
+      "n_unmatched": 12,
+      "rules": {
+        "null": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.12820",
+      "pub_key": "2503-12820",
+      "n_entries": 53,
+      "n_candidates": 40,
+      "n_matched": 40,
+      "n_unmatched": 13,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 13,
+        "title": 28
+      }
+    },
+    {
+      "arxiv_id": "2503.16770",
+      "pub_key": "2503-16770",
+      "n_entries": 15,
+      "n_candidates": 3,
+      "n_matched": 1,
+      "n_unmatched": 14,
+      "rules": {
+        "null": 14,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.14699",
+      "pub_key": "2503-14699",
+      "n_entries": 58,
+      "n_candidates": 23,
+      "n_matched": 9,
+      "n_unmatched": 49,
+      "rules": {
+        "null": 49,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.16837",
+      "pub_key": "2503-16837",
+      "n_entries": 72,
+      "n_candidates": 48,
+      "n_matched": 47,
+      "n_unmatched": 25,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 25,
+        "title": 45
+      }
+    },
+    {
+      "arxiv_id": "2503.13639",
+      "pub_key": "2503-13639",
+      "n_entries": 22,
+      "n_candidates": 12,
+      "n_matched": 0,
+      "n_unmatched": 22,
+      "rules": {
+        "null": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.13209",
+      "pub_key": "2503-13209",
+      "n_entries": 18,
+      "n_candidates": 1,
+      "n_matched": 1,
+      "n_unmatched": 17,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.14194",
+      "pub_key": "2503-14194",
+      "n_entries": 30,
+      "n_candidates": 20,
+      "n_matched": 20,
+      "n_unmatched": 10,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 10,
+        "title": 16
+      }
+    },
+    {
+      "arxiv_id": "2503.14213",
+      "pub_key": "2503-14213",
+      "n_entries": 39,
+      "n_candidates": 19,
+      "n_matched": 16,
+      "n_unmatched": 23,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 23,
+        "title": 15
+      }
+    },
+    {
+      "arxiv_id": "2503.13598",
+      "pub_key": "2503-13598",
+      "n_entries": 81,
+      "n_candidates": 72,
+      "n_matched": 71,
+      "n_unmatched": 10,
+      "rules": {
+        "arxiv_url": 71,
+        "null": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.16041",
+      "pub_key": "2503-16041",
+      "n_entries": 47,
+      "n_candidates": 14,
+      "n_matched": 13,
+      "n_unmatched": 34,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 34,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.12621",
+      "pub_key": "2503-12621",
+      "n_entries": 19,
+      "n_candidates": 4,
+      "n_matched": 4,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 15,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.14702",
+      "pub_key": "2503-14702",
+      "n_entries": 84,
+      "n_candidates": 42,
+      "n_matched": 36,
+      "n_unmatched": 48,
+      "rules": {
+        "arxiv_url": 11,
+        "null": 48,
+        "title": 25
+      }
+    },
+    {
+      "arxiv_id": "2503.15520",
+      "pub_key": "2503-15520",
+      "n_entries": 10,
+      "n_candidates": 8,
+      "n_matched": 8,
+      "n_unmatched": 2,
+      "rules": {
+        "arxiv_url": 8,
+        "null": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.14414",
+      "pub_key": "2503-14414",
+      "n_entries": 64,
+      "n_candidates": 45,
+      "n_matched": 17,
+      "n_unmatched": 47,
+      "rules": {
+        "null": 47,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.14103",
+      "pub_key": "2503-14103",
+      "n_entries": 74,
+      "n_candidates": 23,
+      "n_matched": 23,
+      "n_unmatched": 51,
+      "rules": {
+        "doi": 3,
+        "null": 51,
+        "title": 20
+      }
+    },
+    {
+      "arxiv_id": "2503.12362",
+      "pub_key": "2503-12362",
+      "n_entries": 43,
+      "n_candidates": 8,
+      "n_matched": 0,
+      "n_unmatched": 43,
+      "rules": {
+        "null": 43
+      }
+    },
+    {
+      "arxiv_id": "2503.14504",
+      "pub_key": "2503-14504",
+      "n_entries": 156,
+      "n_candidates": 125,
+      "n_matched": 117,
+      "n_unmatched": 39,
+      "rules": {
+        "null": 39,
+        "title": 117
+      }
+    },
+    {
+      "arxiv_id": "2503.12390",
+      "pub_key": "2503-12390",
+      "n_entries": 78,
+      "n_candidates": 36,
+      "n_matched": 4,
+      "n_unmatched": 74,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 74
+      }
+    },
+    {
+      "arxiv_id": "2503.16002",
+      "pub_key": "2503-16002",
+      "n_entries": 66,
+      "n_candidates": 28,
+      "n_matched": 20,
+      "n_unmatched": 46,
+      "rules": {
+        "null": 46,
+        "title": 20
+      }
+    },
+    {
+      "arxiv_id": "2503.15824",
+      "pub_key": "2503-15824",
+      "n_entries": 23,
+      "n_candidates": 7,
+      "n_matched": 0,
+      "n_unmatched": 23,
+      "rules": {
+        "null": 23
+      }
+    },
+    {
+      "arxiv_id": "2503.15024",
+      "pub_key": "2503-15024",
+      "n_entries": 121,
+      "n_candidates": 88,
+      "n_matched": 88,
+      "n_unmatched": 33,
+      "rules": {
+        "arxiv_url": 34,
+        "null": 33,
+        "title": 54
+      }
+    },
+    {
+      "arxiv_id": "2503.15246",
+      "pub_key": "2503-15246",
+      "n_entries": 41,
+      "n_candidates": 13,
+      "n_matched": 11,
+      "n_unmatched": 30,
+      "rules": {
+        "null": 30,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.16562",
+      "pub_key": "2503-16562",
+      "n_entries": 39,
+      "n_candidates": 28,
+      "n_matched": 24,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 11,
+        "null": 15,
+        "title": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.13773",
+      "pub_key": "2503-13773",
+      "n_entries": 36,
+      "n_candidates": 18,
+      "n_matched": 17,
+      "n_unmatched": 19,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 19,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.15123",
+      "pub_key": "2503-15123",
+      "n_entries": 23,
+      "n_candidates": 14,
+      "n_matched": 5,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 18,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.13881",
+      "pub_key": "2503-13881",
+      "n_entries": 65,
+      "n_candidates": 55,
+      "n_matched": 53,
+      "n_unmatched": 12,
+      "rules": {
+        "arxiv_url": 16,
+        "null": 12,
+        "title": 37
+      }
+    },
+    {
+      "arxiv_id": "2503.14786",
+      "pub_key": "2503-14786",
+      "n_entries": 59,
+      "n_candidates": 36,
+      "n_matched": 36,
+      "n_unmatched": 23,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 23,
+        "title": 31
+      }
+    },
+    {
+      "arxiv_id": "2503.12962",
+      "pub_key": "2503-12962",
+      "n_entries": 21,
+      "n_candidates": 13,
+      "n_matched": 13,
+      "n_unmatched": 8,
+      "rules": {
+        "null": 8,
+        "title": 13
+      }
+    },
+    {
+      "arxiv_id": "2503.14053",
+      "pub_key": "2503-14053",
+      "n_entries": 31,
+      "n_candidates": 16,
+      "n_matched": 16,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 10,
+        "doi": 2,
+        "null": 15,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.14282",
+      "pub_key": "2503-14282",
+      "n_entries": 82,
+      "n_candidates": 46,
+      "n_matched": 42,
+      "n_unmatched": 40,
+      "rules": {
+        "null": 40,
+        "title": 42
+      }
+    },
+    {
+      "arxiv_id": "2503.12528",
+      "pub_key": "2503-12528",
+      "n_entries": 53,
+      "n_candidates": 31,
+      "n_matched": 31,
+      "n_unmatched": 22,
+      "rules": {
+        "arxiv_url": 9,
+        "null": 22,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.13896",
+      "pub_key": "2503-13896",
+      "n_entries": 45,
+      "n_candidates": 20,
+      "n_matched": 20,
+      "n_unmatched": 25,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 25,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.14753",
+      "pub_key": "2503-14753",
+      "n_entries": 26,
+      "n_candidates": 4,
+      "n_matched": 4,
+      "n_unmatched": 22,
+      "rules": {
+        "null": 22,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.12916",
+      "pub_key": "2503-12916",
+      "n_entries": 31,
+      "n_candidates": 15,
+      "n_matched": 11,
+      "n_unmatched": 20,
+      "rules": {
+        "null": 20,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.12575",
+      "pub_key": "2503-12575",
+      "n_entries": 31,
+      "n_candidates": 21,
+      "n_matched": 21,
+      "n_unmatched": 10,
+      "rules": {
+        "arxiv_url": 14,
+        "null": 10,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.13667",
+      "pub_key": "2503-13667",
+      "n_entries": 35,
+      "n_candidates": 6,
+      "n_matched": 5,
+      "n_unmatched": 30,
+      "rules": {
+        "null": 30,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.15231",
+      "pub_key": "2503-15231",
+      "n_entries": 64,
+      "n_candidates": 21,
+      "n_matched": 21,
+      "n_unmatched": 43,
+      "rules": {
+        "arxiv_url": 4,
+        "doi": 7,
+        "null": 43,
+        "title": 10
+      }
+    },
+    {
+      "arxiv_id": "2503.11984",
+      "pub_key": "2503-11984",
+      "n_entries": 56,
+      "n_candidates": 21,
+      "n_matched": 20,
+      "n_unmatched": 36,
+      "rules": {
+        "arxiv_url": 7,
+        "doi": 2,
+        "null": 36,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.13902",
+      "pub_key": "2503-13902",
+      "n_entries": 34,
+      "n_candidates": 1,
+      "n_matched": 0,
+      "n_unmatched": 34,
+      "rules": {
+        "null": 34
+      }
+    },
+    {
+      "arxiv_id": "2503.14334",
+      "pub_key": "2503-14334",
+      "n_entries": 36,
+      "n_candidates": 6,
+      "n_matched": 6,
+      "n_unmatched": 30,
+      "rules": {
+        "null": 30,
+        "title": 6
+      }
+    },
+    {
+      "arxiv_id": "2503.15274",
+      "pub_key": "2503-15274",
+      "n_entries": 20,
+      "n_candidates": 11,
+      "n_matched": 5,
+      "n_unmatched": 15,
+      "rules": {
+        "null": 15,
+        "title": 5
+      }
+    },
+    {
+      "arxiv_id": "2503.13719",
+      "pub_key": "2503-13719",
+      "n_entries": 73,
+      "n_candidates": 57,
+      "n_matched": 56,
+      "n_unmatched": 17,
+      "rules": {
+        "arxiv_url": 55,
+        "null": 17,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.14992",
+      "pub_key": "2503-14992",
+      "n_entries": 63,
+      "n_candidates": 33,
+      "n_matched": 14,
+      "n_unmatched": 49,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 49,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.14436",
+      "pub_key": "2503-14436",
+      "n_entries": 41,
+      "n_candidates": 20,
+      "n_matched": 0,
+      "n_unmatched": 41,
+      "rules": {
+        "null": 41
+      }
+    },
+    {
+      "arxiv_id": "2503.11939",
+      "pub_key": "2503-11939",
+      "n_entries": 30,
+      "n_candidates": 8,
+      "n_matched": 7,
+      "n_unmatched": 23,
+      "rules": {
+        "null": 23,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.16715",
+      "pub_key": "2503-16715",
+      "n_entries": 19,
+      "n_candidates": 9,
+      "n_matched": 9,
+      "n_unmatched": 10,
+      "rules": {
+        "null": 10,
+        "title": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.16180",
+      "pub_key": "2503-16180",
+      "n_entries": 77,
+      "n_candidates": 16,
+      "n_matched": 12,
+      "n_unmatched": 65,
+      "rules": {
+        "null": 65,
+        "title": 12
+      }
+    },
+    {
+      "arxiv_id": "2503.15509",
+      "pub_key": "2503-15509",
+      "n_entries": 79,
+      "n_candidates": 30,
+      "n_matched": 29,
+      "n_unmatched": 50,
+      "rules": {
+        "arxiv_url": 10,
+        "null": 50,
+        "title": 19
+      }
+    },
+    {
+      "arxiv_id": "2503.12586",
+      "pub_key": "2503-12586",
+      "n_entries": 85,
+      "n_candidates": 49,
+      "n_matched": 49,
+      "n_unmatched": 36,
+      "rules": {
+        "arxiv_url": 31,
+        "null": 36,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.13546",
+      "pub_key": "2503-13546",
+      "n_entries": 35,
+      "n_candidates": 23,
+      "n_matched": 22,
+      "n_unmatched": 13,
+      "rules": {
+        "arxiv_url": 13,
+        "doi": 1,
+        "null": 13,
+        "title": 8
+      }
+    },
+    {
+      "arxiv_id": "2503.16371",
+      "pub_key": "2503-16371",
+      "n_entries": 47,
+      "n_candidates": 24,
+      "n_matched": 26,
+      "n_unmatched": 21,
+      "rules": {
+        "arxiv_url": 4,
+        "null": 21,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.16848",
+      "pub_key": "2503-16848",
+      "n_entries": 98,
+      "n_candidates": 67,
+      "n_matched": 64,
+      "n_unmatched": 34,
+      "rules": {
+        "arxiv_url": 27,
+        "null": 34,
+        "title": 37
+      }
+    },
+    {
+      "arxiv_id": "2503.16343",
+      "pub_key": "2503-16343",
+      "n_entries": 20,
+      "n_candidates": 9,
+      "n_matched": 4,
+      "n_unmatched": 16,
+      "rules": {
+        "null": 16,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.13963",
+      "pub_key": "2503-13963",
+      "n_entries": 43,
+      "n_candidates": 37,
+      "n_matched": 0,
+      "n_unmatched": 43,
+      "rules": {
+        "null": 43
+      }
+    },
+    {
+      "arxiv_id": "2503.16160",
+      "pub_key": "2503-16160",
+      "n_entries": 99,
+      "n_candidates": 80,
+      "n_matched": 73,
+      "n_unmatched": 26,
+      "rules": {
+        "arxiv_url": 3,
+        "doi": 7,
+        "null": 26,
+        "title": 63
+      }
+    },
+    {
+      "arxiv_id": "2503.13028",
+      "pub_key": "2503-13028",
+      "n_entries": 98,
+      "n_candidates": 40,
+      "n_matched": 0,
+      "n_unmatched": 98,
+      "rules": {
+        "null": 98
+      }
+    },
+    {
+      "arxiv_id": "2503.12242",
+      "pub_key": "2503-12242",
+      "n_entries": 89,
+      "n_candidates": 64,
+      "n_matched": 63,
+      "n_unmatched": 26,
+      "rules": {
+        "null": 26,
+        "title": 63
+      }
+    },
+    {
+      "arxiv_id": "2503.15910",
+      "pub_key": "2503-15910",
+      "n_entries": 32,
+      "n_candidates": 23,
+      "n_matched": 21,
+      "n_unmatched": 11,
+      "rules": {
+        "arxiv_url": 3,
+        "null": 11,
+        "title": 18
+      }
+    },
+    {
+      "arxiv_id": "2503.13562",
+      "pub_key": "2503-13562",
+      "n_entries": 57,
+      "n_candidates": 25,
+      "n_matched": 20,
+      "n_unmatched": 37,
+      "rules": {
+        "arxiv_url": 5,
+        "null": 37,
+        "title": 15
+      }
+    },
+    {
+      "arxiv_id": "2503.12583",
+      "pub_key": "2503-12583",
+      "n_entries": 15,
+      "n_candidates": 1,
+      "n_matched": 1,
+      "n_unmatched": 14,
+      "rules": {
+        "null": 14,
+        "title": 1
+      }
+    },
+    {
+      "arxiv_id": "2503.15942",
+      "pub_key": "2503-15942",
+      "n_entries": 128,
+      "n_candidates": 13,
+      "n_matched": 12,
+      "n_unmatched": 116,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 116,
+        "title": 11
+      }
+    },
+    {
+      "arxiv_id": "2503.12395",
+      "pub_key": "2503-12395",
+      "n_entries": 37,
+      "n_candidates": 15,
+      "n_matched": 15,
+      "n_unmatched": 22,
+      "rules": {
+        "null": 22,
+        "title": 15
+      }
+    },
+    {
+      "arxiv_id": "2503.15872",
+      "pub_key": "2503-15872",
+      "n_entries": 16,
+      "n_candidates": 6,
+      "n_matched": 0,
+      "n_unmatched": 16,
+      "rules": {
+        "null": 16
+      }
+    },
+    {
+      "arxiv_id": "2503.16389",
+      "pub_key": "2503-16389",
+      "n_entries": 8,
+      "n_candidates": 5,
+      "n_matched": 4,
+      "n_unmatched": 4,
+      "rules": {
+        "null": 4,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.12420",
+      "pub_key": "2503-12420",
+      "n_entries": 9,
+      "n_candidates": 5,
+      "n_matched": 0,
+      "n_unmatched": 9,
+      "rules": {
+        "null": 9
+      }
+    },
+    {
+      "arxiv_id": "2503.12593",
+      "pub_key": "2503-12593",
+      "n_entries": 59,
+      "n_candidates": 16,
+      "n_matched": 15,
+      "n_unmatched": 44,
+      "rules": {
+        "null": 44,
+        "title": 15
+      }
+    },
+    {
+      "arxiv_id": "2503.13417",
+      "pub_key": "2503-13417",
+      "n_entries": 101,
+      "n_candidates": 57,
+      "n_matched": 54,
+      "n_unmatched": 47,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 47,
+        "title": 52
+      }
+    },
+    {
+      "arxiv_id": "2503.15602",
+      "pub_key": "2503-15602",
+      "n_entries": 46,
+      "n_candidates": 16,
+      "n_matched": 14,
+      "n_unmatched": 32,
+      "rules": {
+        "null": 32,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.14380",
+      "pub_key": "2503-14380",
+      "n_entries": 20,
+      "n_candidates": 9,
+      "n_matched": 3,
+      "n_unmatched": 17,
+      "rules": {
+        "doi": 1,
+        "null": 17,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.15153",
+      "pub_key": "2503-15153",
+      "n_entries": 29,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 26,
+      "rules": {
+        "null": 26,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.13183",
+      "pub_key": "2503-13183",
+      "n_entries": 102,
+      "n_candidates": 85,
+      "n_matched": 84,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 80,
+        "null": 18,
+        "title": 4
+      }
+    },
+    {
+      "arxiv_id": "2503.12898",
+      "pub_key": "2503-12898",
+      "n_entries": 77,
+      "n_candidates": 54,
+      "n_matched": 49,
+      "n_unmatched": 28,
+      "rules": {
+        "doi": 1,
+        "null": 28,
+        "title": 48
+      }
+    },
+    {
+      "arxiv_id": "2503.12055",
+      "pub_key": "2503-12055",
+      "n_entries": 38,
+      "n_candidates": 20,
+      "n_matched": 2,
+      "n_unmatched": 36,
+      "rules": {
+        "null": 36,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.12949",
+      "pub_key": "2503-12949",
+      "n_entries": 40,
+      "n_candidates": 34,
+      "n_matched": 32,
+      "n_unmatched": 8,
+      "rules": {
+        "arxiv_url": 7,
+        "null": 8,
+        "title": 25
+      }
+    },
+    {
+      "arxiv_id": "2503.14707",
+      "pub_key": "2503-14707",
+      "n_entries": 30,
+      "n_candidates": 8,
+      "n_matched": 4,
+      "n_unmatched": 26,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 26,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.11933",
+      "pub_key": "2503-11933",
+      "n_entries": 13,
+      "n_candidates": 3,
+      "n_matched": 3,
+      "n_unmatched": 10,
+      "rules": {
+        "null": 10,
+        "title": 3
+      }
+    },
+    {
+      "arxiv_id": "2503.12276",
+      "pub_key": "2503-12276",
+      "n_entries": 32,
+      "n_candidates": 18,
+      "n_matched": 16,
+      "n_unmatched": 16,
+      "rules": {
+        "arxiv_url": 2,
+        "null": 16,
+        "title": 14
+      }
+    },
+    {
+      "arxiv_id": "2503.11973",
+      "pub_key": "2503-11973",
+      "n_entries": 28,
+      "n_candidates": 4,
+      "n_matched": 2,
+      "n_unmatched": 26,
+      "rules": {
+        "null": 26,
+        "title": 2
+      }
+    },
+    {
+      "arxiv_id": "2503.14944",
+      "pub_key": "2503-14944",
+      "n_entries": 61,
+      "n_candidates": 35,
+      "n_matched": 33,
+      "n_unmatched": 28,
+      "rules": {
+        "arxiv_url": 10,
+        "null": 28,
+        "title": 23
+      }
+    },
+    {
+      "arxiv_id": "2503.15257",
+      "pub_key": "2503-15257",
+      "n_entries": 93,
+      "n_candidates": 80,
+      "n_matched": 78,
+      "n_unmatched": 15,
+      "rules": {
+        "arxiv_url": 71,
+        "null": 15,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.14690",
+      "pub_key": "2503-14690",
+      "n_entries": 55,
+      "n_candidates": 11,
+      "n_matched": 10,
+      "n_unmatched": 45,
+      "rules": {
+        "arxiv_url": 1,
+        "doi": 2,
+        "null": 45,
+        "title": 7
+      }
+    },
+    {
+      "arxiv_id": "2503.12461",
+      "pub_key": "2503-12461",
+      "n_entries": 48,
+      "n_candidates": 36,
+      "n_matched": 34,
+      "n_unmatched": 14,
+      "rules": {
+        "arxiv_url": 12,
+        "null": 14,
+        "title": 22
+      }
+    },
+    {
+      "arxiv_id": "2503.12715",
+      "pub_key": "2503-12715",
+      "n_entries": 43,
+      "n_candidates": 29,
+      "n_matched": 25,
+      "n_unmatched": 18,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 18,
+        "title": 24
+      }
+    },
+    {
+      "arxiv_id": "2503.14003",
+      "pub_key": "2503-14003",
+      "n_entries": 63,
+      "n_candidates": 45,
+      "n_matched": 0,
+      "n_unmatched": 63,
+      "rules": {
+        "null": 63
+      }
+    },
+    {
+      "arxiv_id": "2503.16361",
+      "pub_key": "2503-16361",
+      "n_entries": 147,
+      "n_candidates": 92,
+      "n_matched": 90,
+      "n_unmatched": 57,
+      "rules": {
+        "arxiv_url": 27,
+        "null": 57,
+        "title": 63
+      }
+    },
+    {
+      "arxiv_id": "2503.13975",
+      "pub_key": "2503-13975",
+      "n_entries": 86,
+      "n_candidates": 36,
+      "n_matched": 35,
+      "n_unmatched": 51,
+      "rules": {
+        "arxiv_url": 18,
+        "null": 51,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.12181",
+      "pub_key": "2503-12181",
+      "n_entries": 75,
+      "n_candidates": 19,
+      "n_matched": 18,
+      "n_unmatched": 57,
+      "rules": {
+        "arxiv_url": 1,
+        "null": 57,
+        "title": 17
+      }
+    },
+    {
+      "arxiv_id": "2503.16345",
+      "pub_key": "2503-16345",
+      "n_entries": 63,
+      "n_candidates": 49,
+      "n_matched": 44,
+      "n_unmatched": 19,
+      "rules": {
+        "arxiv_url": 7,
+        "null": 19,
+        "title": 37
+      }
+    },
+    {
+      "arxiv_id": "2503.15696",
+      "pub_key": "2503-15696",
+      "n_entries": 58,
+      "n_candidates": 37,
+      "n_matched": 38,
+      "n_unmatched": 20,
+      "rules": {
+        "null": 20,
+        "title": 38
+      }
+    },
+    {
+      "arxiv_id": "2503.12742",
+      "pub_key": "2503-12742",
+      "n_entries": 35,
+      "n_candidates": 20,
+      "n_matched": 8,
+      "n_unmatched": 27,
+      "rules": {
+        "null": 27,
+        "title": 8
+      }
+    }
+  ]
+}
