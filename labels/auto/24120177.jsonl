@@ -717,7 +717,7 @@
 {"arxiv_id": "2503.14592", "citation_key": "feynman1982simulating", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.14592", "citation_key": "foxen2020demonstrating", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.14592", "citation_key": "frey2022realization", "groundtruth_arxiv_id": "2105.06632", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
-{"arxiv_id": "2503.14592", "citation_key": "gopalakrishnan2018facilitated", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.14592", "citation_key": "gopalakrishnan2018facilitated", "groundtruth_arxiv_id": "1802.07729", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14592", "citation_key": "haase2021resource", "groundtruth_arxiv_id": "2006.14160", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14592", "citation_key": "hensgens2017quantum", "groundtruth_arxiv_id": "1702.07511", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14592", "citation_key": "kattemolle2022variational", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -752,7 +752,7 @@
 {"arxiv_id": "2503.14592", "citation_key": "rokhsar1988superconductivity", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.14592", "citation_key": "rosenberg2024dynamics", "groundtruth_arxiv_id": "2306.09333", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14592", "citation_key": "ryan-anderson2024high-fidelity", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.14592", "citation_key": "sriluckshmy2023optimal", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.14592", "citation_key": "sriluckshmy2023optimal", "groundtruth_arxiv_id": "2303.04498", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14592", "citation_key": "suzuki1991general", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.14592", "citation_key": "tan2020optimal", "groundtruth_arxiv_id": "2007.15671", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.14592", "citation_key": "tan2024compiling", "groundtruth_arxiv_id": "2306.03487", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
@@ -3084,6 +3084,7 @@
 {"arxiv_id": "2503.16112", "citation_key": "R", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16112", "citation_key": "SaeediJETC10", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16112", "citation_key": "SaeediMEJ10", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.16112", "citation_key": "Smith10", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16112", "citation_key": "Spector90", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16112", "citation_key": "TUGInstmem", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16112", "citation_key": "Thornburg01", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -4775,6 +4776,7 @@
 {"arxiv_id": "2503.15850", "citation_key": "R", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.15850", "citation_key": "SaeediJETC10", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.15850", "citation_key": "SaeediMEJ10", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.15850", "citation_key": "Smith10", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.15850", "citation_key": "Spector90", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.15850", "citation_key": "TUGInstmem", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.15850", "citation_key": "Thornburg01", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
@@ -17118,10 +17120,10 @@
 {"arxiv_id": "2503.16234", "citation_key": "caldwell2010technique", "groundtruth_arxiv_id": "0910.2624", "labeler": "24120177", "method": "auto", "rule": "title", "score": 0.9936}
 {"arxiv_id": "2503.16234", "citation_key": "caruso2015band", "groundtruth_arxiv_id": "1503.05778", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16234", "citation_key": "florian2018dielectric", "groundtruth_arxiv_id": "1712.05607", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
-{"arxiv_id": "2503.16234", "citation_key": "gjerding2021recent", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.16234", "citation_key": "gjerding2021recent", "groundtruth_arxiv_id": "2102.03029", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16234", "citation_key": "graham2024band", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16234", "citation_key": "graham2024conduction", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.16234", "citation_key": "haastrup2018computational", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.16234", "citation_key": "haastrup2018computational", "groundtruth_arxiv_id": "1806.03173", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16234", "citation_key": "hofmann2021accessing", "groundtruth_arxiv_id": "2011.11490", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16234", "citation_key": "kas2014cumulant", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16234", "citation_key": "katoch2018giant", "groundtruth_arxiv_id": "1705.04866", "labeler": "24120177", "method": "auto", "rule": "title", "score": 0.9952}
@@ -23644,7 +23646,7 @@
 {"arxiv_id": "2503.16002", "citation_key": "IgarashiZ2024", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16002", "citation_key": "JansenKMS2013", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16002", "citation_key": "KamadaK2017", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
-{"arxiv_id": "2503.16002", "citation_key": "KawasakiBTTY2020", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
+{"arxiv_id": "2503.16002", "citation_key": "KawasakiBTTY2020", "groundtruth_arxiv_id": "1911.08809", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}
 {"arxiv_id": "2503.16002", "citation_key": "KeijzerBKZ2009", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16002", "citation_key": "KnightMN2024", "groundtruth_arxiv_id": null, "labeler": "24120177", "method": "auto", "rule": null, "score": null}
 {"arxiv_id": "2503.16002", "citation_key": "KnopS2023", "groundtruth_arxiv_id": "2302.13997", "labeler": "24120177", "method": "auto", "rule": "title", "score": 1.0}

@@ -31,17 +31,17 @@
     "eligible": 3960
   },
   "summary": {
-    "total_entries": 27390,
-    "total_matched": 11633,
-    "total_unmatched": 15757,
-    "match_rate": 0.4247,
+    "total_entries": 27392,
+    "total_matched": 11638,
+    "total_unmatched": 15754,
+    "match_rate": 0.4249,
     "n_pubs_with_matches": 457,
     "n_pubs_zero_matched": 43,
     "rules": {
       "arxiv_url": 3384,
       "doi": 121,
-      "null": 15757,
-      "title": 8128
+      "null": 15754,
+      "title": 8133
     }
   },
   "publications": [
@@ -226,12 +226,12 @@
       "pub_key": "2503-14592",
       "n_entries": 68,
       "n_candidates": 43,
-      "n_matched": 39,
-      "n_unmatched": 29,
+      "n_matched": 41,
+      "n_unmatched": 27,
       "rules": {
         "doi": 6,
-        "null": 29,
-        "title": 33
+        "null": 27,
+        "title": 35
       }
     },
     {
@@ -809,13 +809,13 @@
     {
       "arxiv_id": "2503.16112",
       "pub_key": "2503-16112",
-      "n_entries": 59,
+      "n_entries": 60,
       "n_candidates": 10,
       "n_matched": 9,
-      "n_unmatched": 50,
+      "n_unmatched": 51,
       "rules": {
         "arxiv_url": 4,
-        "null": 50,
+        "null": 51,
         "title": 5
       }
     },
@@ -1239,13 +1239,13 @@
     {
       "arxiv_id": "2503.15850",
       "pub_key": "2503-15850",
-      "n_entries": 214,
+      "n_entries": 215,
       "n_candidates": 105,
       "n_matched": 102,
-      "n_unmatched": 112,
+      "n_unmatched": 113,
       "rules": {
         "arxiv_url": 43,
-        "null": 112,
+        "null": 113,
         "title": 59
       }
     },
@@ -3849,11 +3849,11 @@
       "pub_key": "2503-16234",
       "n_entries": 56,
       "n_candidates": 32,
-      "n_matched": 30,
-      "n_unmatched": 26,
+      "n_matched": 32,
+      "n_unmatched": 24,
       "rules": {
-        "null": 26,
-        "title": 30
+        "null": 24,
+        "title": 32
       }
     },
     {
@@ -5426,11 +5426,11 @@
       "pub_key": "2503-16002",
       "n_entries": 66,
       "n_candidates": 28,
-      "n_matched": 20,
-      "n_unmatched": 46,
+      "n_matched": 21,
+      "n_unmatched": 45,
       "rules": {
-        "null": 46,
-        "title": 20
+        "null": 45,
+        "title": 21
       }
     },
     {
