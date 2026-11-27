@@ -375,6 +375,16 @@ def parse_author(name: str | None) -> Author | None:
     if not last:
         return None
     first = _normalize(first.replace(".", " ").replace("-", " "))
+    if _all_generic(last):
+        # "Collaboration, The ATLAS": `The` là mạo từ của tên tổ chức, không phải
+        # tên riêng, nên không được sinh ra chữ đầu `t`. Nếu để lại thì dãy thành
+        # ['t','a','collaboration'], lệch độ dài với ['atlas','collaboration'] của
+        # "The ATLAS Collaboration" và hai bên không gặp nhau. Hửu Duy chỉ ra
+        # 27/11: 8 tên kiểu này trên parsed/.
+        #
+        # Chỉ làm khi HỌ là từ chung chỉ tổ chức. Ngoài nhánh đó, `The` có thể là
+        # tên người thật — `Nguyen, The Anh` (Nguyễn Thế Anh) phải giữ nguyên `ta`.
+        first = re.sub(r"^the\s+", "", first)
     initials = "".join(w[0] for w in first.split())
 
     # Khoá phụ: cùng cách tách họ/tên nhưng bỏ dấu thay vì fold ae/oe/ue.

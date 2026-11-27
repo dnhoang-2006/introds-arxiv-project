@@ -375,3 +375,29 @@ def test_org_written_as_name_comma_generic_is_a_known_limitation():
     assert parse_author("Zhang, Research").matches(parse_author("Zhang, R."))
     # thứ tự ngược lại thì vẫn gặp nhau bình thường
     assert parse_author("Team, Gemini").matches(parse_author("Gemini Team"))
+
+
+@pytest.mark.parametrize(
+    ("left", "right", "expect"),
+    [
+        ("Collaboration, The ATLAS", "The ATLAS Collaboration", True),
+        ("Collaboration, The ATLAS", "ATLAS Collaboration", True),
+        ("Collaboration, The ATLAS", "A. Collaboration", True),
+        ("Collaboration, The ATLAS", "CMS Collaboration", False),
+    ],
+)
+def test_article_the_in_given_part_of_organisation(left, right, expect):
+    """`The` là mạo từ của tên tổ chức, không được sinh ra chữ đầu tên."""
+    assert parse_author(left).matches(parse_author(right)) is expect
+
+
+def test_the_is_only_dropped_for_organisations():
+    """`Nguyễn Thế Anh` viết không dấu thành `Nguyen, The Anh` — `The` là tên thật.
+
+    Chỉ bỏ `the` khi HỌ là từ chung chỉ tổ chức. Nếu bỏ vô điều kiện thì tên
+    người Việt mất một chữ đầu.
+    """
+    a = parse_author("Nguyen, The Anh")
+    assert (a.last, a.initials) == ("nguyen", "ta")
+    assert a.matches(parse_author("T. Nguyen"))
+    assert not a.matches(parse_author("Anh Nguyen"))
