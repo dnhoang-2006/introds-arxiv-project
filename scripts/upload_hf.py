@@ -130,10 +130,20 @@ def main(argv: list[str] | None = None) -> int:
             repo_type="dataset",
             folder_path=str(folder),
             ignore_patterns=list(IGNORE),
+            # XOÁ shard cũ trên Hub. `upload_folder` chỉ THÊM và GHI ĐÈ, không bao
+            # giờ xoá, nên lần đẩy sau mà số shard ít đi (đổi --shard-rows chẳng
+            # hạn: 25.000 dòng ra ~200 file, 500.000 dòng ra ~10 file) thì 190 file
+            # cũ vẫn nằm đó. Viewer đọc cả hai bộ -> dòng bị trùng, hoặc báo lỗi vì
+            # lệch schema. Minh Thư chỉ ra 27/11 khi review PR #54.
+            delete_patterns=["data/*/*.parquet"],
             commit_message=f"Dataset M1+M2 cho MSSV {args.mssv}",
         )
     except HfHubHTTPError as exc:
         _die(f"Hub từ chối: {exc}")
+
+    if not (folder / "data" / "predictions").is_dir():
+        print("\nGhi chú: bản này chưa có bảng `predictions` (Milestone 3). Thầy cho "
+              "update bổ sung tới hạn nộp Poster, vẫn giữ nguyên link này.")
 
     url = f"https://huggingface.co/datasets/{repo_id}"
     print("\nXong. Link để nộp:")
