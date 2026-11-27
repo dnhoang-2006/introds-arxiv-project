@@ -185,8 +185,8 @@ bị cắt sai.
 |---|---|---|---|
 | 1 | Minh Thư | `gather.gather()` | Tìm đường biên dịch của từng version |
 | 2 | Thanh Tú | `normalize.clean_latex` + `normalize_math` | Chuẩn hoá toàn văn từng version |
-| 3 | Hửu Duy | `bib_dedup.unify_publication()` lượt 1 | Đọc bib **tất cả** version → dựng `rename_map` |
-| 4 | Hửu Duy | `bib_dedup.unify_publication()` lượt 2 | Đổi `\cite` trên văn bản đã chuẩn hoá |
+| 3 | Hữu Duy | `bib_dedup.unify_publication()` lượt 1 | Đọc bib **tất cả** version → dựng `rename_map` |
+| 4 | Hữu Duy | `bib_dedup.unify_publication()` lượt 2 | Đổi `\cite` trên văn bản đã chuẩn hoá |
 | 5 | Nhóm trưởng | `hierarchy` + `elements` | Dựng cây và **băm** trên văn bản ra từ bước 4 |
 
 **Vì sao bước 3–4 phải hai lượt:** `rename_map` chỉ dựng được khi đã đọc hết mọi version của bài đó,
@@ -277,14 +277,14 @@ arxiv_id,version,n_elements,n_sentences,n_formulas,n_figures,max_depth,seconds,s
 2507.06661,3,1,0,0,0,0,0.00,empty,
 ```
 
-### `logs/bib.csv` — Hửu Duy ghi (theo từng version)
+### `logs/bib.csv` — Hữu Duy ghi (theo từng version)
 
 ```
 arxiv_id,version,n_bibitem,n_bibfile_entries,seconds,status,error_type
 2507.06659,1,0,42,0.07,ok,
 ```
 
-### `logs/bib_dedup.csv` — Hửu Duy ghi (theo từng publication)
+### `logs/bib_dedup.csv` — Hữu Duy ghi (theo từng publication)
 
 ```
 arxiv_id,n_before,n_after,n_cite_renamed,seconds,status,error_type

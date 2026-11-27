@@ -12,7 +12,7 @@ Hiện tại, `docs/schema.md` (Mục 5) định nghĩa 4 file log vi mô do t�
 - `logs/discovery.csv` (Đặng Ngọc Hoàng): đo thời gian phân giải metadata bài báo.
 - `logs/download.csv` (Dương Ngọc Minh Thư): đo bytes và thời gian tải source archive.
 - `logs/extract.csv` (Trần Ngọc Thanh Tú): đo dung lượng `bytes_before` và `bytes_after` sau khi lọc figure.
-- `logs/references.csv` (Cáp Hửu Duy): đo số lượng reference và thời gian cào Semantic Scholar.
+- `logs/references.csv` (Cáp Hữu Duy): đo số lượng reference và thời gian cào Semantic Scholar.
 
 **Khác biệt & giá trị bổ sung của Benchmark Log:**
 1. Các log trên là **log vi mô nội bộ** của từng script (chủ yếu là thời gian I/O và số lượng đối tượng).

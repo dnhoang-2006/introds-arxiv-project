@@ -276,5 +276,5 @@ Thư mục sinh ra lúc chạy (**không commit**): `corpus/`, `logs/`, `reports
 | 24120053 | Đặng Ngọc Hoàng (nhóm trưởng) | Entry Discovery + Tích hợp | A3 — OAI-PMH + Kaggle Cross-Validation |
 | 24120144 | Dương Ngọc Minh Thư | Full-text Source Download | A1 — Tối ưu hiệu năng |
 | 24120152 | Trần Ngọc Thanh Tú | Extract + Corpus Builder | A2 — Data Validation Suite |
-| 24120177 | Cáp Hửu Duy | Semantic Scholar References | C — Tiền xử lý bắc cầu M2/M3 |
+| 24120177 | Cáp Hữu Duy | Semantic Scholar References | C — Tiền xử lý bắc cầu M2/M3 |
 | 24120153 | Nguyễn Lê Anh Tuấn | Benchmark + Jupyter Book | B — Phân tích mở rộng |

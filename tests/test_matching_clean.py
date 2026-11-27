@@ -4,7 +4,7 @@ Chạy từ thư mục gốc dự án:
     pytest tests/test_matching_clean.py -v
 
 Hai phía M2 (bibtex) và M1 (references) phải ra CÙNG một dạng; test đỏ nghĩa là
-matcher sẽ trượt, phải báo Hửu Duy và Anh Tuấn.
+matcher sẽ trượt, phải báo Hữu Duy và Anh Tuấn.
 """
 from __future__ import annotations
 
@@ -108,7 +108,7 @@ def test_bibtex_and_reference_sides_agree():
     assert bib["citation_key"] == "vaswani2017"  # giữ nguyên trường gốc
 
 # ------------------------------------------------------------------ hồi quy 27/11
-# Bốn lỗi do Hửu Duy báo + đo lại trên dải 24120053. Test đỏ ở đây nghĩa là
+# Bốn lỗi do Hữu Duy báo + đo lại trên dải 24120053. Test đỏ ở đây nghĩa là
 # matcher trượt đúng những ca đã biết, xem docs/schema_m3.md mục 9.
 @pytest.mark.parametrize(
     ("s2_side", "bibtex_side"),
@@ -140,9 +140,6 @@ def test_et_al_does_not_become_surname():
     assert parse_author("P. Moskal et al.").last == "moskal"
 
 
-def test_quote_accent_only_before_lowercase():
-    assert parse_author("Valentin Cr'epel").last == "crepel"
-    assert parse_author("T. O'Brien").last == "o brien"   # nháy thật, giữ nguyên
 
 
 def test_fold_stays_primary_key_alt_is_extra():
@@ -210,8 +207,74 @@ def test_first_author_matches_only_looks_at_first():
 
 
 def test_quote_regex_runs_before_lowercasing():
-    """Bẫy Hửu Duy chỉ ra 27/11: dời regex xuống sau .lower() là hỏng O'Brien."""
+    """Bẫy Hữu Duy chỉ ra 27/11: dời regex xuống sau .lower() là hỏng O'Brien.
+
+    Gộp từ test_quote_accent_only_before_lowercase cũ.
+    """
+    # nháy THẬT phải giữ, ở cả hai cách viết hoa
+    assert parse_author("T. O'Brien").last == "o brien"
     assert parse_author("O'Brien, Thomas").last == "o brien"
     assert parse_author("T. O'Brien").matches(parse_author("O'brien, Thomas"))
-    # và nháy-thành-dấu vẫn phải được sửa
+    # nháy-thành-dấu vẫn phải được sửa
+    assert parse_author("Valentin Cr'epel").last == "crepel"
     assert "crepel v" in parse_author("Valentin Cr'epel").keys
+
+
+# ------------------------------------------------------------------ Hữu Duy soát 27/11
+@pytest.mark.parametrize(
+    ("left", "right"),
+    [
+        # 1. một bên không có chữ đầu tên -> chỉ so họ. Entry bóc từ .bbl rất hay
+        #    chỉ ghi mỗi họ. Bỏ qua là mất 52 cặp.
+        ("He", "Kaiming He"),
+        ("Raffel et al.", "Colin A. Raffel"),
+        ("Vaswani", "Vaswani, Ashish"),
+        # 2. tiền tố tách lệch giữa hai nguồn. Bỏ qua là mất 77 cặp.
+        ("G. Di Giulio", "Di Giulio, Giuseppe"),
+        ("S. von Buddenbrock", "Buddenbrock, Stefan"),
+        ("van der Waals, J. D.", "J. D. Waals"),
+    ],
+)
+def test_surname_only_and_particle_cases_match(left, right):
+    assert parse_author(left).matches(parse_author(right))
+
+
+@pytest.mark.parametrize(
+    ("left", "right"),
+    [
+        ("Kaiming He", "Xiangyu He"),      # cùng họ, khác chữ đầu tên
+        ("Vaswani, Ashish", "Shazeer, Noam"),
+        ("Giulio, G.", "Rossi, G."),       # đuôi không trọn từ
+    ],
+)
+def test_still_rejects_different_people(left, right):
+    assert not parse_author(left).matches(parse_author(right))
+
+
+def test_le_wang_still_works_after_particle_rule():
+    """Đừng sửa _split_first_last kiểu coi Di/Le viết hoa là tiền tố.
+
+    `Le` trong `Le Wang` là tên riêng tiếng Trung, không phải particle.
+    """
+    assert parse_author("Le Wang").matches(parse_author("Wang, Le"))
+    assert parse_author("Le Wang").last == "wang"
+
+
+def test_first_author_matches_does_not_parse_whole_list():
+    """Bài collaboration có hàng nghìn tác giả; chỉ parse người đầu."""
+    from src.matching.clean import first_author_matches, parse_author
+
+    huge = ["Kaiming He"] + [f"Author {i}" for i in range(3000)]
+    parse_author.cache_clear()
+    assert first_author_matches(huge, ["He"])
+    assert parse_author.cache_info().currsize <= 4
+
+
+def test_authors_match_caps_pairwise_work():
+    from src.matching.clean import authors_match
+
+    big_a = [f"Alpha{i}, A." for i in range(2000)] + ["Kaiming He"]
+    big_b = [f"Beta{i}, B." for i in range(2000)] + ["He"]
+    # "He" nằm ngoài ngưỡng _PAIRWISE_LIMIT nên không khớp -> không treo máy
+    assert authors_match(big_a, big_b) is False
+    assert authors_match(["Kaiming He"], ["He"]) is True
