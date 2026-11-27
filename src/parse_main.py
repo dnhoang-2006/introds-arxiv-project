@@ -100,9 +100,12 @@ def parse_one(arxiv_id: str, out_root: Path) -> list[dict[str, Any]]:
             g = gather_detail(vdir, arxiv_id)
             if g.status == "empty":
                 # Không bỏ qua: đề yêu cầu ghi nhận cả version rỗng (schema mục 6).
+                # Giữ error_type để parse.csv phân biệt được hai nguồn gốc:
+                # `empty_version` (M1 không tải được source) với
+                # `no_latex_document` (có .tex nhưng nội dung không phải LaTeX).
                 empty.append(v)
-                rows[v] = {"version": v, "status": "empty", "error_type": "",
-                           "n_elements": 1}
+                rows[v] = {"version": v, "status": "empty",
+                           "error_type": g.error_type or "", "n_elements": 1}
                 continue
             if not g.compile_path:
                 rows[v] = {"version": v, "status": "fail",

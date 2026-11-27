@@ -415,11 +415,36 @@ def test_parse_one_build_tree_failure_isolated(corpus, tmp_path, monkeypatch):
 
 
 def test_parse_one_no_root_is_fail_not_empty(corpus, tmp_path):
+    """Nguồn TeX thật mà không chọn được root -> fail, để lần sau parse lại."""
     corpus(1, {"main.tex": _PREAMBLE + "Ok." + _END})
-    corpus(2, {"orphan.tex": "No documentclass here."})
+    corpus(2, {"orphan.tex": "\\section{X}\nNo documentclass here."})
     rows = pm.parse_one(AID, tmp_path / "parsed")
     assert [(r["version"], r["status"], r["error_type"]) for r in rows] == [
         (1, "ok", ""), (2, "fail", "no_root")]
+
+
+def test_parse_one_non_tex_version_recorded_as_empty(corpus, tmp_path):
+    """File .tex thật ra là HTML -> ghi version RỖNG chứ không bỏ qua.
+
+    schema_m2 mục 6 trích đề: "record the version as empty rather than skipping
+    it". Trước bản vá, ca này ra `fail` và cả publication không có thư mục
+    parsed/, làm V6 version_cover của validator_m2 báo FAIL.
+    """
+    corpus(1, {"main.tex": _PREAMBLE + "Ok." + _END})
+    corpus(2, {"main.tex": "<html><body><p>Not TeX</p></body></html>"})
+    rows = pm.parse_one(AID, tmp_path / "parsed")
+    assert [(r["version"], r["status"], r["error_type"]) for r in rows] == [
+        (1, "ok", ""), (2, "empty", "not_tex_source")]
+    assert rows[1]["n_elements"] == 1
+
+
+def test_publication_with_only_non_tex_versions_still_writes_output(corpus, tmp_path):
+    """Mọi version đều là HTML -> vẫn có thư mục parsed/, V6 pass đúng bản chất."""
+    corpus(1, {"main.tex": "<html><body>a</body></html>"})
+    corpus(2, {"main.tex": "<html><body>b</body></html>"})
+    rows = pm.parse_one(AID, tmp_path / "parsed")
+    assert [r["status"] for r in rows] == ["empty", "empty"]
+    assert already_done(KEY, tmp_path / "parsed")
 
 
 def test_parse_one_all_versions_fail_writes_nothing(corpus, tmp_path, monkeypatch):

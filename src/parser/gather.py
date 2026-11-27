@@ -75,6 +75,54 @@ def ordered_includes(clean_text: str) -> list[str]:
     return out
 
 
+def _visible_tex(vdir: Path) -> list[Path]:
+    """File .tex trong version, bỏ file ẩn."""
+    return [p for p in sorted(vdir.glob("**/*.tex")) if not p.name.startswith(".")]
+
+
+def is_latex_file(path: Path) -> bool:
+    """File này có chứa một tài liệu LaTeX thật không.
+
+    Dùng ``clean_tex_comments()`` y như đường chính, để ``\\begin{document}``
+    nằm trong comment không được tính.
+    """
+    return "\\begin{document}" in clean_tex_comments(read_text_safe(path))
+
+
+#: Lệnh cho thấy file là nguồn TeX thật, kể cả khi thiếu \documentclass và
+#: \begin{document} (plain TeX, file chương của một dự án nhiều file).
+LATEX_MARKUP_PATTERN = re.compile(
+    r"\\(?:begin|end|section|subsection|subsubsection|chapter|part|paragraph"
+    r"|usepackage|documentstyle|input|include|bibliography|bibitem|cite|citep|citet"
+    r"|label|ref|eqref|item|caption|footnote|emph|textbf|textit|newcommand|def)\b"
+)
+
+
+def looks_like_tex_source(vdir: Path) -> bool:
+    """Version này có BẤT KỲ nội dung TeX thật nào không.
+
+    Dùng để tách hai thứ rất khác nhau mà cùng làm ``find_root()`` trả ``None``:
+
+    - **Không phải nguồn TeX** (hàm trả ``False``) — file ``.tex`` thật ra là
+      trang HTML, hoặc chỉ là văn bản thuần. Tình trạng vĩnh viễn, chạy lại bao
+      nhiêu lần cũng vậy, nên ghi là version RỖNG theo ``docs/schema_m2.md``
+      mục 6: *"record the version as empty rather than skipping it"*.
+    - **Là nguồn TeX nhưng find_root không chọn được** (hàm trả ``True``) —
+      heuristic của nhóm còn thiếu, nội dung vẫn còn đó và vẫn bóc được nếu sửa.
+      Phải giữ ``fail`` để lần parse sau còn thử lại.
+
+    Không gộp hai ca này. Đo trên dải 24120053: ``2507.08666/08667/09585`` là
+    HTML đội lốt ``.tex``, 0 lệnh TeX — rỗng thật. Còn ``2507.10483`` có
+    ``\\usepackage``, ``\\section``, ``\\input``, ``\\ref`` trong ``itenn.tex``:
+    đó là plain TeX thật, ghi "rỗng" là nói dối và mất luôn nội dung.
+    """
+    for p in _visible_tex(vdir):
+        text = clean_tex_comments(read_text_safe(p))
+        if "\\begin{document}" in text or LATEX_MARKUP_PATTERN.search(text):
+            return True
+    return False
+
+
 def find_root(vdir: Path, arxiv_id: str = "") -> Path | None:
     """Chọn root file — CÙNG LUẬT với tex_prescan.prescan_version().
 
@@ -95,17 +143,12 @@ def find_root(vdir: Path, arxiv_id: str = "") -> Path | None:
         # Dự phòng: vài bài không khai báo \documentclass nhưng vẫn là LaTeX hợp lệ.
         # Phải kiểm NỘI DUNG, vì có bài (2507.08666/08667/09585) đặt nguyên một
         # trang HTML dưới tên main.tex — nhận bừa thì thẻ HTML lọt vào elements.
-        # Dùng clean_tex_comments() y như đường chính để \begin{document} nằm
-        # trong comment không được tính.
-        def _is_latex(p: Path) -> bool:
-            return "\\begin{document}" in clean_tex_comments(read_text_safe(p))
-
-        tex_files = [p for p in sorted(vdir.glob("**/*.tex")) if not p.name.startswith(".")]
-        if len(tex_files) == 1 and _is_latex(tex_files[0]):
+        tex_files = _visible_tex(vdir)
+        if len(tex_files) == 1 and is_latex_file(tex_files[0]):
             return tex_files[0].resolve()
         for cand in ["main.tex", f"{vdir.name}.tex", "paper.tex"]:
             p = vdir / cand
-            if p.is_file() and _is_latex(p):
+            if p.is_file() and is_latex_file(p):
                 return p.resolve()
         return None
     
@@ -165,6 +208,16 @@ def gather_detail(vdir: Path, arxiv_id: str = "") -> GatherResult:
     # Ca 3: không có root
     root = find_root(vdir, arxiv_id)
     if root is None:
+        # Có .tex nhưng không file nào là nguồn TeX thật (HTML đội lốt .tex, văn
+        # bản thuần) -> đề yêu cầu "record the version as empty rather than
+        # skipping it" (schema_m2 mục 6). Ghi một dòng `document`, V6
+        # version_cover pass đúng bản chất thay vì FAIL.
+        #
+        # Còn là TeX thật mà find_root trượt thì là heuristic của nhóm thiếu —
+        # giữ `fail` để lần sau còn parse lại. KHÔNG gộp hai ca này.
+        if not looks_like_tex_source(vdir):
+            return GatherResult(unused=all_tex, status="empty",
+                                error_type="not_tex_source")
         return GatherResult(unused=all_tex, status="fail", error_type="no_root")
 
     # Duyệt sâu trước (DFS preorder) = đúng thứ tự LaTeX đọc file:
