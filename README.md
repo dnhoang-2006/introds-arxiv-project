@@ -157,6 +157,41 @@ liệu của tất cả thành viên**, không phải trên mẫu. Câu 9 và c�
 phải lấy trên **Google Colab**, không phải máy cá nhân. Nên mỗi người chạy lệnh
 trên cho dải của mình trên Colab rồi gộp `benchmark_runs.csv` lại.
 
+### Bước 7b — Gán nhãn reference matching (Milestone 3)
+
+Quy ước ở `docs/schema_m3.md`. Làm SAU khi đã parse lại (Bước 7) để `citation_key`
+khớp bảng `bibtex` cuối. Thứ tự: gán tay trước, rồi matcher tự động loại các bài đã
+gán tay (mục 4: hai tập không giao nhau).
+
+```bash
+# 1. Gợi ý bài đủ điều kiện (>= 25 reference có arXiv ID), chọn 5 bài khác lĩnh vực
+python scripts/manual_label.py --mssv <MSSV> --suggest
+
+# 2. Gán tay 5 bài -> labels/manual/<MSSV>.jsonl (gõ q để dừng, chạy lại là làm tiếp)
+python scripts/manual_label.py --mssv <MSSV> --pubs <id1>,<id2>,<id3>,<id4>,<id5>
+
+# 3. Matcher tự động 500 bài còn lại -> labels/auto/<MSSV>.jsonl (+ .pubs.json thống kê)
+python src/matching/auto_label.py --ids ids/<MSSV>.txt --mssv <MSSV> --n 500 --seed 42 \
+  --exclude labels/manual/<MSSV>.jsonl --overwrite
+
+# 4. Đo độ chính xác matcher trên nhãn tay của mình
+python src/matching/auto_label.py --eval --gold labels/manual/<MSSV>.jsonl
+
+# 5. Kiểm hai file nhãn đọc được và dựng được candidate matrix
+python src/matching/label_io.py --ids ids/<MSSV>.txt --stats
+```
+
+Công cụ gán tay chỉ gợi ý 5 reference có tiêu đề giống nhất, **không đánh dấu sẵn đáp
+án**: người gán tự đối chiếu tiêu đề/tác giả/năm rồi chọn, hoặc gõ `0` nếu không khớp
+(entry vẫn có dòng, ghi `null`). Mỗi bài cần >= 20 nhãn khác null, công cụ báo khi thiếu.
+
+Matcher tự động dùng các luật ở `schema_m3.md` mục 5, dừng ở luật đầu tiên khớp: arXiv ID
+trong `url`/`journal`, rồi `doi`, rồi độ giống tiêu đề (họ tác giả đầu và năm chỉ để lọc
+ứng viên). Mỗi dòng ghi thêm hai trường
+`rule` (`arxiv_url` | `doi` | `title`, hoặc `null` khi không khớp) và `score` (`1.0` với
+`arxiv_url`/`doi`, độ giống tiêu đề với `title`, `null` khi không khớp). Thêm `--dry-run`
+để xem thống kê mà không ghi file.
+
 ### Bước 8 — Xuất và đẩy dataset lên Hugging Face (Milestone 3)
 
 ```bash
