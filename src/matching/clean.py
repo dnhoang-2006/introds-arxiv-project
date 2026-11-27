@@ -224,7 +224,15 @@ def _split_first_last(name: str) -> tuple[str, str]:
 
 
 def _author_raw(name: str, *, fold: bool) -> str:
-    """Chuỗi tên đã bỏ LaTeX, bỏ dấu và cắt đuôi ``et al.``, chưa tách họ/tên."""
+    """Chuỗi tên đã bỏ LaTeX, bỏ dấu và cắt đuôi ``et al.``, chưa tách họ/tên.
+
+    ⚠️ THỨ TỰ QUAN TRỌNG: ``_QUOTE_ACCENT_RE`` phải chạy khi chuỗi **còn nguyên
+    hoa thường**. Nếu dời nó xuống sau bước ``.lower()`` (nằm trong ``_normalize``)
+    thì ``O'Brien`` đã thành ``o'brien``, nháy lúc đó đứng trước chữ thường nên bị
+    xoá thành ``obrien`` — đúng cái lỗi mà bản vá muốn tránh. Nhìn regex thì tưởng
+    an toàn vì nó "chỉ xoá trước chữ thường", nên chỗ này dễ sai.
+    Hửu Duy chỉ ra 27/11. ``test_quote_accent_only_before_lowercase`` chặn việc này.
+    """
     s = strip_latex(name)
     if fold:
         s = _QUOTE_ACCENT_RE.sub("", s)
@@ -287,6 +295,37 @@ def author_keys(authors: str | Iterable[str] | None) -> list[str]:
 def author_keys_alt(authors: str | Iterable[str] | None) -> list[str]:
     """Khoá phụ, cùng thứ tự với ``author_keys``. So khớp phải nhận cả hai bộ."""
     return [a.alt_key for a in parse_authors(authors)]
+
+
+def author_key_set(authors: str | Iterable[str] | None) -> frozenset[str]:
+    """Hợp của khoá chính và khoá phụ, dạng tập hợp — **dùng cái này để so khớp**.
+
+    ``set(author_keys(x)) & set(author_keys(y))`` là sai: nó bỏ khoá phụ nên
+    ``Blümlein`` (``bluemlein j``) không gặp ``Blumlein`` (``blumlein j``), và
+    khoá phụ coi như không tồn tại.
+    """
+    return frozenset().union(*(a.keys for a in parse_authors(authors))) if authors else frozenset()
+
+
+def authors_match(
+    left: str | Iterable[str] | None,
+    right: str | Iterable[str] | None,
+) -> bool:
+    """Hai danh sách tác giả có chung ít nhất một người không."""
+    return bool(author_key_set(left) & author_key_set(right))
+
+
+def first_author_matches(
+    left: str | Iterable[str] | None,
+    right: str | Iterable[str] | None,
+) -> bool:
+    """Tác giả ĐẦU của hai bên có trùng không — dùng cho bước lọc ứng viên.
+
+    `docs/schema_m3.md` mục 5: họ tác giả đầu + năm chỉ để **lọc ứng viên**,
+    không tự gán nhãn.
+    """
+    a, b = parse_authors(left), parse_authors(right)
+    return bool(a and b and a[0].matches(b[0]))
 
 
 def last_names(authors: str | Iterable[str] | None) -> set[str]:

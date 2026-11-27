@@ -171,3 +171,47 @@ def test_cleaned_rows_expose_alt_keys():
 def test_possessive_apostrophe_in_title_unchanged():
     """Nháy trong tiêu đề hầu hết là sở hữu cách, không được coi là dấu."""
     assert clean_title("a survey's view") == "a survey s view"
+
+
+# ------------------------------------------------------------------ API so khớp
+def test_author_key_set_unions_both_key_forms():
+    """`author_keys` tran bo mat khoa phu — day la ly do co `author_key_set`."""
+    from src.matching.clean import author_key_set
+
+    bib = ["Blümlein, J."]
+    s2 = ["J. Blumlein"]
+    assert not set(author_keys(bib)) & set(author_keys(s2))   # cách SAI
+    assert author_key_set(bib) & author_key_set(s2)            # cách ĐÚNG
+
+
+@pytest.mark.parametrize(
+    ("left", "right", "expect"),
+    [
+        (["Blümlein, J."], ["J. Blumlein"], True),
+        (["P. Moskal et al."], ["Pawel Moskal"], True),
+        (["Valentin Cr'epel"], ["Crépel, Valentin"], True),
+        (["T. O'Brien"], ["O'brien, Thomas"], True),
+        (["Vaswani, Ashish"], ["Noam Shazeer"], False),
+        ([], ["Vaswani, Ashish"], False),
+        (None, None, False),
+    ],
+)
+def test_authors_match(left, right, expect):
+    from src.matching.clean import authors_match
+
+    assert authors_match(left, right) is expect
+
+
+def test_first_author_matches_only_looks_at_first():
+    from src.matching.clean import first_author_matches
+
+    assert first_author_matches(["Blümlein, J.", "X. Y."], ["J. Blumlein", "Z. W."])
+    assert not first_author_matches(["X. Y.", "Blümlein, J."], ["J. Blumlein", "Z. W."])
+
+
+def test_quote_regex_runs_before_lowercasing():
+    """Bẫy Hửu Duy chỉ ra 27/11: dời regex xuống sau .lower() là hỏng O'Brien."""
+    assert parse_author("O'Brien, Thomas").last == "o brien"
+    assert parse_author("T. O'Brien").matches(parse_author("O'brien, Thomas"))
+    # và nháy-thành-dấu vẫn phải được sửa
+    assert "crepel v" in parse_author("Valentin Cr'epel").keys
