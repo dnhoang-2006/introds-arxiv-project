@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -126,12 +127,49 @@ def test_row_validators_catch_bad_inputs():
         )
 
 
-def test_preflight_requires_all_five_inputs(tmp_path):
+def test_strict_stops_when_an_input_is_missing(tmp_path):
     corpus, parsed, ids_file = _make_sample_tree(tmp_path)
     (parsed / config.pub_key("2504.12524") / "bibtex.jsonl").unlink()
     ids = export_hf._load_assigned_ids(ids_file)
-    with pytest.raises(export_hf.ExportError, match="Thiếu 1 file đầu vào"):
-        export_hf._preflight(ids, corpus, parsed)
+    with pytest.raises(export_hf.ExportError, match="--strict: 1/2 bài thiếu đầu vào"):
+        export_hf._partition_ids(ids, corpus, parsed, strict=True)
+
+
+@pytest.mark.parametrize(
+    ("break_it", "reason"),
+    [
+        # thư mục parsed chưa có — bài fail hẳn ở M2
+        (lambda c, p: shutil.rmtree(p / config.pub_key("2504.12524")),
+         export_hf.SKIP_MISSING_PARSED_DIR),
+        # thư mục có nhưng thiếu file: parse bị ngắt giữa chừng (elements.jsonl ghi
+        # sau cùng nên đây là trạng thái hay gặp nhất sau một lần Ctrl+C)
+        (lambda c, p: (p / config.pub_key("2504.12524") / "elements.jsonl").unlink(),
+         export_hf.SKIP_MISSING_INPUT_FILE),
+        (lambda c, p: (c / config.pub_key("2504.12524") / "paper_meta.json").unlink(),
+         export_hf.SKIP_MISSING_INPUT_FILE),
+    ],
+)
+def test_one_broken_paper_is_skipped_not_fatal(tmp_path, break_it, reason):
+    """Một bài hỏng trong N bài không được chặn cả lần xuất."""
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    break_it(corpus, parsed)
+    ids = export_hf._load_assigned_ids(ids_file)
+
+    export_ids, skipped = export_hf._partition_ids(ids, corpus, parsed)
+    assert export_ids == ["2504.12523"]
+    assert [s["arxiv_id"] for s in skipped] == ["2504.12524"]
+    assert skipped[0]["reason"] == reason
+    assert skipped[0]["detail"]
+
+
+def test_empty_export_still_refused(tmp_path):
+    """Bỏ qua từng bài thì được, nhưng bỏ qua HẾT thì không tạo dataset rỗng."""
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    for arxiv_id in ("2504.12523", "2504.12524"):
+        shutil.rmtree(parsed / config.pub_key(arxiv_id))
+    ids = export_hf._load_assigned_ids(ids_file)
+    with pytest.raises(export_hf.ExportError, match="không tạo dataset rỗng"):
+        export_hf._partition_ids(ids, corpus, parsed)
 
 
 def test_export_dataset_end_to_end_and_sharding(tmp_path):
@@ -183,17 +221,72 @@ def test_export_dataset_end_to_end_and_sharding(tmp_path):
     ]) == 0
 
 
-def test_export_fails_on_bad_reference_status(tmp_path):
+def _set_reference_status(corpus, arxiv_id: str, status: str) -> None:
+    path = corpus / config.pub_key(arxiv_id) / "references.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["status"] = status
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def test_bad_reference_status_skips_paper_from_all_five_tables(tmp_path):
+    """`rate_limited` nghĩa là reference CHƯA BIẾT, không phải rỗng.
+
+    Bài đó phải biến mất khỏi cả năm bảng, nếu không `papers` có bài mà
+    `references` không có dòng nào -> người đọc hiểu nhầm là bài không có
+    reference.
+    """
     pytest.importorskip("pyarrow")
     corpus, parsed, ids_file = _make_sample_tree(tmp_path)
-    ref_path = corpus / config.pub_key("2504.12523") / "references.json"
-    data = json.loads(ref_path.read_text(encoding="utf-8"))
-    data["status"] = "rate_limited"
-    ref_path.write_text(json.dumps(data), encoding="utf-8")
+    _set_reference_status(corpus, "2504.12523", "rate_limited")
 
-    out = tmp_path / "hf_bad"
+    out = tmp_path / "hf_skip"
     assert export_hf.main([
         "--mssv", "24120152", "--ids-file", str(ids_file),
         "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+    ]) == 0
+
+    manifest = json.loads(
+        (out / "metadata" / "export-manifest-24120152.json").read_text(encoding="utf-8")
+    )
+    assert manifest["n_requested_publications"] == 2
+    assert manifest["n_publications"] == 1
+    assert manifest["skipped_ids"] == ["2504.12523"]
+    assert manifest["skipped"][0]["reason"] == export_hf.SKIP_BAD_REFERENCES_STATUS
+    assert "rate_limited" in manifest["skipped"][0]["detail"]
+    assert manifest["n_skipped_by_reason"] == {export_hf.SKIP_BAD_REFERENCES_STATUS: 1}
+
+    import pyarrow.parquet as pq
+
+    ids_in_papers = pq.read_table(
+        next((out / "data" / "papers").glob("*.parquet"))
+    ).column("arxiv_id").to_pylist()
+    assert "2504.12523" not in ids_in_papers
+
+
+def test_strict_restores_the_old_fail_fast_behaviour(tmp_path):
+    pytest.importorskip("pyarrow")
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    _set_reference_status(corpus, "2504.12523", "rate_limited")
+
+    out = tmp_path / "hf_strict"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+        "--strict",
     ]) == 1
     assert not out.exists()
+
+
+def test_manifest_records_no_skips_when_everything_is_present(tmp_path):
+    pytest.importorskip("pyarrow")
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    out = tmp_path / "hf_clean"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+    ]) == 0
+    manifest = json.loads(
+        (out / "metadata" / "export-manifest-24120152.json").read_text(encoding="utf-8")
+    )
+    assert manifest["n_skipped_publications"] == 0
+    assert manifest["skipped"] == [] and manifest["n_skipped_by_reason"] == {}

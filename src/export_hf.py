@@ -244,41 +244,86 @@ def _row_iterators(
     }
 
 
-def _preflight(arxiv_ids: list[str], corpus_root: Path, parsed_root: Path) -> None:
-    missing: list[str] = []
+#: Lý do một publication bị loại khỏi CẢ NĂM bảng, ghi vào manifest.
+SKIP_MISSING_PARSED_DIR = "missing_parsed_directory"
+SKIP_MISSING_INPUT_FILE = "missing_input_file"
+SKIP_UNREADABLE_REFERENCES = "unreadable_references"
+SKIP_BAD_REFERENCES_STATUS = "bad_references_status"
+
+
+def _skip_reason(
+    arxiv_id: str, corpus_root: Path, parsed_root: Path
+) -> tuple[str, str] | None:
+    """(lý do, chi tiết) nếu publication này không xuất được, None nếu xuất được.
+
+    Một publication thiếu bất kỳ đầu vào nào đều bị loại khỏi **cả năm bảng**, không
+    phải chỉ bảng thiếu. Nếu chỉ loại khỏi một bảng thì `papers` sẽ có bài mà
+    `references` không có dòng nào — người đọc dataset hiểu nhầm là bài đó không có
+    reference, trong khi thật ra là chưa crawl được.
+    """
+    folder = config.pub_key(arxiv_id)
+    parsed_dir = parsed_root / folder
+    if not parsed_dir.is_dir():
+        return (SKIP_MISSING_PARSED_DIR, str(parsed_dir))
+
+    refs_path = corpus_root / folder / "references.json"
+    for path in (
+        corpus_root / folder / "paper_meta.json",
+        refs_path,
+        parsed_dir / "elements.jsonl",
+        parsed_dir / "hierarchy.jsonl",
+        parsed_dir / "bibtex.jsonl",
+    ):
+        if not path.is_file():
+            return (SKIP_MISSING_INPUT_FILE, str(path))
+
+    try:
+        status = _load_json(refs_path).get("status")
+    except ExportError as exc:
+        return (SKIP_UNREADABLE_REFERENCES, str(exc))
+    if status not in {"ok", "not_indexed"}:
+        # rate_limited / error: reference của bài này là CHƯA BIẾT chứ không phải
+        # rỗng, nên xuất ra sẽ là nói dối. Nhờ người crawl bù rồi xuất lại.
+        return (SKIP_BAD_REFERENCES_STATUS, f"status={status!r}")
+    return None
+
+
+def _partition_ids(
+    arxiv_ids: list[str],
+    corpus_root: Path,
+    parsed_root: Path,
+    *,
+    strict: bool = False,
+) -> tuple[list[str], list[dict[str, str]]]:
+    """Tách ID xuất được khỏi ID phải bỏ qua, kèm lý do từng bài.
+
+    Mặc định **bỏ qua và ghi vào manifest** thay vì dừng cả lần xuất: 1 bài hỏng
+    trong 5.000 không nên chặn cả nhóm nộp link. `--strict` khôi phục hành vi dừng.
+    """
+    export_ids: list[str] = []
+    skipped: list[dict[str, str]] = []
     for arxiv_id in arxiv_ids:
-        folder = config.pub_key(arxiv_id)
-        for path in (
-            corpus_root / folder / "paper_meta.json",
-            corpus_root / folder / "references.json",
-            parsed_root / folder / "elements.jsonl",
-            parsed_root / folder / "hierarchy.jsonl",
-            parsed_root / folder / "bibtex.jsonl",
-        ):
-            if not path.is_file():
-                missing.append(f"{arxiv_id}: {path}")
-    if missing:
-        preview = "\n".join(f"  - {item}" for item in missing[:20])
-        extra = f"\n  ... và {len(missing) - 20} file khác" if len(missing) > 20 else ""
+        reason = _skip_reason(arxiv_id, corpus_root, parsed_root)
+        if reason is None:
+            export_ids.append(arxiv_id)
+        else:
+            skipped.append({"arxiv_id": arxiv_id, "reason": reason[0], "detail": reason[1]})
+
+    if strict and skipped:
+        preview = "\n".join(
+            f"  - {s['arxiv_id']}: {s['reason']} ({s['detail']})" for s in skipped[:20]
+        )
+        extra = f"\n  ... và {len(skipped) - 20} bài khác" if len(skipped) > 20 else ""
         raise ExportError(
-            f"Thiếu {len(missing)} file đầu vào; chưa xuất dataset để tránh thiếu dữ liệu:\n"
+            f"--strict: {len(skipped)}/{len(arxiv_ids)} bài thiếu đầu vào, chưa xuất:\n"
             f"{preview}{extra}"
         )
-
-
-def _partition_parsed_ids(arxiv_ids: list[str], parsed_root: Path) -> tuple[list[str], list[str]]:
-    """Separate IDs with parsed directories from IDs that must be skipped."""
-    available: list[str] = []
-    skipped: list[str] = []
-    for arxiv_id in arxiv_ids:
-        parsed_dir = parsed_root / config.pub_key(arxiv_id)
-        (available if parsed_dir.is_dir() else skipped).append(arxiv_id)
-    if not available:
+    if not export_ids:
         raise ExportError(
-            f"Không có bài nào trong {len(arxiv_ids)} ID được giao có thư mục trong {parsed_root}; "
-            "không tạo dataset rỗng."
+            f"Không bài nào trong {len(arxiv_ids)} ID được giao có đủ đầu vào trong "
+            f"{parsed_root} và {corpus_root}; không tạo dataset rỗng."
         )
-    return available, skipped
+    return export_ids, skipped
 
 
 def _table_schemas(pa: Any) -> dict[str, Any]:
@@ -385,8 +430,11 @@ def _write_readme(root: Path) -> None:
         "Each table is a separate configuration: `papers`, `references`, "
         "`elements`, `hierarchy`, and `bibtex`. List-valued columns contain "
         "one-level lists of strings; table rows contain no nested JSON objects. "
-        "Papers without a parsed directory are omitted from all five tables; "
-        "see the export manifest for the skipped IDs.\n"
+        "A paper missing any required input — parsed output, `paper_meta.json`, or "
+        "usable `references.json` — is omitted from all five tables rather than "
+        "from just one, so the tables stay consistent with each other. The export "
+        "manifest lists every skipped ID with its reason; read it before treating "
+        "this dataset as complete.\n"
     )
     (root / "README.md").write_text(readme, encoding="utf-8", newline="\n")
 
@@ -396,19 +444,25 @@ def _write_manifest(
     mssv: str,
     ids: list[str],
     requested_ids: list[str],
-    skipped_ids: list[str],
+    skipped: list[dict[str, str]],
     results: dict[str, dict[str, Any]],
 ) -> None:
     metadata_dir = root / "metadata"
     metadata_dir.mkdir(parents=True, exist_ok=True)
+    by_reason: dict[str, int] = {}
+    for item in skipped:
+        by_reason[item["reason"]] = by_reason.get(item["reason"], 0) + 1
     manifest: dict[str, Any] = {
         "mssv": mssv,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "n_publications": len(ids),
         "n_requested_publications": len(requested_ids),
-        "n_skipped_publications": len(skipped_ids),
-        "skipped_reason": "missing_parsed_directory",
-        "skipped_ids": skipped_ids,
+        "n_skipped_publications": len(skipped),
+        # Mỗi bài bị bỏ qua có lý do riêng; con số gộp theo lý do để tiện trích vào
+        # mục "giới hạn đã biết" của báo cáo.
+        "n_skipped_by_reason": dict(sorted(by_reason.items())),
+        "skipped": skipped,
+        "skipped_ids": [item["arxiv_id"] for item in skipped],
         "predictions_included": False,
     }
     for table_name, result in results.items():
@@ -467,7 +521,8 @@ def export_dataset(
     output: Path,
     shard_rows: int,
     overwrite: bool = False,
-) -> tuple[dict[str, dict[str, Any]], list[str], list[str]]:
+    strict: bool = False,
+) -> tuple[dict[str, dict[str, Any]], list[str], list[dict[str, str]]]:
     try:
         import pyarrow as pa
         import pyarrow.parquet as pq
@@ -484,8 +539,9 @@ def export_dataset(
             f"Thư mục xuất đã tồn tại: {output}. Dùng --overwrite để thay toàn bộ export của MSSV này."
         )
     requested_ids = arxiv_ids
-    export_ids, skipped_ids = _partition_parsed_ids(requested_ids, parsed_root)
-    _preflight(export_ids, corpus_root, parsed_root)
+    export_ids, skipped = _partition_ids(
+        requested_ids, corpus_root, parsed_root, strict=strict
+    )
 
     output.parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix=f".{output.name}.staging-", dir=output.parent))
@@ -506,9 +562,9 @@ def export_dataset(
             )
 
         _write_readme(stage)
-        _write_manifest(stage, mssv, export_ids, requested_ids, skipped_ids, results)
+        _write_manifest(stage, mssv, export_ids, requested_ids, skipped, results)
         _replace_output(stage, output, overwrite)
-        return results, export_ids, skipped_ids
+        return results, export_ids, skipped
     finally:
         if stage.exists():
             shutil.rmtree(stage, ignore_errors=True)
@@ -529,6 +585,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=None, help="Thư mục output; mặc định hf_export/<MSSV>")
     parser.add_argument("--shard-rows", type=int, default=25000, help="Số dòng tối đa mỗi file Parquet")
     parser.add_argument("--overwrite", action="store_true", help="Thay export cũ của MSSV này")
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Dừng hẳn nếu có bài thiếu đầu vào, thay vì bỏ qua và ghi vào manifest",
+    )
     args = parser.parse_args(argv)
 
     if not args.mssv.isdigit():
@@ -538,7 +599,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         arxiv_ids = _load_assigned_ids(ids_file)
-        results, export_ids, skipped_ids = export_dataset(
+        results, export_ids, skipped = export_dataset(
             mssv=args.mssv,
             arxiv_ids=arxiv_ids,
             corpus_root=args.corpus,
@@ -546,6 +607,7 @@ def main(argv: list[str] | None = None) -> int:
             output=output,
             shard_rows=args.shard_rows,
             overwrite=args.overwrite,
+            strict=args.strict,
         )
     except ExportError as exc:
         print(f"LỖI: {exc}", file=sys.stderr)
@@ -553,12 +615,17 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"Hugging Face export cho MSSV {args.mssv}: {output.resolve()}")
     print(f"Publication: {len(export_ids)} xuất / {len(arxiv_ids)} được giao")
-    if skipped_ids:
-        print(f"Bỏ qua {len(skipped_ids)} bài vì chưa có thư mục parsed:")
-        for arxiv_id in skipped_ids[:20]:
-            print(f"  - {arxiv_id}")
-        if len(skipped_ids) > 20:
-            print(f"  ... và {len(skipped_ids) - 20} bài khác; xem metadata export manifest")
+    if skipped:
+        by_reason: dict[str, int] = {}
+        for item in skipped:
+            by_reason[item["reason"]] = by_reason.get(item["reason"], 0) + 1
+        print(f"Bỏ qua {len(skipped)} bài, theo lý do:")
+        for reason, count in sorted(by_reason.items()):
+            print(f"  {reason:<28} {count:>6}")
+        for item in skipped[:10]:
+            print(f"  - {item['arxiv_id']}: {item['reason']} ({item['detail']})")
+        if len(skipped) > 10:
+            print(f"  ... và {len(skipped) - 10} bài khác; xem metadata export manifest")
     for table_name in TABLE_NAMES:
         result = results[table_name]
         print(f"{table_name:<12} {result['rows']:>10,} dòng  {len(result['shards']):>4} shard")
