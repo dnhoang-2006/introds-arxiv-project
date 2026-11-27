@@ -44,6 +44,10 @@ PARSE_LOG_FIELDS = (
 
 # File đánh dấu "publication này đã xong". Được ghi CUỐI CÙNG, xem write_outputs().
 DONE_MARKER = "elements.jsonl"
+#: Đủ ba file này mới coi là xong. Chỉ xét DONE_MARKER thì bài có elements.jsonl
+#: nhưng mất hierarchy/bibtex (xoá tay, copy thiếu) sẽ không bao giờ được parse lại,
+#: trong khi export_hf bỏ qua chính bài đó vì thiếu file.
+OUTPUT_FILES = ("hierarchy.jsonl", "bibtex.jsonl", DONE_MARKER)
 
 
 # --------------------------------------------------------------------------- #
@@ -245,7 +249,8 @@ _INCLUDE_ANY = re.compile(INCLUDE_PATTERN.pattern + "|" + INPUT_BARE_PATTERN.pat
 # Chạy lại được từ giữa chừng
 # --------------------------------------------------------------------------- #
 def already_done(pub_key: str, out_root: Path) -> bool:
-    return (out_root / pub_key / DONE_MARKER).exists()
+    pub_dir = out_root / pub_key
+    return all((pub_dir / name).is_file() for name in OUTPUT_FILES)
 
 
 def _write_jsonl_atomic(path: Path, rows: Iterable[dict[str, Any]]) -> None:
@@ -269,7 +274,7 @@ def write_outputs(
 ) -> Path:
     """Ghi 3 bảng của một publication vào parsed/<pub_key>/.
 
-    ⚠️ elements.jsonl là dấu "đã xong" mà already_done() kiểm tra, nên nó được ghi
+    ⚠️ elements.jsonl là file cuối mà already_done() cần thấy, nên nó được ghi
     SAU CÙNG và ghi nguyên tử. Nếu ghi nó trước hoặc ghi thẳng, mất điện lúc đang
     ghi dở sẽ để lại một elements.jsonl cụt — lần chạy sau tưởng bài đã xong và bỏ
     qua, đúng kiểu lỗi "archive cụt đuôi" đã gặp ở M1.
@@ -328,7 +333,7 @@ def run(
 ) -> dict[str, int]:
     """Parse lần lượt từng publication, ghi logs/parse.csv, trả về số đếm theo status.
 
-    - Đã có elements.jsonl và không --overwrite -> một dòng `skipped` (version để
+    - Đã có đủ 3 file (xem OUTPUT_FILES) và không --overwrite -> một dòng `skipped` (version để
       rỗng vì không mở lại bài đó), không đụng tới file cũ.
     - parse_fn ném lỗi -> một dòng `fail`, error_type = tên lớp lỗi, chạy tiếp bài sau.
       Riêng NotImplementedError được ném lại: đó là code chưa viết, không phải lỗi dữ liệu.
@@ -393,7 +398,7 @@ def run(
                 writer.writerow(_log_row(arxiv_id, status="skipped"))
                 counts["skipped"] += 1
                 if verbose:
-                    print(f"[{i}/{total}] {arxiv_id}  bỏ qua (đã có {DONE_MARKER})")
+                    print(f"[{i}/{total}] {arxiv_id}  bỏ qua (đã có đủ output)")
                 fh.flush()
             else:
                 todo.append(arxiv_id)
@@ -455,3 +460,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    
