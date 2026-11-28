@@ -28,6 +28,10 @@ import config  # noqa: E402
 
 
 TABLE_NAMES = ("papers", "references", "elements", "hierarchy", "bibtex")
+#: Bảng thứ sáu, chỉ xuất khi đã có file nhãn dự đoán. Sinh bởi src/match_main.py.
+PREDICTIONS_TABLE = "predictions"
+#: Số cột ứng viên: cand_1..cand_5. M3 câu 4 ý 5, dưới 5 thì điền null.
+N_CANDIDATES = 5
 
 
 class ExportError(RuntimeError):
@@ -394,6 +398,17 @@ def _table_schemas(pa: Any) -> dict[str, Any]:
             pa.field("journal", string, nullable=True),
             pa.field("url", string, nullable=True),
         ]),
+        # Đúng 8 cột. `groundtruth_arxiv_id` null là dữ liệu âm hợp lệ — entry
+        # không khớp reference nào vẫn có hàng, chỉ không vào mẫu số MRR
+        # (M3 câu 4 ý 2).
+        PREDICTIONS_TABLE: pa.schema([
+            pa.field("arxiv_id", string, nullable=False),
+            pa.field("partition", dictionary, nullable=False),
+            pa.field("citation_key", string, nullable=False),
+            pa.field("groundtruth_arxiv_id", string, nullable=True),
+            *[pa.field(f"cand_{i}", string, nullable=True)
+              for i in range(1, N_CANDIDATES + 1)],
+        ]),
     }
 
 
@@ -432,13 +447,42 @@ class _ShardWriter:
         return {"rows": self.row_count, "shards": self.shard_paths}
 
 
-def _write_readme(root: Path) -> None:
+def _load_predictions(path: Path | None) -> dict[str, list[dict[str, Any]]]:
+    """Hàng predictions gom theo arxiv_id. Không có file thì trả dict rỗng.
+
+    File do `src/match_main.py` sinh ra ở labels/predictions/<MSSV>.jsonl. Chỉ
+    publication thuộc train/valid/test mới có hàng, nên dict này cũng là bộ lọc.
+    """
+    if path is None or not path.is_file():
+        return {}
+    by_pub: dict[str, list[dict[str, Any]]] = {}
+    want = ["arxiv_id", "partition", "citation_key", "groundtruth_arxiv_id",
+            *[f"cand_{i}" for i in range(1, N_CANDIDATES + 1)]]
+    for n, line in enumerate(path.open(encoding="utf-8"), 1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ExportError(f"{path}:{n} không phải JSON hợp lệ: {exc}") from exc
+        missing = [c for c in want if c not in row]
+        if missing:
+            raise ExportError(f"{path}:{n} thiếu cột {', '.join(missing)}")
+        if row["partition"] not in ("train", "valid", "test"):
+            raise ExportError(
+                f"{path}:{n} partition không hợp lệ: {row['partition']!r}")
+        by_pub.setdefault(row["arxiv_id"], []).append({c: row[c] for c in want})
+    return by_pub
+
+
+def _write_readme(root: Path, tables: tuple[str, ...] = TABLE_NAMES) -> None:
     configs = "\n".join(
         f'  - config_name: {name}\n'
         f'    data_files:\n'
         f'      - split: train\n'
         f'        path: "data/{name}/*.parquet"'
-        for name in TABLE_NAMES
+        for name in tables
     )
     readme = (
         "---\n"
@@ -446,8 +490,12 @@ def _write_readme(root: Path) -> None:
         f"{configs}\n"
         "---\n\n"
         "# arXiv Project Dataset\n\n"
-        "This release contains the five Milestone 1 and Milestone 2 tables. "
-        "Predictions will be added in a later release.\n\n"
+        + ("This release contains the five Milestone 1 and Milestone 2 tables "
+           "plus the Milestone 3 `predictions` table.\n\n"
+           if PREDICTIONS_TABLE in tables else
+           "This release contains the five Milestone 1 and Milestone 2 tables. "
+           "Predictions will be added in a later release.\n\n")
+        +
         "Each table is a separate configuration: `papers`, `references`, "
         "`elements`, `hierarchy`, and `bibtex`. List-valued columns contain "
         "one-level lists of strings; table rows contain no nested JSON objects. "
@@ -487,7 +535,9 @@ def _write_manifest(
         "n_skipped_by_reason": dict(sorted(by_reason.items())),
         "skipped": skipped,
         "skipped_ids": [item["arxiv_id"] for item in skipped],
-        "predictions_included": False,
+        # Suy ra từ chính kết quả ghi, không khai cứng: bảng chỉ có mặt khi
+        # tìm thấy file nhãn dự đoán.
+        "predictions_included": PREDICTIONS_TABLE in results,
     }
     for table_name, result in results.items():
         manifest[f"n_rows_{table_name}"] = result["rows"]
@@ -550,6 +600,7 @@ def export_dataset(
     shard_rows: int,
     overwrite: bool = False,
     strict: bool = False,
+    predictions_path: Path | None = None,
 ) -> tuple[dict[str, dict[str, Any]], list[str], list[dict[str, str]]]:
     try:
         import pyarrow as pa
@@ -574,10 +625,12 @@ def export_dataset(
     output.parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix=f".{output.name}.staging-", dir=output.parent))
     try:
+        predictions = _load_predictions(predictions_path)
+        tables = TABLE_NAMES + ((PREDICTIONS_TABLE,) if predictions else ())
         schemas = _table_schemas(pa)
         writers = {
             name: _ShardWriter(name, stage, schemas[name], mssv, shard_rows, pa, pq)
-            for name in TABLE_NAMES
+            for name in tables
         }
         exported: list[str] = []
         for arxiv_id in candidate_ids:
@@ -592,6 +645,8 @@ def export_dataset(
                 continue
             for name in TABLE_NAMES:
                 writers[name].add(rows[name])
+            if predictions:
+                writers[PREDICTIONS_TABLE].add(predictions.get(arxiv_id, []))
             exported.append(arxiv_id)
         if not exported:
             raise ExportError(
@@ -601,9 +656,9 @@ def export_dataset(
         export_ids = exported
         order = {arxiv_id: i for i, arxiv_id in enumerate(requested_ids)}
         skipped.sort(key=lambda item: order[item["arxiv_id"]])
-        results = {name: writers[name].close() for name in TABLE_NAMES}
+        results = {name: writers[name].close() for name in tables}
 
-        _write_readme(stage)
+        _write_readme(stage, tables)
         _write_manifest(stage, mssv, export_ids, requested_ids, skipped, results)
         _replace_output(stage, output, overwrite)
         return results, export_ids, skipped
@@ -632,12 +687,37 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Dừng hẳn nếu có bài thiếu đầu vào, thay vì bỏ qua và ghi vào manifest",
     )
+    parser.add_argument(
+        "--predictions",
+        type=Path,
+        default=None,
+        help="File predictions .jsonl do src/match_main.py sinh; mặc định "
+             "labels/predictions/<MSSV>.jsonl nếu có. Không có file thì bỏ bảng này.",
+    )
+    parser.add_argument(
+        "--no-predictions",
+        action="store_true",
+        help="Bỏ hẳn bảng predictions dù file có tồn tại (dùng cho bản nộp Milestone 2)",
+    )
     args = parser.parse_args(argv)
 
     if not args.mssv.isdigit():
         parser.error("--mssv chỉ nhận chữ số")
+    if args.predictions and args.no_predictions:
+        parser.error("--predictions và --no-predictions loại trừ nhau")
     ids_file = args.ids_file or (config.IDS_ROOT / f"{args.mssv}.txt")
     output = args.out or (config.PROJECT_ROOT / "hf_export" / args.mssv)
+    if args.no_predictions:
+        predictions_path = None
+    elif args.predictions:
+        # Đường dẫn do người dùng chỉ định thì phải tồn tại — im lặng bỏ qua ở đây
+        # là cách dễ nhất để nộp thiếu một bảng mà không ai biết.
+        if not args.predictions.is_file():
+            parser.error(f"--predictions không tồn tại: {args.predictions}")
+        predictions_path = args.predictions
+    else:
+        default = config.PROJECT_ROOT / "labels" / "predictions" / f"{args.mssv}.jsonl"
+        predictions_path = default if default.is_file() else None
 
     try:
         arxiv_ids = _load_assigned_ids(ids_file)
@@ -650,6 +730,7 @@ def main(argv: list[str] | None = None) -> int:
             shard_rows=args.shard_rows,
             overwrite=args.overwrite,
             strict=args.strict,
+            predictions_path=predictions_path,
         )
     except ExportError as exc:
         print(f"LỖI: {exc}", file=sys.stderr)
@@ -668,10 +749,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  - {item['arxiv_id']}: {item['reason']} ({item['detail']})")
         if len(skipped) > 10:
             print(f"  ... và {len(skipped) - 10} bài khác; xem metadata export manifest")
-    for table_name in TABLE_NAMES:
-        result = results[table_name]
+    for table_name, result in results.items():
         print(f"{table_name:<12} {result['rows']:>10,} dòng  {len(result['shards']):>4} shard")
-    print("predictions : chưa xuất ở bản này")
+    if PREDICTIONS_TABLE not in results:
+        print(f"{PREDICTIONS_TABLE:<12} chưa xuất ở bản này"
+              + ("" if args.no_predictions else
+                 f" (không thấy labels/predictions/{args.mssv}.jsonl)"))
     print("Ghi chú: lệnh này chỉ tạo file Parquet cục bộ; chưa upload lên Hugging Face Hub.")
     return 0
 

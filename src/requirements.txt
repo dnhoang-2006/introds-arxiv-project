@@ -26,3 +26,8 @@ pyarrow>=14
 
 # --- Milestone 3: day dataset len Hugging Face Hub ---
 huggingface_hub>=0.26
+
+# --- Milestone 3: model xep hang ung vien ---
+# M3 cau 4.6: LogisticRegression/RandomForest huan luyen tren chinh corpus cua
+# nhom KHONG tinh la kien thuc ngoai.
+scikit-learn>=1.3
