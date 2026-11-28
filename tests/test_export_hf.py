@@ -441,3 +441,184 @@ def test_schema_matches_spec_columns_and_dictionary_types(tmp_path):
         "document", "sentence", "sentence", "document", "sentence"]
     # authors / revised_dates là list[string] một cấp, không lồng object
     assert tables["papers"].schema.field("authors").type == pa.list_(pa.string())
+
+# ---------------------------------------------------------------------------
+#  Bảng predictions (Milestone 3)
+# ---------------------------------------------------------------------------
+
+def _predictions_file(tmp_path: Path, rows: list[dict]) -> Path:
+    p = tmp_path / "predictions.jsonl"
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    return p
+
+
+def _pred_row(arxiv_id: str, **over) -> dict:
+    row = {
+        "arxiv_id": arxiv_id,
+        "partition": "train",
+        "citation_key": "k1",
+        "groundtruth_arxiv_id": "2301.00001",
+        "cand_1": "2301.00001",
+        "cand_2": None, "cand_3": None, "cand_4": None, "cand_5": None,
+    }
+    row.update(over)
+    return row
+
+
+def test_predictions_table_absent_by_default(tmp_path, monkeypatch):
+    pytest.importorskip("pyarrow")
+    monkeypatch.setattr(config, "PROJECT_ROOT", tmp_path)   # không có labels/
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    out = tmp_path / "hf_out"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+    ]) == 0
+
+    assert not (out / "data" / "predictions").exists()
+    readme = (out / "README.md").read_text(encoding="utf-8")
+    assert "config_name: predictions" not in readme
+    manifest = json.loads(
+        (out / "metadata" / "export-manifest-24120152.json").read_text(encoding="utf-8"))
+    assert manifest["predictions_included"] is False
+
+
+def test_predictions_picked_up_from_default_location(tmp_path, monkeypatch):
+    """Có labels/predictions/<MSSV>.jsonl thì bảng xuất ra mà không cần cờ nào."""
+    pytest.importorskip("pyarrow")
+    monkeypatch.setattr(config, "PROJECT_ROOT", tmp_path)
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    d = tmp_path / "labels" / "predictions"
+    d.mkdir(parents=True)
+    (d / "24120152.jsonl").write_text(
+        json.dumps(_pred_row("2504.12523")) + "\n", encoding="utf-8")
+
+    out = tmp_path / "hf_out"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+    ]) == 0
+
+    manifest = json.loads(
+        (out / "metadata" / "export-manifest-24120152.json").read_text(encoding="utf-8"))
+    assert manifest["predictions_included"] is True
+    assert manifest["n_rows_predictions"] == 1
+    readme = (out / "README.md").read_text(encoding="utf-8")
+    assert "config_name: predictions" in readme
+    assert 'path: "data/predictions/*.parquet"' in readme
+
+
+def test_no_predictions_flag_wins_over_existing_file(tmp_path, monkeypatch):
+    """Bản nộp Milestone 2 phải xuất được đúng năm bảng dù file nhãn đã có."""
+    pytest.importorskip("pyarrow")
+    monkeypatch.setattr(config, "PROJECT_ROOT", tmp_path)
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    d = tmp_path / "labels" / "predictions"
+    d.mkdir(parents=True)
+    (d / "24120152.jsonl").write_text(
+        json.dumps(_pred_row("2504.12523")) + "\n", encoding="utf-8")
+
+    out = tmp_path / "hf_out"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+        "--no-predictions",
+    ]) == 0
+    assert not (out / "data" / "predictions").exists()
+
+
+def test_predictions_schema_matches_schema_m3_column_list(tmp_path):
+    pa = pytest.importorskip("pyarrow")
+    pq = pytest.importorskip("pyarrow.parquet")
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    preds = _predictions_file(tmp_path, [
+        _pred_row("2504.12523"),
+        # groundtruth null: entry không khớp reference nào. Vẫn phải có hàng
+        # (M3 câu 4 ý 2) — chỉ không vào mẫu số MRR, mà đó là việc của match_main.
+        _pred_row("2504.12524", partition="test", citation_key="k2",
+                  groundtruth_arxiv_id=None, cand_1="2301.00009"),
+    ])
+    out = tmp_path / "hf_out"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+        "--predictions", str(preds),
+    ]) == 0
+
+    t = pq.read_table(sorted((out / "data" / "predictions").glob("*.parquet"))[0])
+    assert t.column_names == [
+        "arxiv_id", "partition", "citation_key", "groundtruth_arxiv_id",
+        "cand_1", "cand_2", "cand_3", "cand_4", "cand_5",
+    ]
+    assert t.num_rows == 2
+    assert pa.types.is_dictionary(t.schema.field("partition").type)
+    assert t.schema.field("groundtruth_arxiv_id").nullable is True
+    assert t.schema.field("arxiv_id").nullable is False
+    d = t.to_pydict()
+    assert d["groundtruth_arxiv_id"] == ["2301.00001", None]
+    assert d["cand_5"] == [None, None]
+
+
+def test_predictions_only_for_exported_publications(tmp_path):
+    """Hàng của bài bị bỏ qua không được lọt vào bảng."""
+    pytest.importorskip("pyarrow")
+    pq = pytest.importorskip("pyarrow.parquet")
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    _set_reference_status(corpus, "2504.12524", "zzz_khong_hop_le")
+    preds = _predictions_file(tmp_path, [
+        _pred_row("2504.12523"),
+        _pred_row("2504.12524", citation_key="k9"),   # bài này sẽ bị loại
+        _pred_row("9999.99999", citation_key="k8"),   # không thuộc ids được giao
+    ])
+    out = tmp_path / "hf_out"
+    assert export_hf.main([
+        "--mssv", "24120152", "--ids-file", str(ids_file),
+        "--corpus", str(corpus), "--parsed", str(parsed), "--out", str(out),
+        "--predictions", str(preds),
+    ]) == 0
+
+    t = pq.read_table(sorted((out / "data" / "predictions").glob("*.parquet"))[0])
+    assert t.to_pydict()["arxiv_id"] == ["2504.12523"]
+
+
+@pytest.mark.parametrize("bad, msg", [
+    ({"arxiv_id": "2504.12523", "partition": "train"}, "thiếu cột"),
+    (dict(_pred_row("2504.12523"), partition="holdout"), "partition không hợp lệ"),
+])
+def test_bad_predictions_file_refused(tmp_path, bad, msg):
+    pytest.importorskip("pyarrow")
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    preds = _predictions_file(tmp_path, [bad])
+    out = tmp_path / "hf_out"
+    with pytest.raises(export_hf.ExportError, match=msg):
+        export_hf.export_dataset(
+            mssv="24120152",
+            arxiv_ids=export_hf._load_assigned_ids(ids_file),
+            corpus_root=corpus, parsed_root=parsed, output=out, shard_rows=25000,
+            predictions_path=preds,
+        )
+
+
+def test_malformed_predictions_json_names_the_line(tmp_path):
+    pytest.importorskip("pyarrow")
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    preds = tmp_path / "predictions.jsonl"
+    preds.write_text(json.dumps(_pred_row("2504.12523")) + "\nkhong-phai-json\n",
+                     encoding="utf-8")
+    with pytest.raises(export_hf.ExportError, match=r"predictions\.jsonl:2"):
+        export_hf.export_dataset(
+            mssv="24120152",
+            arxiv_ids=export_hf._load_assigned_ids(ids_file),
+            corpus_root=corpus, parsed_root=parsed, output=tmp_path / "o", shard_rows=25000,
+            predictions_path=preds,
+        )
+
+
+def test_predictions_path_that_does_not_exist_is_an_error(tmp_path):
+    corpus, parsed, ids_file = _make_sample_tree(tmp_path)
+    with pytest.raises(SystemExit):
+        export_hf.main([
+            "--mssv", "24120152", "--ids-file", str(ids_file),
+            "--corpus", str(corpus), "--parsed", str(parsed),
+            "--out", str(tmp_path / "o"), "--predictions", str(tmp_path / "khong-co.jsonl"),
+        ])
