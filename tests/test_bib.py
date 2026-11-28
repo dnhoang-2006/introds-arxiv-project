@@ -587,3 +587,22 @@ def test_collect_bib_bib_entry_keeps_fields_from_bbl(tmp_path: Path):
     assert e["title"] == "The project homepage"
     assert e["authors"] == ["Some Author"]
     assert e["entry_type"] == "misc"                # trường .bib có giá trị vẫn thắng
+
+
+def test_read_bib_file_normalizes_doi_url_and_year(tmp_path: Path):
+    """doi bỏ tiền tố URL, url bỏ chữ thừa phía trước, year không nhận số > MAX_YEAR (đo 27/11)."""
+    bib = tmp_path / "refs.bib"
+    bib.write_text(
+        "@article{a, title={T}, doi={https://doi.org/10.1016/0370-2693(83)91529-0},\n"
+        "  url={URl: https://advantage.mandiant.com/}, year={2041, reprinted 2019}}\n"
+        "@article{b, title={T}, doi={99.9999/woot07-S422}, url={shorturl.at/gAVpz}, year={2058}}\n",
+        encoding="utf-8",
+    )
+    a, b = read_bib_file(bib)
+    assert (a["doi"], a["url"], a["year"]) == ("10.1016/0370-2693(83)91529-0", "https://advantage.mandiant.com/", 2019)
+    assert (b["doi"], b["url"], b["year"]) == (None, "shorturl.at/gAVpz", None)
+
+
+def test_parse_bibitem_year_skips_page_numbers_after_max_year():
+    raw = r"A. Smith. \newblock A title. \newblock J. Phys., 12:2041--2058, 2019."
+    assert parse_bibitem("smith", raw)["year"] == 2019

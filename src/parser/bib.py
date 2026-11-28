@@ -34,6 +34,30 @@ DOI_PAT = re.compile(r"10\.\d{4,9}/[-._;()/:\w]+", re.IGNORECASE)
 ARXIV_PAT = re.compile(r"arXiv[:\s]*(\d{4}\.\d{4,5}|[a-z-]+/\d{7})(?:v\d+)?", re.IGNORECASE)
 ARXIV_REF_PAT = re.compile(r"(?:arXiv[:.]|abs/)\s*(\d{4}\.\d{4,5}|[a-z-]+/\d{7})(?:v\d+)?", re.IGNORECASE)
 URL_PAT = re.compile(r"https?://[^\s,}]+")
+# Bài được giao nộp năm 2025, nên năm của tài liệu trích dẫn không thể muộn hơn 2026.
+# Số lớn hơn là trang/volume bị bắt nhầm (`pp. 2041--2058`); đo 27/11: 222 entry.
+MAX_YEAR = 2026
+
+
+def _pick_year(text: str | None) -> int | None:
+    """Năm đầu tiên hợp lệ (1900..MAX_YEAR) trong chuỗi."""
+    for m in YEAR_PAT.finditer(text or ""):
+        if int(m.group(0)) <= MAX_YEAR:
+            return int(m.group(0))
+    return None
+
+
+def _pick_doi(text: str | None) -> str | None:
+    """DOI trần: bỏ tiền tố `https://doi.org/`, `dx.doi.org/`, `doi:`; không phải DOI thì None.
+    Trường `doi` của .bib hay ghi cả URL (đo 27/11: 2.320 entry)."""
+    m = DOI_PAT.search(text or "")
+    return m.group(0).rstrip(".") if m else None
+
+
+def _pick_url(text: str | None) -> str | None:
+    """Có http(s):// thì lấy đúng URL đó (bỏ chữ thừa như `URl: `); không có thì giữ nguyên."""
+    m = URL_PAT.search(text or "")
+    return m.group(0).rstrip(".") if m else (text or None)
 
 # Các regex trích xuất tiêu đề fallback theo ngoặc kép ``...'' và "...",
 # cuối cùng là \emph/\textit vì \emph{} thường dùng cho tên hội nghị/tạp chí.
@@ -235,13 +259,12 @@ def read_bib_file(
         authors = auth_list if auth_list else None
 
         # Year -> int |None
-        yr = YEAR_PAT.search(f("year") or "")
-        year = int(yr.group(0)) if yr else None
+        year = _pick_year(f("year"))
 
         # DOI, Journal, URL
-        doi = f("doi")
+        doi = _pick_doi(f("doi"))
         journal = f("journal") or f("booktitle")
-        url = f("url")
+        url = _pick_url(f("url"))
 
         # arXiv ID
         arxiv_id = _find_arxiv(fields)
@@ -469,12 +492,10 @@ def parse_bibitem(key: str, raw: str) -> dict[str, Any]:
         title = None
 
     # Year
-    m_year = YEAR_PAT.search(clean_raw)
-    year = int(m_year.group(0)) if m_year else None
+    year = _pick_year(clean_raw)
 
     # DOI
-    m_doi = DOI_PAT.search(clean_raw)
-    doi = m_doi.group(0).rstrip(".") if m_doi else None
+    doi = _pick_doi(clean_raw)
 
     # arXiv ID
     m_arxiv = ARXIV_PAT.search(clean_raw)
